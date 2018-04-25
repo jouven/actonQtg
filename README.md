@@ -15,6 +15,8 @@ https://github.com/jouven/signalso
 
 https://github.com/jouven/actonqtso
 
+https://github.com/jouven/threadedFunctionQtso
+
 Run (in actonQtg source directory or pointing to it):
 
     qmake
