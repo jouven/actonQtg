@@ -27,7 +27,7 @@ Images
 ------
 *Linux Xfce4*
 
-![](../master/images/Screenshot_linux_xfce4.png)
+![](../master/screenshots/Screenshot_linux_xfce4.png)
 
 *Windows 10*
 
