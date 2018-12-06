@@ -15,8 +15,8 @@
 
 void argumentEditWindow_c::closeEvent(QCloseEvent* event)
 {
-    appConfig_f().setWidgetGeometry_f(this->objectName(), saveGeometry());
-    //appConfig_f().setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName(), saveGeometry());
+    //appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
     event->accept();
 }
 
@@ -48,14 +48,14 @@ argumentEditWindow_c::argumentEditWindow_c(
 //    argumentField_pri->setLayout(sizeGripLayoutTmp);
 //    sizeGripLayoutTmp->addWidget(sizeGripTmp, 0, Qt::AlignBottom | Qt::AlignRight);
 
-    argumentValueLayoutTmp->addWidget(new QLabel(tr("Value")));
+    argumentValueLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Value")));
     argumentValueLayoutTmp->addWidget(argumentField_pri);
 
     QHBoxLayout* argumentIndexLayoutTmp = new QHBoxLayout;
 
     argumentIndexField_pri = new QLineEdit(QString::number(currentIndex_par_con));
     argumentIndexField_pri->setToolTip("Index change won't replace other arguments, it will reorder them after or before");
-    argumentIndexLayoutTmp->addWidget(new QLabel(tr("Index")));
+    argumentIndexLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Index")));
     argumentIndexLayoutTmp->addWidget(argumentIndexField_pri);
 
     enabledCheckbox_pri = new QCheckBox("Enabled");
@@ -65,10 +65,10 @@ argumentEditWindow_c::argumentEditWindow_c(
 
     QHBoxLayout* buttonsLayoutTmp = new QHBoxLayout;
 
-    QPushButton* saveButtonTmp = new QPushButton(tr("Save"));
+    QPushButton* saveButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Save"));
     buttonsLayoutTmp->addWidget(saveButtonTmp);
     connect(saveButtonTmp, &QPushButton::clicked, this, &argumentEditWindow_c::saveButtonPushed_f);
-    QPushButton* cancelButtonTmp = new QPushButton(tr("Cancel"));
+    QPushButton* cancelButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Cancel"));
     buttonsLayoutTmp->addWidget(cancelButtonTmp);
     connect(cancelButtonTmp, &QPushButton::clicked, this, &argumentEditWindow_c::cancelButtonPushed_f);
 
@@ -96,12 +96,12 @@ argumentEditWindow_c::argumentEditWindow_c(
     mainLayout_pri->addLayout(buttonsLayoutTmp);
     this->setLayout(mainLayout_pri);
 
-    setWindowTitle(tr("Add/update argument"));
+    setWindowTitle(appConfig_ptr_ext->translate_f("Add/update argument"));
 
-    if (appConfig_f().configLoaded_f())
+    if (appConfig_ptr_ext->configLoaded_f())
     {
-         restoreGeometry(appConfig_f().widgetGeometry_f(this->objectName()));
-         //mainSplitter_pri->restoreState(appConfig_f().widgetGeometry_f(this->objectName() + mainSplitter_pri->objectName()));
+         restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName()));
+         //mainSplitter_pri->restoreState(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + mainSplitter_pri->objectName()));
     }
 }
 
@@ -112,23 +112,29 @@ void argumentEditWindow_c::cancelButtonPushed_f()
 
 void argumentEditWindow_c::saveButtonPushed_f()
 {
-    //if the argument is empty
-    //or the index is negative
-    //or the index is greater than the last position
-    //return
-    if (argumentField_pri->toPlainText().isEmpty()
-        or argumentIndexField_pri->text().toLong() < 0
-        or argumentIndexField_pri->text().toLong() > rowCount_pri_con)
+    while (true)
     {
-        errorQMessageBox_f("Empty argument or wrong index value", "Error", this);
-        return;
+        //if the argument is empty
+        //or the index is negative
+        //or the index is greater than the last position
+        //return
+        bool goodNumberConversion(false);
+        if (argumentField_pri->toPlainText().isEmpty()
+            or argumentIndexField_pri->text().toLong(&goodNumberConversion) < 0
+            or argumentIndexField_pri->text().toLong() > rowCount_pri_con
+            or not goodNumberConversion)
+        {
+            errorQMessageBox_f("Empty argument or wrong index value", "Error", this);
+            break;
+        }
+
+        argument_c argumentTmp(argumentField_pri->toPlainText(), enabledCheckbox_pri->isChecked());
+
+        Q_EMIT saveArgumentResult_signal(
+                    argumentTmp
+                    , argumentIndexField_pri->text().toLong()
+                    );
+        close();
+        break;
     }
-
-    argument_c argumentTmp(argumentField_pri->toPlainText(), enabledCheckbox_pri->isChecked());
-
-    Q_EMIT saveArgumentResult_signal(
-                argumentTmp
-                , argumentIndexField_pri->text().toLong()
-    );
-    this->close();
 }

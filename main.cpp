@@ -1,5 +1,8 @@
 #include "mainWindow.hpp"
 
+#include "appConfig.hpp"
+#include "actonQtso/actonDataHub.hpp"
+
 #include "signalso/signal.hpp"
 #include "essentialQtso/essentialQt.hpp"
 
@@ -8,6 +11,7 @@
 int main(int argc, char *argv[])
 {
     MACRO_signalHandler
+
     //qSetMessagePattern(QString("[%{type}] %{appname} (%{file}:%{line}) - %{message} %{backtrace}"));
 #ifdef __ANDROID__
     //QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
@@ -20,31 +24,30 @@ int main(int argc, char *argv[])
     QApplication::setApplicationName("actonQtg");
     QApplication::setApplicationVersion("1.0");
 
-    QStringList positionalArgs;
-    {
-        QCommandLineParser commandLineParser;
-        commandLineParser.setApplicationDescription("ActonQtg, GUI program to manage acton files");
-        commandLineParser.addHelpOption();
-        commandLineParser.addVersionOption();
-        commandLineParser.addPositionalArgument("action file paths", "Optional, path/s to action files to be loaded, they must be compatible (all sequential or all dependency)");
-        //FUTURE flag to run the loaded action files
-        //FUTURE flag to specify non default path config file
+    //statics = who the F knows the initialization order...
+    //let's just use some pointers to local variables
+    appConfig_c appConfigTmp;
+    appConfig_ptr_ext = std::addressof(appConfigTmp);
 
-        commandLineParser.process(*qApp);
-        positionalArgs = commandLineParser.positionalArguments();
+    actonDataHub_c actonDataHubTmp;
+    actonDataHub_ptr_ext = std::addressof(actonDataHubTmp);
 
-        locateConfigFilePath_f(commandLineParser, false);
-    }
+    actonDataHubTmp.setLogDataHub_f(appConfigTmp.logDataHub_f());
 
-    mainWindow_c mainWindowTmp;// = new mainWindow_c;
+    MACRO_ADDACTONQTGLOG("Create main window", logItem_c::type_ec::info);
+
+    mainWindow_c mainWindowTmp;
+    mainWindow_ptr_ext = std::addressof(mainWindowTmp);
     mainWindowTmp.show();
-    mainWindowTmp.processPositionalArguments_f(positionalArgs);
-    returnValue_ext = qtapp.exec();
 
-    if (eines::signal::isRunning_f())
-    {
-        eines::signal::stopRunning_f();
-    }
+    returnValue_ext = QApplication::exec();
+
+    MACRO_ADDACTONQTGLOG("Exit", logItem_c::type_ec::info);
+    //already in the mainwindow close function
+//    if (eines::signal::isRunning_f())
+//    {
+//        eines::signal::stopRunning_f();
+//    }
     while (not eines::signal::isTheEnd_f())
     {}
 

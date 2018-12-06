@@ -3,10 +3,10 @@
 
 #include <QWidget>
 
-class QComboBox;
-class QPlainTextEdit;
+//class QComboBox;
+//class QPlainTextEdit;
 class QVBoxLayout;
-class QCheckBox;
+//class QCheckBox;
 
 class optionsWindow_c : public QWidget
 {
@@ -26,9 +26,10 @@ public Q_SLOTS:
 private Q_SLOTS:
     void saveButtonClicked_f();
     void cancelButtonClicked_f();
-    void tipsButtonClicked_f();
+    //void tipsButtonClicked_f();
     void showEnvironmentWindow_f();
     void showWorkingDirectoryWindow_f();
+    void showLogsWindow_f();
 };
 
 #endif // ACTONQTG_OPTIONSWINDOW_HPP

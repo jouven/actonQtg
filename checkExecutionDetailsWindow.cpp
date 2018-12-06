@@ -1,29 +1,29 @@
-#include "actionExecutionDetailsWindow.hpp"
+#include "checkExecutionDetailsWindow.hpp"
 
 #include "appConfig.hpp"
 
-#include "actonQtso/actionData.hpp"
-#include "actonQtso/actionDataExecutionResult.hpp"
-#include "actonQtso/actionMappings/actionExecutionStateStrMapping.hpp"
-#include "actonQtso/actonDataHub.hpp"
+#include "actonQtso/checkData.hpp"
+#include "actonQtso/checkDataExecutionResult.hpp"
+#include "actonQtso/checkMappings/checkExecutionStateStrMapping.hpp"
+#include "actonQtso/checksDataHub.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
 
 #include <QtWidgets>
 #include <QSplitter>
 
-void actionExecutionDetailsWindow_c::closeEvent(QCloseEvent* event)
+void checkExecutionDetailsWindow_c::closeEvent(QCloseEvent* event)
 {
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName(), saveGeometry());
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
     event->accept();
 }
 
-actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
-        actionDataExecutionResult_c* actionDataExecutionResult_ptr_par
+checkExecutionDetailsWindow_c::checkExecutionDetailsWindow_c(
+        checkDataExecutionResult_c* checkDataExecutionResult_ptr_par
         , QWidget *parent_par)
     : QWidget(parent_par)
-    , actionDataExecutionResultPtr_pri(actionDataExecutionResult_ptr_par)
+    , checkDataExecutionResultPtr_pri(checkDataExecutionResult_ptr_par)
 {
     this->setObjectName("actionExecutionDetailsWindow");
     this->setAttribute(Qt::WA_DeleteOnClose);
@@ -54,16 +54,15 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
     firstRowLayoutTmp->addWidget(executionStateTE_pri);
 
     anyFinishCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Any finish"));
-    anyFinishCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("True if the action is done executing, no matter what state"));
+    anyFinishCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("True if the check is done executing, no matter what state"));
     anyFinishCheckbox_pri->setMinimumHeight(minHeightTmp);
     firstRowLayoutTmp->addWidget(anyFinishCheckbox_pri);
 
-    firstRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Return code")));
-    returnCodeTE_pri = new QTextEdit;
-    returnCodeTE_pri->setMinimumHeight(minHeightTmp);
-    returnCodeTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-    returnCodeTE_pri->setReadOnly(true);
-    firstRowLayoutTmp->addWidget(returnCodeTE_pri);
+    checkResultCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Result"));
+    checkResultCheckbox_pri->setMinimumHeight(minHeightTmp);
+    checkResultCheckbox_pri->setTristate(true);
+    checkResultCheckbox_pri->setCheckState(Qt::PartiallyChecked);
+    firstRowLayoutTmp->addWidget(checkResultCheckbox_pri);
 
     //start and finish times
     QHBoxLayout* secondRowLayoutTmp = new QHBoxLayout;
@@ -82,15 +81,10 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
     executionFinishDatetimeTE_pri->setReadOnly(true);
     secondRowLayoutTmp->addWidget(executionFinishDatetimeTE_pri);
 
-    //output
-    QHBoxLayout* thirdRowLayoutTmp = new QHBoxLayout;
+//    //output
+//    QHBoxLayout* thirdRowLayoutTmp = new QHBoxLayout;
 
-    thirdRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Output")));
-    outputPTE_pri = new QPlainTextEdit;
-    outputPTE_pri->setMinimumHeight(minHeightTmp);
-    outputPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-    outputPTE_pri->setReadOnly(true);
-    thirdRowLayoutTmp->addWidget(outputPTE_pri);
+//    thirdRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Output")));
 
     //error
     QHBoxLayout* fourthRowLayoutTmp = new QHBoxLayout;
@@ -102,26 +96,15 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
     errorPTE_pri->setReadOnly(true);
     fourthRowLayoutTmp->addWidget(errorPTE_pri);
 
-    //action external output
-    QHBoxLayout* fifthRowLayoutTmp = new QHBoxLayout;
+//    //action external output
+//    QHBoxLayout* fifthRowLayoutTmp = new QHBoxLayout;
 
-    fifthRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("External output")));
-    externalOutputPTE_pri = new QPlainTextEdit;
-    externalOutputPTE_pri->setMinimumHeight(minHeightTmp);
-    externalOutputPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-    externalOutputPTE_pri->setReadOnly(true);
-    fifthRowLayoutTmp->addWidget(externalOutputPTE_pri);
+//    fifthRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("External output")));
 
-    //action external error
-    QHBoxLayout* sixthRowLayoutTmp = new QHBoxLayout;
+//    //action external error
+//    QHBoxLayout* sixthRowLayoutTmp = new QHBoxLayout;
 
-    sixthRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("External error")));
-    externalErrorPTE_pri = new QPlainTextEdit;
-    externalErrorPTE_pri->setMinimumHeight(minHeightTmp);
-    externalErrorPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-    externalErrorPTE_pri->setReadOnly(true);
-    sixthRowLayoutTmp->addWidget(externalErrorPTE_pri);
-
+//    sixthRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("External error")));
 
     //ok button
     QHBoxLayout* seventhRowTmp = new QHBoxLayout;
@@ -133,39 +116,39 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
 
     QWidget* row1Tmp = new QWidget;
     //row1Tmp->setContentsMargins(0,0,0,0);
-    QWidget* row3Tmp = new QWidget;
+    //QWidget* row3Tmp = new QWidget;
     //row2Tmp->setContentsMargins(0,0,0,0);
     QWidget* row4Tmp = new QWidget;
     //row3Tmp->setContentsMargins(0,0,0,0);
-    QWidget* row5Tmp = new QWidget;
-    //row4Tmp->setContentsMargins(0,0,0,0);
-    QWidget* row6Tmp = new QWidget;
-    //row4Tmp->setContentsMargins(0,0,0,0);
+//    QWidget* row5Tmp = new QWidget;
+//    //row4Tmp->setContentsMargins(0,0,0,0);
+//    QWidget* row6Tmp = new QWidget;
+//    //row4Tmp->setContentsMargins(0,0,0,0);
 
     QVBoxLayout* twoFirstRowsTmp = new QVBoxLayout;
     twoFirstRowsTmp->addLayout(firstRowLayoutTmp);
     twoFirstRowsTmp->addLayout(secondRowLayoutTmp);
 
     row1Tmp->setLayout(twoFirstRowsTmp);
-    row3Tmp->setLayout(thirdRowLayoutTmp);
+    //row3Tmp->setLayout(thirdRowLayoutTmp);
     row4Tmp->setLayout(fourthRowLayoutTmp);
-    row5Tmp->setLayout(fifthRowLayoutTmp);
-    row6Tmp->setLayout(sixthRowLayoutTmp);
+//    row5Tmp->setLayout(fifthRowLayoutTmp);
+//    row6Tmp->setLayout(sixthRowLayoutTmp);
 
     //seems that qsplitter has an innate margin/border and, as 20180222, I don't see how to remove/hide/reduce
     mainSplitter_pri = new QSplitter(Qt::Vertical);
     mainSplitter_pri->setObjectName("QSplitter");
 
     mainSplitter_pri->addWidget(row1Tmp);
-    mainSplitter_pri->addWidget(row3Tmp);
+    //mainSplitter_pri->addWidget(row3Tmp);
     mainSplitter_pri->addWidget(row4Tmp);
-    mainSplitter_pri->addWidget(row5Tmp);
-    mainSplitter_pri->addWidget(row6Tmp);
+//    mainSplitter_pri->addWidget(row5Tmp);
+//    mainSplitter_pri->addWidget(row6Tmp);
     mainSplitter_pri->setCollapsible(0, false);
     mainSplitter_pri->setCollapsible(1, false);
-    mainSplitter_pri->setCollapsible(2, false);
-    mainSplitter_pri->setCollapsible(3, false);
-    mainSplitter_pri->setCollapsible(4, false);
+    //mainSplitter_pri->setCollapsible(2, false);
+//    mainSplitter_pri->setCollapsible(3, false);
+//    mainSplitter_pri->setCollapsible(4, false);
 
     mainSplitter_pri->setContentsMargins(0,0,0,0);
 
@@ -177,7 +160,7 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
 
     this->setLayout(mainLayout_pri);
 
-    setWindowTitle(appConfig_ptr_ext->translate_f("Action execution details"));
+    setWindowTitle(appConfig_ptr_ext->translate_f("Check execution details"));
 
     if (appConfig_ptr_ext->configLoaded_f())
     {
@@ -186,8 +169,8 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
     }
 
     //"ok" it's the same as a cancel
-    connect(okButtonPtrTmp, &QPushButton::clicked, this, &actionExecutionDetailsWindow_c::cancelButtonClicked_f);
-    connect(tipsButtonPtrTmp, &QPushButton::clicked, this, &actionExecutionDetailsWindow_c::tipsButtonClicked_f);
+    connect(okButtonPtrTmp, &QPushButton::clicked, this, &checkExecutionDetailsWindow_c::cancelButtonClicked_f);
+    connect(tipsButtonPtrTmp, &QPushButton::clicked, this, &checkExecutionDetailsWindow_c::tipsButtonClicked_f);
     //disabling a checkbox disables any "programming", signals won't work,
     //so to prevent the user changing the state, this lambda reverses user check changes
     //"programming" wise since it's known before hand
@@ -200,33 +183,45 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
         anyFinishCheckbox_pri->setCheckState(state_par == Qt::Checked ? Qt::Unchecked : Qt::Checked);
         anyFinishCheckbox_pri->blockSignals(false);
     });
-
-    if (actionDataExecutionResultPtr_pri not_eq nullptr)
+    connect(checkResultCheckbox_pri, &QCheckBox::stateChanged, this, [this](int state_par)
     {
-        updateOutput_f();
+        //to prevent signal recursion
+        checkResultCheckbox_pri->blockSignals(true);
+//        Qt::CheckState checkStateTmp;
+//        if (state_par == Qt::PartiallyChecked)
+//        {
+//            checkStateTmp = Qt::PartiallyChecked;
+//        }
+//        if (state_par == Qt::Checked)
+//        {
+//            checkStateTmp = Qt::Unchecked;
+//        }
+//        if (state_par == Qt::Unchecked)
+//        {
+//            checkStateTmp = Qt::Checked;
+//        }
+        checkResultCheckbox_pri->setCheckState(Qt::PartiallyChecked);
+        checkResultCheckbox_pri->blockSignals(false);
+    });
+
+    if (checkDataExecutionResultPtr_pri not_eq nullptr)
+    {
         updateError_f();
-        updateExternalOutput_f();
-        updateExternalError_f();
         updateState_f();
-        updateReturnCode_f();
         updateAnyFinish_f();
 
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::outputUpdated_signal, this, &actionExecutionDetailsWindow_c::updateOutput_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::errorUpdated_signal, this, &actionExecutionDetailsWindow_c::updateError_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::externalOutputUpdated_signal, this, &actionExecutionDetailsWindow_c::updateExternalOutput_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::externalErrorUpdated_signal, this, &actionExecutionDetailsWindow_c::updateExternalError_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::executionStateUpdated_signal, this, &actionExecutionDetailsWindow_c::updateState_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::returnCodeUpdated_signal, this, &actionExecutionDetailsWindow_c::updateReturnCode_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::finished_signal, this, &actionExecutionDetailsWindow_c::updateAnyFinish_f);
+        connect(checkDataExecutionResultPtr_pri, &checkDataExecutionResult_c::errorUpdated_signal, this, &checkExecutionDetailsWindow_c::updateError_f);
+        connect(checkDataExecutionResultPtr_pri, &checkDataExecutionResult_c::executionStateUpdated_signal, this, &checkExecutionDetailsWindow_c::updateState_f);
+        connect(checkDataExecutionResultPtr_pri, &checkDataExecutionResult_c::finished_signal, this, &checkExecutionDetailsWindow_c::updateAnyFinish_f);
     }
 }
 
-void actionExecutionDetailsWindow_c::cancelButtonClicked_f()
+void checkExecutionDetailsWindow_c::cancelButtonClicked_f()
 {
     close();
 }
 
-void actionExecutionDetailsWindow_c::tipsButtonClicked_f()
+void checkExecutionDetailsWindow_c::tipsButtonClicked_f()
 {
     plainQMessageBox_f
     (
@@ -239,53 +234,39 @@ void actionExecutionDetailsWindow_c::tipsButtonClicked_f()
     );
 }
 
-void actionExecutionDetailsWindow_c::updateOutput_f()
+
+void checkExecutionDetailsWindow_c::updateError_f()
 {
-    outputPTE_pri->setPlainText(actionDataExecutionResultPtr_pri->output_f());
+    errorPTE_pri->setPlainText(checkDataExecutionResultPtr_pri->error_f());
 }
 
-void actionExecutionDetailsWindow_c::updateError_f()
-{
-    errorPTE_pri->setPlainText(actionDataExecutionResultPtr_pri->error_f());
-}
-
-void actionExecutionDetailsWindow_c::updateExternalOutput_f()
-{
-    externalOutputPTE_pri->setPlainText(actionDataExecutionResultPtr_pri->externalOutput_f());
-}
-
-void actionExecutionDetailsWindow_c::updateExternalError_f()
-{
-    externalErrorPTE_pri->setPlainText(actionDataExecutionResultPtr_pri->externalErrorOutput_f());
-}
-
-void actionExecutionDetailsWindow_c::updateState_f()
+void checkExecutionDetailsWindow_c::updateState_f()
 {
 
-    if (executionStartDatetimeTE_pri->toPlainText().isEmpty() and actionDataExecutionResultPtr_pri->started_f())
+    if (executionStartDatetimeTE_pri->toPlainText().isEmpty() and checkDataExecutionResultPtr_pri->started_f())
     {
         executionStartDatetimeTE_pri->setText(
-                    QDateTime::fromMSecsSinceEpoch(actionDataExecutionResultPtr_pri->startTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
+                    QDateTime::fromMSecsSinceEpoch(checkDataExecutionResultPtr_pri->startTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
         );
     }
-    executionStateTE_pri->setText(actionExecutionStateToStrUMap_glo_sta_con.at(actionDataExecutionResultPtr_pri->state_f()));
+    executionStateTE_pri->setText(checkExecutionStateToStrUMap_glo_sta_con.at(checkDataExecutionResultPtr_pri->state_f()));
 }
 
-void actionExecutionDetailsWindow_c::updateReturnCode_f()
+void checkExecutionDetailsWindow_c::updateAnyFinish_f()
 {
-    returnCodeTE_pri->setText(QString::number(actionDataExecutionResultPtr_pri->returnCode_f()));
-}
-
-void actionExecutionDetailsWindow_c::updateAnyFinish_f()
-{
-    if (actionDataExecutionResultPtr_pri->finished_f())
+    if (checkDataExecutionResultPtr_pri->finished_f())
     {
         executionFinishDatetimeTE_pri->setText(
-                    QDateTime::fromMSecsSinceEpoch(actionDataExecutionResultPtr_pri->finishedTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
+                    QDateTime::fromMSecsSinceEpoch(checkDataExecutionResultPtr_pri->finishedTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
         );
+
+        checkResultCheckbox_pri->blockSignals(true);
+        checkResultCheckbox_pri->setCheckState(checkDataExecutionResultPtr_pri->result_f() ? Qt::Checked : Qt::Unchecked);
+        checkResultCheckbox_pri->blockSignals(false);
     }
     anyFinishCheckbox_pri->blockSignals(true);
-    anyFinishCheckbox_pri->setCheckState(actionDataExecutionResultPtr_pri->finished_f() ? Qt::Checked : Qt::Unchecked);
+    anyFinishCheckbox_pri->setCheckState(checkDataExecutionResultPtr_pri->finished_f() ? Qt::Checked : Qt::Unchecked);
     anyFinishCheckbox_pri->blockSignals(false);
 }
+
 

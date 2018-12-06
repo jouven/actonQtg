@@ -14,8 +14,8 @@
 
 void environmentPairToAddEditWindow_c::closeEvent(QCloseEvent* event)
 {
-    appConfig_f().setWidgetGeometry_f(this->objectName(), saveGeometry());
-    appConfig_f().setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName(), saveGeometry());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
     event->accept();
 }
 
@@ -41,7 +41,7 @@ environmentPairToAddEditWindow_c::environmentPairToAddEditWindow_c(const QString
     keyField_pri->setMinimumHeight(minHeightTmp);
     keyField_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 
-    firstRowLayoutTmp->addWidget(new QLabel(tr("Key")));
+    firstRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Key")));
     firstRowLayoutTmp->addWidget(keyField_pri);
 
     //second row, environment key field
@@ -51,7 +51,7 @@ environmentPairToAddEditWindow_c::environmentPairToAddEditWindow_c(const QString
     valueField_pri->setMinimumHeight(minHeightTmp);
     valueField_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 
-    secondRowLayoutTmp->addWidget(new QLabel(tr("Value")));
+    secondRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Value")));
     secondRowLayoutTmp->addWidget(valueField_pri);
 
     //third row, enabled checbkox
@@ -65,10 +65,10 @@ environmentPairToAddEditWindow_c::environmentPairToAddEditWindow_c(const QString
     //fourth row, save and cancel buttons
     QHBoxLayout* fourthRowLayoutTmp = new QHBoxLayout;
 
-    QPushButton* saveButtonTmp = new QPushButton(tr("Save"));
+    QPushButton* saveButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Save"));
     fourthRowLayoutTmp->addWidget(saveButtonTmp);
     connect(saveButtonTmp, &QPushButton::clicked, this, &environmentPairToAddEditWindow_c::saveButtonPushed_f);
-    QPushButton* cancelButtonTmp = new QPushButton(tr("Cancel"));
+    QPushButton* cancelButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Cancel"));
     fourthRowLayoutTmp->addWidget(cancelButtonTmp);
     connect(cancelButtonTmp, &QPushButton::clicked, this, &environmentPairToAddEditWindow_c::cancelButtonPushed_f);
 
@@ -96,12 +96,12 @@ environmentPairToAddEditWindow_c::environmentPairToAddEditWindow_c(const QString
 
     this->setLayout(mainLayout_pri);
 
-    setWindowTitle(tr("Add/update environment pair"));
+    setWindowTitle(appConfig_ptr_ext->translate_f("Add/update environment pair"));
 
-    if (appConfig_f().configLoaded_f())
+    if (appConfig_ptr_ext->configLoaded_f())
     {
-         restoreGeometry(appConfig_f().widgetGeometry_f(this->objectName()));
-         mainSplitter_pri->restoreState(appConfig_f().widgetGeometry_f(this->objectName() + mainSplitter_pri->objectName()));
+         restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName()));
+         mainSplitter_pri->restoreState(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + mainSplitter_pri->objectName()));
     }
 }
 
@@ -112,19 +112,24 @@ void environmentPairToAddEditWindow_c::cancelButtonPushed_f()
 
 void environmentPairToAddEditWindow_c::saveButtonPushed_f()
 {
-    //if the key is empty
-    if (keyField_pri->toPlainText().isEmpty())
+    while (true)
     {
-        errorQMessageBox_f("Empty key", "Error", this);
-        return;
+        //if the key is empty
+        if (keyField_pri->toPlainText().isEmpty())
+        {
+            errorQMessageBox_f("Empty key", "Error", this);
+            break;
+        }
+
+        environmentPair_c environmentPairTmp(valueField_pri->toPlainText(), enabledCheckbox_pri->isChecked());
+
+        Q_EMIT saveEnvironmentPairResult_signal
+        (
+                    keyField_pri->toPlainText()
+                    , environmentPairTmp
+                    , editedRowIndex_pri_con
+        );
+        close();
+        break;
     }
-
-    environmentPair_c environmentPairTmp(valueField_pri->toPlainText(), enabledCheckbox_pri->isChecked());
-
-    Q_EMIT saveEnvironmentPairResult_signal(
-                keyField_pri->toPlainText()
-                , environmentPairTmp
-                , editedRowIndex_pri_con
-    );
-    this->close();
 }

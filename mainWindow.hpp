@@ -1,12 +1,11 @@
 #ifndef ACTONQTG_MAINWINDOW_HPP
 #define ACTONQTG_MAINWINDOW_HPP
 
-#include "actonQtso/mappings/actions.hpp"
+#include "actonQtso/actionMappings/actions.hpp"
 
+#include <QStringList>
 #include <QWidget>
-#include <QMutexLocker>
 
-#include <vector>
 
 class QTableWidget;
 //class QPlainTextEdit;
@@ -20,17 +19,11 @@ class QFileDialog;
 class QMessageBox;
 class QInputDialog;
 
-class actionWindow_c;
-
 #ifdef __ANDROID__
 class QScrollArea;
 #endif
 
-//TODO commit other projects first, other libraries and make a repo for essentialQtgso
-
-//TODO 1 add shortcut keys to the buttons using the "&" notation
-//2 actions that use paths check for the existence
-//"2" requires some narrowing on when, it might not be worth it, maybe an action to check other actions existing paths
+class actionData_c;
 
 class mainWindow_c : public QWidget
 {
@@ -45,27 +38,23 @@ class mainWindow_c : public QWidget
     QPushButton* executeActionsButton_pri;
 
     QTableWidget* actionsTable_pri;
-    actionWindow_c* actionWindow_pri;
-
-#ifdef Q_OS_WIN32
-    QCheckBox* useSlashSeparatorCheckbox_pri;
-#endif
 
     //depends on the mainloop interval (it might not be a second)
     int finalCounterSeconds_pri = 2;
+    int killCountdown_pri = 0;
 
     QString lastLoadedFilePath_pri;
 
-    std::vector<int_fast32_t> runningActionIds_pri;
-    bool runningActions_pri = false;
-    bool haltRunningActions_pri = false;
+    QFileDialog* selectActionFilesToLoadDialog_pri = nullptr;
+    QFileDialog* saveActionFileDialog_pri = nullptr;
+    QMessageBox* overwriteLastActionLoadedMessageBox_pri = nullptr;
+    QInputDialog* copyActionIndexInputDialog_pri = nullptr;
+    QInputDialog* changeActionIndexInputDialog_pri = nullptr;
+    QMessageBox* runFromStoppedActionMessageBox_pri = nullptr;
 
-    QFileDialog* selectActionFilesToLoadDialog_pri = Q_NULLPTR;
-    QFileDialog* saveActionFileDialog_pri = Q_NULLPTR;
-    QMessageBox* overwriteLastActionLoadedMessageBox_pri = Q_NULLPTR;
-    QInputDialog* copyActionIndexInputDialog_pri = Q_NULLPTR;
-    QInputDialog* changeActionIndexInputDialog_pri = Q_NULLPTR;
-    QMessageBox* runFromHaltedActionMessageBox_pri = Q_NULLPTR;
+    QMessageBox* askAboutExecutingActionsOnCloseMessageBox_pri = nullptr;
+    QMessageBox* askAboutExecutingChecksOnCloseMessageBox_pri = nullptr;
+    QMessageBox* askAboutStoppingExecutionOnCloseMessageBox_pri = nullptr;
 
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
@@ -74,17 +63,20 @@ class mainWindow_c : public QWidget
     void clearActions_f();
 
     void loadFileList_f(const QStringList& fileList_par_con);
-    void updateExistingActionRow_f(const action_ec& actionType_par_con, const QString& description_par_con, const bool haltOnFail_par_con, const int row_par_con);
-    void insertActionRow_f(const action_ec& actionType_par_con, const QString& description_par_con, const bool haltOnFail_par_con, const int row_par_con = -1);
+    void updateExistingActionRow_f(const actionType_ec& actionType_par_con, const QString& description_par_con, const int row_par_con);
+    void insertActionRow_f(const actionType_ec& actionType_par_con, const QString& description_par_con, const int row_par_con = -1);
     void moveSelectedActions_f(const int moveOffSet_par_con);
 
     void saveActionFile_f(const QString& savePath_par_con);
     void executeActions_f();
     void clearAllRowsResultColumns_f();
+
+    void createMessageBoxAskAboutExecutingActionsOnClose_f();
+    void createMessageBoxAskAboutExecutingChecksOnClose_f();
+    void createMessageBoxAskAboutStoppingExecutionOnClose_f();
 public:
     mainWindow_c();
-    void processPositionalArguments_f(const QStringList& positionalArguments_par_con);
-    bool actionsRunning_f() const;
+
 Q_SIGNALS:
     //NOT IN USE, QString is the text to set
     void setStatusBarText_signal(const QString&);
@@ -96,7 +88,8 @@ Q_SIGNALS:
     void scrollToItem_signal(const int);
     //void resizeFileTable_signal();
 
-    //void executeNextAction_signal();
+    //use queued
+    void close_signal();
 private Q_SLOTS:
     //void contextMenu(const QPoint &pos);
 
@@ -135,18 +128,25 @@ private Q_SLOTS:
     void inputDialogCopyActionIndexFinished_f(const int result_par);
 
     //functions dealing with action signal results
-    void updateActionOutput_f(const int_fast32_t actionId_par_con);
-    void updateActionError_f(const int_fast32_t actionId_par_con);
-    void updateActionExecutionState_f(const int_fast32_t actionId_par_con);
+    void updateActionOutput_f(actionData_c* actionData_par_ptr_con);
+    void updateActionError_f(actionData_c* actionData_par_ptr_con);
+    void updateActionExecutionState_f(actionData_c* actionData_par_ptr_con);
 
-    void executeNextAction_f();
-//public Q_SLOTS:
-    //void actionChangedStatus_f(const int_fast32_t actionId_par_con);
-    void haltExecution_f();
-    void runFromHaltedActionsMessageBoxResult_f(const int result_par);
-    void executeActionsButtonPushed_f();
+    void runFromStoppedActionsMessageBoxResult_f(const int result_par);
+    void executeActionsButtonClicked_f();
+    void showExecutionOptionsButtonClicked_f();
+
+    void executionFinished_f();
+    void executionStarted_f();
+    void stoppingExecution_f();
+    void executionStopped_f();
+    void actionResultsCleared_f(actionData_c* const actionData_par_ptr_con);
+    void stopExecutingActionsAndClose_f();
+    void stopExecutingActionsElseKillAndClose_f();
+    void killExecutingActionsAndClose_f();
+    //public Q_SLOTS:
 };
 
-//extern mainWindow_c& mainWindowRef_f();
+extern mainWindow_c* mainWindow_ptr_ext;
 
 #endif //ACTONQTG_MAINWINDOW_HPP

@@ -2,6 +2,7 @@
 
 #include "optionsWidgets/environmentWindow.hpp"
 #include "optionsWidgets/workingDirectoryWindow.hpp"
+#include "logsWindow.hpp"
 
 #include "appConfig.hpp"
 
@@ -12,7 +13,7 @@
 
 void optionsWindow_c::closeEvent(QCloseEvent* event)
 {
-    appConfig_f().setWidgetGeometry_f(this->objectName(), saveGeometry());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName(), saveGeometry());
     event->accept();
 }
 
@@ -33,32 +34,36 @@ optionsWindow_c::optionsWindow_c(
     firstRowLayoutTmp->addWidget(showWorkingDirectoryButtonTmp);
     connect(showWorkingDirectoryButtonTmp, &QPushButton::clicked, this, &optionsWindow_c::showWorkingDirectoryWindow_f);
 
+    //show logs
+    QPushButton* showLogsWindowButtonTmp = new QPushButton("Show Logs");
+    firstRowLayoutTmp->addWidget(showLogsWindowButtonTmp);
+    connect(showLogsWindowButtonTmp, &QPushButton::clicked, this, &optionsWindow_c::showLogsWindow_f);
 
     //for the bottom buttons
     QHBoxLayout* lastRowLayoutTmp = new QHBoxLayout;
 
-    QPushButton* saveButtonTmp = new QPushButton("Save");
+    QPushButton* saveButtonTmp = new QPushButton("&Save");
     lastRowLayoutTmp->addWidget(saveButtonTmp);
     connect(saveButtonTmp, &QPushButton::clicked, this, &optionsWindow_c::saveButtonClicked_f);
 
-    QPushButton* cancelButtonTmp = new QPushButton("Cancel");
+    QPushButton* cancelButtonTmp = new QPushButton("&Cancel");
     lastRowLayoutTmp->addWidget(cancelButtonTmp);
     connect(cancelButtonTmp, &QPushButton::clicked, this, &optionsWindow_c::cancelButtonClicked_f);
 
-    QPushButton* tipsButtonTmp = new QPushButton("Tips");
-    lastRowLayoutTmp->addWidget(tipsButtonTmp);
-    connect(tipsButtonTmp, &QPushButton::clicked, this, &optionsWindow_c::tipsButtonClicked_f);
+//    QPushButton* tipsButtonTmp = new QPushButton("Tips");
+//    lastRowLayoutTmp->addWidget(tipsButtonTmp);
+//    connect(tipsButtonTmp, &QPushButton::clicked, this, &optionsWindow_c::tipsButtonClicked_f);
 
     mainLayout_pri = new QVBoxLayout;
     mainLayout_pri->addLayout(firstRowLayoutTmp);
     mainLayout_pri->addLayout(lastRowLayoutTmp);
     this->setLayout(mainLayout_pri);
 
-    setWindowTitle(tr("Options"));
+    setWindowTitle(appConfig_ptr_ext->translate_f("Options"));
 
-    if (appConfig_f().configLoaded_f())
+    if (appConfig_ptr_ext->configLoaded_f())
     {
-         restoreGeometry(appConfig_f().widgetGeometry_f(this->objectName()));
+         restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName()));
     }
 }
 
@@ -74,10 +79,11 @@ void optionsWindow_c::cancelButtonClicked_f()
     close();
 }
 
-void optionsWindow_c::tipsButtonClicked_f()
-{
-    //TODO
-}
+//no need for now
+//void optionsWindow_c::tipsButtonClicked_f()
+//{
+//
+//}
 
 void optionsWindow_c::showEnvironmentWindow_f()
 {
@@ -95,4 +101,14 @@ void optionsWindow_c::showWorkingDirectoryWindow_f()
     workingDirectoryWindowTmp->setWindowModality(Qt::WindowModal);
     workingDirectoryWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
     workingDirectoryWindowTmp->show();
+}
+
+void optionsWindow_c::showLogsWindow_f()
+{
+    logsWindow_c* logsWindowPtrTmp = new logsWindow_c;
+    logsWindowPtrTmp->setWindowFlag(Qt::Window, true);
+    //logsWindowPtrTmp->setWindowFlag(Qt::WindowStaysOnTopHint, true);
+    logsWindowPtrTmp->setWindowModality(Qt::NonModal);
+    logsWindowPtrTmp->setAttribute(Qt::WA_DeleteOnClose);
+    logsWindowPtrTmp->show();
 }

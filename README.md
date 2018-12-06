@@ -17,6 +17,8 @@ https://github.com/jouven/actonqtso
 
 https://github.com/jouven/threadedFunctionQtso
 
+https://github.com/jouven/logsinJSONQtso
+
 Run (in actonQtg source directory or pointing to it):
 
     qmake

@@ -3,18 +3,19 @@
 #include "runProcessExtra/argumentWindow.hpp"
 #include "runProcessExtra/environmentPairWindow.hpp"
 
-
 #include "optionsWidgets/environmentWindow.hpp"
 #include "optionsWidgets/workingDirectoryWindow.hpp"
 
 #include "appConfig.hpp"
+
 #include "actonQtso/actionData.hpp"
+#include "actonQtso/actonDataHub.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
 
 #include <QtWidgets>
+#include <QJsonObject>
 #include <QSplitter>
-
 #include <QFileDialog>
 #include <QDir>
 
@@ -22,30 +23,32 @@
 
 void runProcessWidgets_c::parentClosing_f()
 {
-    appConfig_f().setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
 }
 
 void runProcessWidgets_c::save_f()
 {
-    QString processPathStr(processPathPTE_pri->toPlainText());
-    if (processPathStr.isEmpty())
+    while (true)
     {
-        errorQMessageBox_f("Process path is empty", "Error", qobject_cast<QWidget*>(this->parent()));
-        return;
+        QString processPathStr(processPathPTE_pri->toPlainText());
+        if (processPathStr.isEmpty())
+        {
+            errorQMessageBox_f("Process path is empty", "Error", qobject_cast<QWidget*>(this->parent()));
+            break;
+        }
+        saveActionDataJSON_f();
+        Q_EMIT JSONSaved_signal();
+        break;
     }
-
-    Q_EMIT saveResult_signal(processActionDataJSON_f());
 }
 
 void runProcessWidgets_c::insertArgumentRow_f(
         const argument_c& argument_par_con)
 {
-    QTableWidgetItem *argumentValueCellTmp;
-    argumentValueCellTmp = new QTableWidgetItem(argument_par_con.argument_f());
+    QTableWidgetItem *argumentValueCellTmp(new QTableWidgetItem(argument_par_con.argument_f()));
     argumentValueCellTmp->setFlags(argumentValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *argumentEnabledCellTmp;
-    argumentEnabledCellTmp = new QTableWidgetItem;
+    QTableWidgetItem *argumentEnabledCellTmp(new QTableWidgetItem);
     Qt::CheckState checkValue(argument_par_con.enabled_f() ? Qt::Checked : Qt::Unchecked);
     argumentEnabledCellTmp->setCheckState(checkValue);
     argumentEnabledCellTmp->setFlags(argumentEnabledCellTmp->flags() bitand compl Qt::ItemIsEditable);
@@ -61,16 +64,13 @@ void runProcessWidgets_c::insertEnvironmentPairRow_f(
         const QString& key_par_con
         , const environmentPair_c& environmentPair_par_con)
 {
-    QTableWidgetItem *environmentKeyCellTmp;
-    environmentKeyCellTmp = new QTableWidgetItem(key_par_con);
+    QTableWidgetItem *environmentKeyCellTmp(new QTableWidgetItem(key_par_con));
     environmentKeyCellTmp->setFlags(environmentKeyCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *environmentValueCellTmp;
-    environmentValueCellTmp = new QTableWidgetItem(environmentPair_par_con.value_f());
+    QTableWidgetItem *environmentValueCellTmp(new QTableWidgetItem(environmentPair_par_con.value_f()));
     environmentValueCellTmp->setFlags(environmentValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *environmentPairEnabledCellTmp;
-    environmentPairEnabledCellTmp = new QTableWidgetItem;
+    QTableWidgetItem *environmentPairEnabledCellTmp(new QTableWidgetItem);
     Qt::CheckState checkValue(environmentPair_par_con.enabled_f() ? Qt::Checked : Qt::Unchecked);
     environmentPairEnabledCellTmp->setCheckState(checkValue);
     environmentPairEnabledCellTmp->setFlags(environmentPairEnabledCellTmp->flags() bitand compl Qt::ItemIsEditable);
@@ -107,11 +107,10 @@ void runProcessWidgets_c::updateEnvironmentPairRow_f(
 
 void runProcessWidgets_c::loadActionSpecificData_f()
 {
-    if (actionDataId_pri > 0)
+    if (not actionData_ptr_pri->actionDataJSON_f().isEmpty())
     {
-        actionData_c& actionTmp(dataHub_f().actionData_f(actionDataId_pri).first);
         runProcessAction_c processActionTmp;
-        processActionTmp.read_f(actionTmp.actionDataJSON_f());
+        processActionTmp.read_f(actionData_ptr_pri->actionDataJSON_f());
         processPathPTE_pri->setPlainText(processActionTmp.processPath_f());
         workingDirectoryPTE_pri->setPlainText(processActionTmp.workingDirectory_f());
         useActonEnviroment_pri->setChecked(processActionTmp.useActonEnvironment_f());
@@ -122,7 +121,7 @@ void runProcessWidgets_c::loadActionSpecificData_f()
         }
 
         QHash<QString, environmentPair_c>::const_iterator iteratorTmp = processActionTmp.environmentToAdd_f().constBegin();
-        while (iteratorTmp != processActionTmp.environmentToAdd_f().constEnd())
+        while (iteratorTmp not_eq processActionTmp.environmentToAdd_f().constEnd())
         {
             insertEnvironmentPairRow_f(iteratorTmp.key(), iteratorTmp.value());
             ++iteratorTmp;
@@ -131,11 +130,12 @@ void runProcessWidgets_c::loadActionSpecificData_f()
 }
 
 runProcessWidgets_c::runProcessWidgets_c(
-        const int_fast32_t actionDataId_par_con
+        actionData_c* const actionData_ptr_par
         , QVBoxLayout* const variableLayout_par_con
         , QObject *parent)
     : QObject(parent)
-    , actionDataId_pri(actionDataId_par_con)
+    , actionData_ptr_pri(actionData_ptr_par)
+    //, actionDataId_pri(actionDataId_par_con)
 {
     this->setObjectName("runProcessWidgets");
 
@@ -151,13 +151,13 @@ runProcessWidgets_c::runProcessWidgets_c(
     //process and browse process path
     QHBoxLayout* firstRowTmp = new QHBoxLayout;
 
-    firstRowTmp->addWidget(new QLabel(tr("Process")));
+    firstRowTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Process")));
     processPathPTE_pri = new QPlainTextEdit;
     auto minHeightTmp(processPathPTE_pri->fontMetrics().lineSpacing() + 14);
     processPathPTE_pri->setMinimumHeight(minHeightTmp);
     processPathPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
     firstRowTmp->addWidget(processPathPTE_pri);
-    QPushButton* browseProcessPathButtonTmp = new QPushButton(tr("Browse"));
+    QPushButton* browseProcessPathButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Browse"));
     firstRowTmp->addWidget(browseProcessPathButtonTmp);
     connect(browseProcessPathButtonTmp, &QPushButton::clicked, this, &runProcessWidgets_c::browseProcessFile_f);
 
@@ -167,11 +167,11 @@ runProcessWidgets_c::runProcessWidgets_c(
     //goes into argumentButtonsAndTableTmp (secondRowTmp)
     QHBoxLayout* argumentButtonsRowTmp = new QHBoxLayout;
 
-    QPushButton* addEditArgumentButtonTmp = new QPushButton(tr("Add/Edit arg"));
+    QPushButton* addEditArgumentButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Add/Edit arg"));
     addEditArgumentButtonTmp->setToolTip("Add or edit an argument, select an existing one to edit");
     argumentButtonsRowTmp->addWidget(addEditArgumentButtonTmp);
     connect(addEditArgumentButtonTmp, &QPushButton::clicked, this, &runProcessWidgets_c::openArgumentEditWindow_f);
-    QPushButton* removeArgumentButtonTmp = new QPushButton(tr("Remove args"));
+    QPushButton* removeArgumentButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Remove args"));
     argumentButtonsRowTmp->addWidget(removeArgumentButtonTmp);
     connect(removeArgumentButtonTmp, &QPushButton::clicked, this, &runProcessWidgets_c::removeArgument_f);
 
@@ -185,7 +185,7 @@ runProcessWidgets_c::runProcessWidgets_c(
     argumentsTable_pri->setDragDropMode(QAbstractItemView::InternalMove);
 
     QStringList tablelabels;
-    tablelabels << tr("Argument") << tr("Enabled");
+    tablelabels << appConfig_ptr_ext->translate_f("Argument") << appConfig_ptr_ext->translate_f("Enabled");
     argumentsTable_pri->setHorizontalHeaderLabels(tablelabels);
     argumentsTable_pri->setShowGrid(true);
     argumentsTable_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
@@ -202,16 +202,16 @@ runProcessWidgets_c::runProcessWidgets_c(
     //working directory + browse working directory button + show current directory button
     QHBoxLayout* thirdRowTmp = new QHBoxLayout;
 
-    thirdRowTmp->addWidget(new QLabel(tr("Working directory")));
+    thirdRowTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Working directory")));
     workingDirectoryPTE_pri = new QPlainTextEdit;
     workingDirectoryPTE_pri->setMinimumHeight(minHeightTmp);
     workingDirectoryPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
     thirdRowTmp->addWidget(workingDirectoryPTE_pri);
-    QPushButton* browseWorkingDirectoryButtonTmp = new QPushButton(tr("Browse"));
+    QPushButton* browseWorkingDirectoryButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Browse"));
     thirdRowTmp->addWidget(browseWorkingDirectoryButtonTmp);
     connect(browseWorkingDirectoryButtonTmp, &QPushButton::clicked, this, &runProcessWidgets_c::browseWorkingDirectory_f);
 
-    QPushButton* showCurrentWorkingDirectoryButtonTmp = new QPushButton(tr("Show current working directory"));
+    QPushButton* showCurrentWorkingDirectoryButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Show current working directory"));
     thirdRowTmp->addWidget(showCurrentWorkingDirectoryButtonTmp);
     connect(showCurrentWorkingDirectoryButtonTmp, &QPushButton::clicked, this, &runProcessWidgets_c::showCurrentWorkingDirectoryWindow_f);
 
@@ -222,15 +222,15 @@ runProcessWidgets_c::runProcessWidgets_c(
     //goes into environmentButtonsAndTableTmp (fourthRowTmp)
     QHBoxLayout* environmentButtonsRowTmp = new QHBoxLayout;
 
-    QPushButton* addEditEnvironmentPairButtonTmp = new QPushButton(tr("Add/Edit environment pair"));
+    QPushButton* addEditEnvironmentPairButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Add/Edit environment pair"));
     addEditEnvironmentPairButtonTmp->setToolTip("Add or edit an argument, select an existing one to edit");
     environmentButtonsRowTmp->addWidget(addEditEnvironmentPairButtonTmp);
     connect(addEditEnvironmentPairButtonTmp, &QPushButton::clicked, this, &runProcessWidgets_c::openEnvironmentPairEditWindow_f);
-    QPushButton* removeEnvironmentPairButtonTmp = new QPushButton(tr("Remove environment pair"));
+    QPushButton* removeEnvironmentPairButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Remove environment pair"));
     environmentButtonsRowTmp->addWidget(removeEnvironmentPairButtonTmp);
     connect(removeEnvironmentPairButtonTmp, &QPushButton::clicked, this, &runProcessWidgets_c::removeEnvironmentPair_f);
 
-    QPushButton* showCurrentEnvironmentButtonTmp = new QPushButton(tr("Show current enviroment"));
+    QPushButton* showCurrentEnvironmentButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Show current enviroment"));
     environmentButtonsRowTmp->addWidget(showCurrentEnvironmentButtonTmp);
     connect(showCurrentEnvironmentButtonTmp, &QPushButton::clicked, this, &runProcessWidgets_c::showCurrentEnvironmentWindow_f);
 
@@ -251,7 +251,7 @@ runProcessWidgets_c::runProcessWidgets_c(
     environmentToAddTable_pri->setDragDropMode(QAbstractItemView::InternalMove);
 
     QStringList environmentToAddTablelabels;
-    environmentToAddTablelabels << tr("Key") << tr("Value") << tr("Enabled");
+    environmentToAddTablelabels << appConfig_ptr_ext->translate_f("Key") << appConfig_ptr_ext->translate_f("Value") << appConfig_ptr_ext->translate_f("Enabled");
     environmentToAddTable_pri->setHorizontalHeaderLabels(environmentToAddTablelabels);
     environmentToAddTable_pri->setShowGrid(true);
     environmentToAddTable_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
@@ -269,10 +269,10 @@ runProcessWidgets_c::runProcessWidgets_c(
 //    //save and cancel buttons
 //    QHBoxLayout* fifthRowTmp = new QHBoxLayout;
 
-//    QPushButton* saveButtonTmp = new QPushButton(tr("Save"));
+//    QPushButton* saveButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Save"));
 //    buttonsLayoutTmp->addWidget(saveButtonTmp);
 //    connect(saveButtonTmp, &QPushButton::clicked, this, &argumentEditWindow_c::saveButtonPushed_f);
-//    QPushButton* cancelButtonTmp = new QPushButton(tr("Cancel"));
+//    QPushButton* cancelButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Cancel"));
 //    buttonsLayoutTmp->addWidget(cancelButtonTmp);
 //    connect(cancelButtonTmp, &QPushButton::clicked, this, &argumentEditWindow_c::cancelButtonPushed_f);
 
@@ -311,18 +311,16 @@ runProcessWidgets_c::runProcessWidgets_c(
     variableLayout_par_con->addWidget(mainSplitter_pri);
     //variableLayout_par_con->addLayout(fifthRowTmp);
 
-    if (appConfig_f().configLoaded_f())
+    if (appConfig_ptr_ext->configLoaded_f())
     {
-         mainSplitter_pri->restoreState(appConfig_f().widgetGeometry_f(this->objectName() + mainSplitter_pri->objectName()));
+         mainSplitter_pri->restoreState(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + mainSplitter_pri->objectName()));
     }
 
     loadActionSpecificData_f();
 }
 
-QJsonObject runProcessWidgets_c::processActionDataJSON_f() const
+void runProcessWidgets_c::saveActionDataJSON_f() const
 {
-    QJsonObject resultTmp;
-
     QString processPathTmp(processPathPTE_pri->toPlainText());
     std::vector<argument_c> argumentsTmp;
     argumentsTmp.reserve(argumentsTable_pri->rowCount());
@@ -352,8 +350,9 @@ QJsonObject runProcessWidgets_c::processActionDataJSON_f() const
                 , useActonEnviroment_pri->isChecked()
                 , environmentToAddPairsTmp
     );
-    processTmp.write_f(resultTmp);
-    return resultTmp;
+    QJsonObject saveValuesJSONObjectTmp;
+    processTmp.write_f(saveValuesJSONObjectTmp);
+    actionData_ptr_pri->setActionDataJSON_f(saveValuesJSONObjectTmp);
 }
 
 void runProcessWidgets_c::browseProcessFile_f()
@@ -363,7 +362,7 @@ void runProcessWidgets_c::browseProcessFile_f()
     //selectProcessFileDialog_pri->setAcceptMode(QFileDialog::AcceptOpen);
     selectProcessFileDialog_pri->setFileMode(QFileDialog::ExistingFile);
     selectProcessFileDialog_pri->setDirectory(QDir::currentPath());
-    selectProcessFileDialog_pri->setWindowTitle(tr("Select process file..."));
+    selectProcessFileDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Select process file..."));
     selectProcessFileDialog_pri->setViewMode(QFileDialog::Detail);
     selectProcessFileDialog_pri->setFilter(QDir::Hidden | QDir::NoDotAndDotDot | QDir::Files | QDir::AllDirs | QDir::Drives);
     selectProcessFileDialog_pri->setOption(QFileDialog::DontUseNativeDialog, true);
@@ -373,7 +372,7 @@ void runProcessWidgets_c::browseProcessFile_f()
 #endif
     selectProcessFileDialog_pri->setOption(QFileDialog::ReadOnly, true);
 
-    std::vector<QString> directoryHistoryTmp(appConfig_f().directoryHistory_f());
+    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f());
     QList<QUrl> directoriesTmp;
     directoriesTmp.reserve(directoryHistoryTmp.size());
     if (not directoryHistoryTmp.empty())
@@ -400,7 +399,7 @@ void runProcessWidgets_c::fileDialogProcessFileFinished_f(const int result_par)
         }
     }
     selectProcessFileDialog_pri->deleteLater();
-    selectProcessFileDialog_pri = Q_NULLPTR;
+    selectProcessFileDialog_pri = nullptr;
 }
 
 void runProcessWidgets_c::openArgumentEditWindow_f()
@@ -459,45 +458,53 @@ void runProcessWidgets_c::openEnvironmentPairEditWindow_f()
 
 void runProcessWidgets_c::removeArgument_f()
 {
-    QList<QTableWidgetItem *> selectionTmp = argumentsTable_pri->selectedItems();
-    if (selectionTmp.isEmpty())
+    while (true)
     {
-        errorQMessageBox_f("No argument rows were selected for removal", "Error", qobject_cast<QWidget*>(this->parent()));
-        return;
-    }
+        QList<QTableWidgetItem *> selectionTmp = argumentsTable_pri->selectedItems();
+        if (selectionTmp.isEmpty())
+        {
+            errorQMessageBox_f("No argument rows were selected for removal", "Error", qobject_cast<QWidget*>(this->parent()));
+            break;
+        }
 
-    std::unordered_set<int> rowIndexUSetTmp;
-    //get the selected row (indexes)
-    for (const QTableWidgetItem* item_ite_con : selectionTmp)
-    {
-        rowIndexUSetTmp.emplace(item_ite_con->row());
-    }
+        std::unordered_set<int> rowIndexUSetTmp;
+        //get the selected row (indexes)
+        for (const QTableWidgetItem* item_ite_con : selectionTmp)
+        {
+            rowIndexUSetTmp.emplace(item_ite_con->row());
+        }
 
-    for (const int item_ite_con : rowIndexUSetTmp)
-    {
-        argumentsTable_pri->removeRow(item_ite_con);
+        for (const int item_ite_con : rowIndexUSetTmp)
+        {
+            argumentsTable_pri->removeRow(item_ite_con);
+        }
+        break;
     }
 }
 
 void runProcessWidgets_c::removeEnvironmentPair_f()
 {
-    QList<QTableWidgetItem *> selectionTmp = environmentToAddTable_pri->selectedItems();
-    if (selectionTmp.isEmpty())
+    while (true)
     {
-        errorQMessageBox_f("No environment pair rows were selected for removal", "Error", qobject_cast<QWidget*>(this->parent()));
-        return;
-    }
+        QList<QTableWidgetItem *> selectionTmp = environmentToAddTable_pri->selectedItems();
+        if (selectionTmp.isEmpty())
+        {
+            errorQMessageBox_f("No environment pair rows were selected for removal", "Error", qobject_cast<QWidget*>(this->parent()));
+            break;
+        }
 
-    std::unordered_set<int> rowIndexUSetTmp;
-    //get the selected row (indexes)
-    for (const QTableWidgetItem* item_ite_con : selectionTmp)
-    {
-        rowIndexUSetTmp.emplace(item_ite_con->row());
-    }
+        std::unordered_set<int> rowIndexUSetTmp;
+        //get the selected row (indexes)
+        for (const QTableWidgetItem* item_ite_con : selectionTmp)
+        {
+            rowIndexUSetTmp.emplace(item_ite_con->row());
+        }
 
-    for (const int item_ite_con : rowIndexUSetTmp)
-    {
-        environmentToAddTable_pri->removeRow(item_ite_con);
+        for (const int item_ite_con : rowIndexUSetTmp)
+        {
+            environmentToAddTable_pri->removeRow(item_ite_con);
+        }
+        break;
     }
 }
 
@@ -539,7 +546,7 @@ void runProcessWidgets_c::browseWorkingDirectory_f()
     selectWorkingDirectoryDialog_pri = new QFileDialog(qobject_cast<QWidget*>(this->parent()));
     selectWorkingDirectoryDialog_pri->setFileMode(QFileDialog::Directory);
     selectWorkingDirectoryDialog_pri->setDirectory(QDir::currentPath());
-    selectWorkingDirectoryDialog_pri->setWindowTitle(tr("Select directory..."));
+    selectWorkingDirectoryDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Select directory..."));
     selectWorkingDirectoryDialog_pri->setViewMode(QFileDialog::Detail);
     selectWorkingDirectoryDialog_pri->setFilter(QDir::Hidden | QDir::NoDotAndDotDot | QDir::Files | QDir::AllDirs | QDir::Drives);
     selectWorkingDirectoryDialog_pri->setOption(QFileDialog::DontUseNativeDialog, true);
@@ -551,7 +558,7 @@ void runProcessWidgets_c::browseWorkingDirectory_f()
 #endif
     selectWorkingDirectoryDialog_pri->setOption(QFileDialog::ReadOnly, true);
 
-    std::vector<QString> directoryHistoryTmp(appConfig_f().directoryHistory_f());
+    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f());
     QList<QUrl> directoriesTmp;
     directoriesTmp.reserve(directoryHistoryTmp.size());
     if (not directoryHistoryTmp.empty())
@@ -580,11 +587,11 @@ void runProcessWidgets_c::fileDialogWorkingDirectoryFinished_f(const int result_
         if (not directoryTmp.isEmpty())
         {
             workingDirectoryPTE_pri->setPlainText(directoryTmp);
-            appConfig_f().addDirectoryHistory_f(selectWorkingDirectoryDialog_pri->directory().path());
+            appConfig_ptr_ext->addDirectoryHistory_f(selectWorkingDirectoryDialog_pri->directory().path());
         }
     }
     selectWorkingDirectoryDialog_pri->deleteLater();
-    selectWorkingDirectoryDialog_pri = Q_NULLPTR;
+    selectWorkingDirectoryDialog_pri = nullptr;
 }
 
 void runProcessWidgets_c::showCurrentWorkingDirectoryWindow_f()

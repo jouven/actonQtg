@@ -4,7 +4,6 @@
 #include "actonQtso/actions/runProcess.hpp"
 
 #include <QObject>
-#include <QJsonObject>
 
 #include <utility>
 
@@ -17,6 +16,7 @@ class QFileDialog;
 
 class argumentEditWindow_c;
 class environmentPairToAddEditWindow_c;
+class actionData_c;
 
 class runProcessWidgets_c : public QObject
 {
@@ -34,10 +34,11 @@ class runProcessWidgets_c : public QObject
     argumentEditWindow_c* argumentWindow_pri;
     environmentPairToAddEditWindow_c* environmentPairWindow_pri;
 
-    const int_fast32_t actionDataId_pri = 0;
+    //const int_fast32_t actionDataId_pri = 0;
+    actionData_c* const actionData_ptr_pri;
 
-    QFileDialog* selectWorkingDirectoryDialog_pri = Q_NULLPTR;
-    QFileDialog* selectProcessFileDialog_pri = Q_NULLPTR;
+    QFileDialog* selectWorkingDirectoryDialog_pri = nullptr;
+    QFileDialog* selectProcessFileDialog_pri = nullptr;
 
     void loadActionSpecificData_f();
 
@@ -47,15 +48,15 @@ class runProcessWidgets_c : public QObject
     void insertEnvironmentPairRow_f(const QString& key_par_con, const environmentPair_c& environmentPair_par_con);
     void updateEnvironmentPairRow_f(const QString& key_par_con, const environmentPair_c& environmentPair_par_con, const int row_par_con);
 
-    QJsonObject processActionDataJSON_f() const;
+    void saveActionDataJSON_f() const;
 public:
     explicit runProcessWidgets_c(
-            const int_fast32_t actionDataId_par_con
+            actionData_c* const actionData_ptr_par
             , QVBoxLayout* const variableLayout_par_con
             , QObject *parent = nullptr);
 
 Q_SIGNALS:
-    void saveResult_signal(const QJsonObject& result_par_con);
+    void JSONSaved_signal();
 public Q_SLOTS:
     void parentClosing_f();
     void save_f();

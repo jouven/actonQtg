@@ -3,11 +3,14 @@
 #include "actonQtso/actions/createDirectory.hpp"
 
 #include "appConfig.hpp"
+
 #include "actonQtso/actionData.hpp"
+#include "actonQtso/actonDataHub.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
 
 #include <QtWidgets>
+#include <QJsonObject>
 //#include <QSplitter>
 
 #include <QFileDialog>
@@ -17,19 +20,23 @@
 
 void createDirectoryWidgets_c::parentClosing_f()
 {
-    //appConfig_f().setSplitterState_f(this->objectName(), mainSplitter_pri->saveState());
+    //appConfig_ptr_ext->setSplitterState_f(this->objectName(), mainSplitter_pri->saveState());
 }
 
 void createDirectoryWidgets_c::save_f()
 {
-    QString createDirectoryPathStr(createDirectoryPathPTE_pri->toPlainText());
-    if (createDirectoryPathStr.isEmpty())
+    while (true)
     {
-        errorQMessageBox_f("Create directory path is empty", "Error", qobject_cast<QWidget*>(this->parent()));
-        return;
+        QString createDirectoryPathStr(createDirectoryPathPTE_pri->toPlainText());
+        if (createDirectoryPathStr.isEmpty())
+        {
+            errorQMessageBox_f("Create directory path is empty", "Error", qobject_cast<QWidget*>(this->parent()));
+            break;
+        }
+        saveActionDataJSON_f();
+        Q_EMIT JSONSaved_signal();
+        break;
     }
-
-    Q_EMIT saveResult_signal(processActionDataJSON_f());
 }
 
 void createDirectoryWidgets_c::browseDirectory_f()
@@ -39,7 +46,7 @@ void createDirectoryWidgets_c::browseDirectory_f()
     //browseDirectoryToCreateDialog_pri->setAcceptMode(QFileDialog::AcceptOpen);
     browseDirectoryToCreateDialog_pri->setFileMode(QFileDialog::Directory);
     browseDirectoryToCreateDialog_pri->setDirectory(QDir::currentPath());
-    browseDirectoryToCreateDialog_pri->setWindowTitle(tr("Select directory..."));
+    browseDirectoryToCreateDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Select directory..."));
     browseDirectoryToCreateDialog_pri->setViewMode(QFileDialog::Detail);
     browseDirectoryToCreateDialog_pri->setFilter(QDir::Hidden | QDir::NoDotAndDotDot | QDir::Files | QDir::AllDirs | QDir::Drives);
     browseDirectoryToCreateDialog_pri->setOption(QFileDialog::DontUseNativeDialog, true);
@@ -48,7 +55,7 @@ void createDirectoryWidgets_c::browseDirectory_f()
     selectFileDialogTmp.setGeometry(QApplication::desktop()->availableGeometry(this));
 #endif
 
-    std::vector<QString> directoryHistoryTmp(appConfig_f().directoryHistory_f());
+    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f());
     QList<QUrl> directoriesTmp;
     directoriesTmp.reserve(directoryHistoryTmp.size());
     if (not directoryHistoryTmp.empty())
@@ -63,15 +70,6 @@ void createDirectoryWidgets_c::browseDirectory_f()
     QObject::connect(browseDirectoryToCreateDialog_pri, &QFileDialog::finished, this, &createDirectoryWidgets_c::fileDialogBrowseDirectoryToCreateFinished_f);
 
     browseDirectoryToCreateDialog_pri->show();
-
-    while (browseDirectoryToCreateDialog_pri->result() == QDialog::Accepted)
-    {
-        if (not browseDirectoryToCreateDialog_pri->selectedFiles().isEmpty())
-        {
-            createDirectoryPathPTE_pri->setPlainText(browseDirectoryToCreateDialog_pri->selectedFiles().first());
-        }
-        break;
-    }
 }
 
 void createDirectoryWidgets_c::fileDialogBrowseDirectoryToCreateFinished_f(const int result_par)
@@ -84,34 +82,35 @@ void createDirectoryWidgets_c::fileDialogBrowseDirectoryToCreateFinished_f(const
         }
     }
     browseDirectoryToCreateDialog_pri->deleteLater();
-    browseDirectoryToCreateDialog_pri = Q_NULLPTR;
+    browseDirectoryToCreateDialog_pri = nullptr;
 }
 
 void createDirectoryWidgets_c::loadActionSpecificData_f()
 {
-    if (actionDataId_pri > 0)
+    if (not actionData_ptr_pri->actionDataJSON_f().isEmpty())
     {
-        actionData_c& actionTmp(dataHub_f().actionData_f(actionDataId_pri).first);
         createDirectoryAction_c createDirectoryTmp;
-        createDirectoryTmp.read_f(actionTmp.actionDataJSON_f());
+        createDirectoryTmp.read_f(actionData_ptr_pri->actionDataJSON_f());
 
         createDirectoryPathPTE_pri->setPlainText(createDirectoryTmp.directoryPath_f());
         createParentsCheckbox_pri->setChecked(createDirectoryTmp.createParents_f());
+        errorIfExistsCheckbox_pri->setChecked(createDirectoryTmp.errorIfExists_f());
     }
 }
 
 createDirectoryWidgets_c::createDirectoryWidgets_c(
-        const int_fast32_t actionDataId_par_con
+        actionData_c* const actionData_ptr_par
         , QVBoxLayout* const variableLayout_par_con
         , QObject *parent)
-    : QObject(parent), actionDataId_pri(actionDataId_par_con)
+    : QObject(parent)
+    , actionData_ptr_pri(actionData_ptr_par)
 {
     this->setObjectName("createDirectoryWidgets");
 
     //current working directory
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;
 
-    firstRowLayoutTmp->addWidget(new QLabel(tr("Current working directory")));
+    firstRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Current working directory")));
     firstRowLayoutTmp->addSpacing(10);
     firstRowLayoutTmp->addWidget(new QLabel(QDir::currentPath()));
     firstRowLayoutTmp->addStretch(1);
@@ -122,7 +121,11 @@ createDirectoryWidgets_c::createDirectoryWidgets_c(
     createParentsCheckbox_pri = new QCheckBox("Create parents");
     createParentsCheckbox_pri->setToolTip("If checked parent directories will be created if they don't exist, otherwise if they don't exist it will result in an error");
 
+    errorIfExistsCheckbox_pri = new QCheckBox("Error if exists");
+    errorIfExistsCheckbox_pri->setToolTip("Error if exists, otherwise it won't complain if the directory already exists and the action will succeed anyway");
+
     secondRowLayoutTmp->addWidget(createParentsCheckbox_pri);
+    secondRowLayoutTmp->addWidget(errorIfExistsCheckbox_pri);
 
     //directory plainTextEdit and browse directory button
     QHBoxLayout* thirdRowLayoutTmp = new QHBoxLayout;
@@ -131,28 +134,28 @@ createDirectoryWidgets_c::createDirectoryWidgets_c(
     createDirectoryPathPTE_pri->setMinimumHeight(30);
     createDirectoryPathPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 
-    thirdRowLayoutTmp->addWidget(new QLabel(tr("Create directory path")));
+    thirdRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Create directory path")));
     thirdRowLayoutTmp->addWidget(createDirectoryPathPTE_pri);
-    browsePathButton_pri = new QPushButton(tr("Browse"));
-    thirdRowLayoutTmp->addWidget(browsePathButton_pri);
+    QPushButton* browsePathButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Browse"));
+    thirdRowLayoutTmp->addWidget(browsePathButtonTmp);
+
+    connect(browsePathButtonTmp, &QPushButton::clicked, this, &createDirectoryWidgets_c::browseDirectory_f);
 
     variableLayout_par_con->addLayout(firstRowLayoutTmp);
     variableLayout_par_con->addLayout(secondRowLayoutTmp);
     variableLayout_par_con->addLayout(thirdRowLayoutTmp);
 
-    connect(browsePathButton_pri, &QPushButton::clicked, this, &createDirectoryWidgets_c::browseDirectory_f);
-
     loadActionSpecificData_f();
 }
 
-QJsonObject createDirectoryWidgets_c::processActionDataJSON_f() const
+void createDirectoryWidgets_c::saveActionDataJSON_f() const
 {
-    QJsonObject resultTmp;
-
     QString createDirectoryPathTmp(createDirectoryPathPTE_pri->toPlainText());
 
-    createDirectoryAction_c createDirectoryTmp(createDirectoryPathTmp, createParentsCheckbox_pri->isChecked());
-    createDirectoryTmp.write_f(resultTmp);
-    return resultTmp;
+    createDirectoryAction_c createDirectoryTmp(createDirectoryPathTmp, createParentsCheckbox_pri->isChecked(), errorIfExistsCheckbox_pri->isChecked());
+
+    QJsonObject saveValuesJSONObjectTmp;
+    createDirectoryTmp.write_f(saveValuesJSONObjectTmp);
+    actionData_ptr_pri->setActionDataJSON_f(saveValuesJSONObjectTmp);
 }
 

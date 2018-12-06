@@ -19,7 +19,14 @@ HEADERS       = \
     optionsWindow.hpp \
     optionsWidgets/environmentWindow.hpp \
     optionsWidgets/workingDirectoryWindow.hpp \
-    actionWidgets/runProcessExtra/environmentPairWindow.hpp
+    actionWidgets/runProcessExtra/environmentPairWindow.hpp \
+    actionChecksWindow.hpp \
+    checkWindow.hpp \
+    checkWidgets/actionFinishedWidgets.hpp \
+    checkWidgets/sameFileWidgets.hpp \
+    checkExecutionDetailsWindow.hpp \
+    executionOptionsWindow.hpp \
+    logsWindow.hpp
 
 SOURCES       = main.cpp \
     appConfig.cpp \
@@ -32,7 +39,14 @@ SOURCES       = main.cpp \
     optionsWindow.cpp \
     optionsWidgets/environmentWindow.cpp \
     optionsWidgets/workingDirectoryWindow.cpp \
-    actionWidgets/runProcessExtra/environmentPairWindow.cpp
+    actionWidgets/runProcessExtra/environmentPairWindow.cpp \
+    actionChecksWindow.cpp \
+    checkWindow.cpp \
+    checkWidgets/actionFinishedWidgets.cpp \
+    checkWidgets/sameFileWidgets.cpp \
+    checkExecutionDetailsWindow.cpp \
+    executionOptionsWindow.cpp \
+    logsWindow.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -88,7 +102,7 @@ CONFIG(debug, debug|release){
 }
 
 
-LIBS += -lessentialQtso -lsignalso -lessentialQtgso -lactonQtso -lthreadedFunctionQtso
+LIBS += -lessentialQtso -lsignalso -lessentialQtgso -lactonQtso -lthreadedFunctionQtso -ltranslatorJSONQtso -llogsinJSONQtso
 
 QMAKE_CXXFLAGS_DEBUG -= -g
 QMAKE_CXXFLAGS_DEBUG += -pedantic -Wall -Wextra -g3

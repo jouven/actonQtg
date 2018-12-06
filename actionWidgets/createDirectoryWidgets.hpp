@@ -2,37 +2,38 @@
 #define ACTONQTG_CREATEDIRECTORYWIDGETS_HPP
 
 #include <QObject>
-#include <QJsonObject>
 
 #include <utility>
 
 class QPlainTextEdit;
-class QPushButton;
 class QVBoxLayout;
 class QCheckBox;
 class QFileDialog;
+
+class actionData_c;
 
 class createDirectoryWidgets_c : public QObject
 {
     Q_OBJECT
 
     QPlainTextEdit* createDirectoryPathPTE_pri;
-    QPushButton* browsePathButton_pri;
     QCheckBox* createParentsCheckbox_pri;
-    QFileDialog* browseDirectoryToCreateDialog_pri = Q_NULLPTR;
+    QCheckBox* errorIfExistsCheckbox_pri;
+    QFileDialog* browseDirectoryToCreateDialog_pri = nullptr;
 
-    const int_fast32_t actionDataId_pri = 0;
+    actionData_c* const actionData_ptr_pri;
 
     void loadActionSpecificData_f();
-    QJsonObject processActionDataJSON_f() const;
+    void saveActionDataJSON_f() const;
 public:
     explicit createDirectoryWidgets_c(
-            const int_fast32_t actionDataId_par_con
+            actionData_c* const actionData_ptr_par
             , QVBoxLayout* const variableLayout_par_con
             , QObject *parent = nullptr);
 
 Q_SIGNALS:
-    void saveResult_signal(const QJsonObject& result_par_con);
+    //this signal needs to always have this name because of template usage in actionWindow.cpp
+    void JSONSaved_signal();
 public Q_SLOTS:
     void parentClosing_f();
     void save_f();
