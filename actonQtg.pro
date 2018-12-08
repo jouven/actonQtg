@@ -1,8 +1,8 @@
 #message($$QMAKESPEC)
-QT += widgets core
+QT += widgets
 
-CONFIG -= no_keywords app_bundle
-
+CONFIG += no_keywords
+CONFIG -= app_bundle
 TEMPLATE = app
 
 !android:QMAKE_CXXFLAGS += -std=c++17
@@ -76,7 +76,7 @@ CONFIG(release, debug|release){
 }
 #debug
 CONFIG(debug, debug|release){
-    LIBS += -L$${MYPATH}home/jouven/mylibs/debug -lbackwardSTso -ltimeso -lboost_date_time -lbaseClassQtso
+    LIBS += -L$${MYPATH}home/jouven/mylibs/debug -lbackwardSTso -ltimeso -lboost_date_time
     DEPENDPATH += $${MYPATH}home/jouven/mylibs/debug
     QMAKE_RPATHDIR += $${MYPATH}home/jouven/mylibs/debug
     #QMAKE_LFLAGS += -rdynamic
@@ -107,17 +107,14 @@ LIBS += -lessentialQtso -lsignalso -lessentialQtgso -lactonQtso -lthreadedFuncti
 QMAKE_CXXFLAGS_DEBUG -= -g
 QMAKE_CXXFLAGS_DEBUG += -pedantic -Wall -Wextra -g3
 
+linux:QMAKE_LFLAGS += -fuse-ld=gold
+QMAKE_LFLAGS_RELEASE += -fvisibility=hidden
 #if not win32, add flto, mingw (on msys2) can't handle lto
 linux:QMAKE_CXXFLAGS_RELEASE += -flto=jobserver
 !android:QMAKE_CXXFLAGS_RELEASE += -mtune=sandybridge
 
 #for -flto=jobserver in the link step to work with -j4
 linux:!android:QMAKE_LINK = +g++
-
-linux:QMAKE_LFLAGS += -fuse-ld=gold
-QMAKE_LFLAGS_RELEASE += -fvisibility=hidden
-#if not win32, add flto, mingw (on msys2) can't handle lto
-linux:QMAKE_LFLAGS_RELEASE += -flto=jobserver
 
 
 #Android stuff, for an executable project to work with shared libraries
