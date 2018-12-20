@@ -21,7 +21,7 @@ class checkExecutionDetailsWindow_c : public QWidget
     QPlainTextEdit* errorPTE_pri;
     QTextEdit* executionStateTE_pri;
 
-    QCheckBox* anyFinishCheckbox_pri;
+    //QCheckBox* anyFinishCheckbox_pri;
     QCheckBox* checkResultCheckbox_pri;
 
     QTextEdit* executionStartDatetimeTE_pri;

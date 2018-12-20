@@ -59,7 +59,8 @@ void actionWindow_c::askUpdateStringIdDepdenciesWindowFinished_f(const int resul
     {
         actonDataHub_ptr_ext->updateStringIdDependencies_f(actionData_ptr_pri->stringId_f(), oldStringId_pri);
     }
-    close();
+    askUpdateStringIdDepdenciesWindow_pri->deleteLater();
+    askUpdateStringIdDepdenciesWindow_pri = nullptr;
 }
 
 void actionWindow_c::openAskUpdateStringIdDepdenciesWindow_f()

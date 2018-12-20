@@ -53,7 +53,6 @@ class mainWindow_c : public QWidget
     QMessageBox* runFromStoppedActionMessageBox_pri = nullptr;
 
     QMessageBox* askAboutExecutingActionsOnCloseMessageBox_pri = nullptr;
-    QMessageBox* askAboutExecutingChecksOnCloseMessageBox_pri = nullptr;
     QMessageBox* askAboutStoppingExecutionOnCloseMessageBox_pri = nullptr;
 
     void dragEnterEvent(QDragEnterEvent *event) override;

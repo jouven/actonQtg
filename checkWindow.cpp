@@ -50,8 +50,7 @@ void checkWindow_c::clearLayoutItems_f(QLayout* layout_par)
     }
 }
 
-//T*& because doing a connect on a copy pointer variable doesn't work well
-//when the copy is dtored the connections go away
+//T*& because there is an assign operation, by value would make it useless
 template <typename T>
 void checkWindow_c::createCheckTypeWidgets_f(T*& checkTypeClassPtr_par)
 {
@@ -246,7 +245,6 @@ void checkWindow_c::removeWidgetClassPerCheck_f(
         const int index_par_con
 )
 {
-    //switch?
     while (true)
     {
         QString checkTypeStrTmp(checkTypeCombo_pri->itemData(index_par_con).toString());

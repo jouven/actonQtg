@@ -44,7 +44,7 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
     bool evenAcceptedTmp(false);
     while (true)
     {
-        if (actonDataHub_ptr_ext->stoppingActionsExecution_f())
+        if (actonDataHub_ptr_ext->stoppingActionsExecution_f() and not actonDataHub_ptr_ext->killingActionsExecution_f())
         {
             MACRO_ADDACTONQTGLOG("Close while stopping actions", logItem_c::type_ec::info);
             createMessageBoxAskAboutStoppingExecutionOnClose_f();
@@ -1124,7 +1124,7 @@ void mainWindow_c::updateActionExecutionState_f(actionData_c* actionData_par_ptr
 #ifdef DEBUGJOUVEN
     //qDebug() << "actionData_par_con.id_f() " << QString::number(actionData_par_ptr_con->id_f()) << endl;
 #endif
-    QString actionExecutionStateStrTmp(actionExecutionStateToStrUMap_glo_sta_con.at(actionData_par_ptr_con->actionDataExecutionResult_ptr_f()->state_f()));
+    QString actionExecutionStateStrTmp(actionExecutionStateToStrUMap_glo_sta_con.at(actionData_par_ptr_con->actionDataExecutionResult_ptr_f()->lastState_f()));
     int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(actionData_par_ptr_con->id_f()));
 
 #ifdef DEBUGJOUVEN
@@ -1277,6 +1277,8 @@ void mainWindow_c::stopExecutingActionsAndClose_f()
         executeActionsButton_pri->setText(appConfig_ptr_ext->translate_f("Stopping..."));
         statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping execution... (exiting after)"));
     }
+    askAboutExecutingActionsOnCloseMessageBox_pri->close();
+    askAboutExecutingActionsOnCloseMessageBox_pri = nullptr;
 }
 
 void mainWindow_c::stopExecutingActionsElseKillAndClose_f()
@@ -1310,6 +1312,8 @@ void mainWindow_c::stopExecutingActionsElseKillAndClose_f()
             statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping-Killing execution... (exiting after)"));
         }
     }
+    askAboutExecutingActionsOnCloseMessageBox_pri->close();
+    askAboutExecutingActionsOnCloseMessageBox_pri = nullptr;
 }
 
 void mainWindow_c::killExecutingActionsAndClose_f()
@@ -1317,13 +1321,12 @@ void mainWindow_c::killExecutingActionsAndClose_f()
     if (actonDataHub_ptr_ext->executingActions_f() and actonDataHub_ptr_ext->stoppingActionsExecution_f())
     {
         statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Killing execution... (exiting after)"));
-        connect(actonDataHub_ptr_ext->proxyQObj_f(), &actonDataHubProxyQObj_c::actionsExecutionFinished_signal, this, &mainWindow_c::close);
+        connect(actonDataHub_ptr_ext->proxyQObj_f(), &actonDataHubProxyQObj_c::actionsExecutionFinished_signal, this, &mainWindow_c::close, Qt::UniqueConnection);
         actonDataHub_ptr_ext->tryStopExecutingActions_f(true);
     }
-    else
-    {
-        close();
-    }
+    askAboutStoppingExecutionOnCloseMessageBox_pri->close();
+    askAboutStoppingExecutionOnCloseMessageBox_pri = nullptr;
+    close();
 }
 
 void mainWindow_c::runFromStoppedActionsMessageBoxResult_f(const int result_par)
@@ -1400,15 +1403,12 @@ void mainWindow_c::executeActions_f()
 #endif
             if (actionDataPtrTmp not_eq nullptr)
             {
-                //it's not tracked if the executions results are already connected... so... delete the results object each time and connect,
-                //otherwise repeated connections would happen, to solve this "issue" would require a map of which actions are connected and which aren't
-                //also reconnect or undo the initial connection if the action types changes, mind the checks too...
-                actionDataExecutionResult_c* actionExecutionResultPtr(actionDataPtrTmp->createGetActionDataExecutionResult_ptr_f(true));
-                //FUTURE add warning when running an action again if there are results already?
-                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::executionStateUpdated_signal, this, &mainWindow_c::updateActionExecutionState_f);
-                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::outputUpdated_signal, this, &mainWindow_c::updateActionOutput_f);
-                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::errorUpdated_signal, this, &mainWindow_c::updateActionError_f);
-                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::resultsCleared_signal, this, &mainWindow_c::actionResultsCleared_f);
+                actionDataExecutionResult_c* actionExecutionResultPtr(actionDataPtrTmp->createGetActionDataExecutionResult_ptr_f());
+
+                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::executionStateUpdated_signal, this, &mainWindow_c::updateActionExecutionState_f, Qt::UniqueConnection);
+                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::outputUpdated_signal, this, &mainWindow_c::updateActionOutput_f, Qt::UniqueConnection);
+                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::error_signal, this, &mainWindow_c::updateActionError_f, Qt::UniqueConnection);
+                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::resultsCleared_signal, this, &mainWindow_c::actionResultsCleared_f, Qt::UniqueConnection);
 
                 //on the grid only the above are used
                 //QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::actionExternalOutputUpdated_signal, this, &mainWindow_c::updateActionExternalOutput_f);

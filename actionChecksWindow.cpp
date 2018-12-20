@@ -316,10 +316,10 @@ void actionChecksWindow_c::updateCheckRow_f(const int row_par_con)
                 updateCheckResult_f(checkDataPtrTmp);
             }
             //and connect
-            QObject::connect(checkDataPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::executionStateUpdated_signal, this, &actionChecksWindow_c::updateCheckExecutionState_f);
-            QObject::connect(checkDataPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::errorUpdated_signal, this, &actionChecksWindow_c::updateCheckError_f);
-            QObject::connect(checkDataPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::finished_signal , this, &actionChecksWindow_c::updateCheckResult_f);
-            QObject::connect(checkDataPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::resultsCleared_signal, this, &actionChecksWindow_c::checkResultsCleared_f);
+            QObject::connect(checkDataPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::executionStateUpdated_signal, this, &actionChecksWindow_c::updateCheckExecutionState_f, Qt::UniqueConnection);
+            QObject::connect(checkDataPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::error_signal, this, &actionChecksWindow_c::updateCheckError_f, Qt::UniqueConnection);
+            QObject::connect(checkDataPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::finished_signal , this, &actionChecksWindow_c::updateCheckResult_f, Qt::UniqueConnection);
+            QObject::connect(checkDataPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::resultsCleared_signal, this, &actionChecksWindow_c::checkResultsCleared_f, Qt::UniqueConnection);
         }
     }
     else
@@ -461,7 +461,7 @@ void actionChecksWindow_c::updateCheckError_f(checkData_c* const checkData_par_p
 void actionChecksWindow_c::updateCheckExecutionState_f(checkData_c* const checkData_par_ptr_con)
 {
     int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(checkData_par_ptr_con->id_f()));
-    QString checkExecutionStateStrTmp(checkExecutionStateToStrUMap_glo_sta_con.at(checkData_par_ptr_con->checkDataExecutionResult_ptr_f()->state_f()));
+    QString checkExecutionStateStrTmp(checkExecutionStateToStrUMap_glo_sta_con.at(checkData_par_ptr_con->checkDataExecutionResult_ptr_f()->lastState_f()));
     //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
     actionChecksTable_pri->item(rowTmp, 2)->setText(checkExecutionStateStrTmp.left(32));
 }
@@ -469,8 +469,16 @@ void actionChecksWindow_c::updateCheckExecutionState_f(checkData_c* const checkD
 void actionChecksWindow_c::updateCheckResult_f(checkData_c* const checkData_par_ptr_con)
 {
     int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(checkData_par_ptr_con->id_f()));
-    //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
-    actionChecksTable_pri->item(rowTmp, 4)->setText(checkData_par_ptr_con->checkDataExecutionResult_ptr_f()->result_f() ? appConfig_ptr_ext->translate_f("True") : appConfig_ptr_ext->translate_f("False"));
+    if (checkData_par_ptr_con->checkDataExecutionResult_ptr_f() not_eq nullptr and checkData_par_ptr_con->checkDataExecutionResult_ptr_f()->finished_f())
+    {
+        //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
+        actionChecksTable_pri->item(rowTmp, 4)->setText(checkData_par_ptr_con->checkDataExecutionResult_ptr_f()->result_f() ? appConfig_ptr_ext->translate_f("True") : appConfig_ptr_ext->translate_f("False"));
+    }
+    else
+    {
+        //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
+        actionChecksTable_pri->item(rowTmp, 4)->setText("");
+    }
 }
 
 void actionChecksWindow_c::executionFinished_f()
@@ -532,6 +540,8 @@ void actionChecksWindow_c::stopExecutingChecksAndClose_f()
         executeChecksButton_pri->setText(appConfig_ptr_ext->translate_f("Stopping..."));
         statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping execution... (exiting after)"));
     }
+    askAboutExecutingChecksOnCloseMessageBox_pri->deleteLater();
+    askAboutExecutingChecksOnCloseMessageBox_pri = nullptr;
 }
 
 void actionChecksWindow_c::executeChecks_f()
@@ -585,12 +595,12 @@ void actionChecksWindow_c::executeChecks_f()
                 //it's not tracked if the executions results are already connected... so... delete the results object each time and connect,
                 //otherwise repeated connections would happen, to solve this "issue" would require a map of which actions are connected and which aren't
                 //also reconnect or undo the initial connection if the check types changes
-                checkDataExecutionResult_c* checkExecutionResultPtr = checkDataPtrTmp->createGetCheckDataExecutionResult_ptr_f(true);
+                checkDataExecutionResult_c* checkExecutionResultPtr = checkDataPtrTmp->createGetCheckDataExecutionResult_ptr_f();
                 //FUTURE add warning when running an action again if there are results already?
-                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::executionStateUpdated_signal, this, &actionChecksWindow_c::updateCheckExecutionState_f);
-                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::errorUpdated_signal, this, &actionChecksWindow_c::updateCheckError_f);
-                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::finished_signal , this, &actionChecksWindow_c::updateCheckResult_f);
-                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::resultsCleared_signal, this, &actionChecksWindow_c::checkResultsCleared_f);
+                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::executionStateUpdated_signal, this, &actionChecksWindow_c::updateCheckExecutionState_f, Qt::UniqueConnection);
+                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::error_signal, this, &actionChecksWindow_c::updateCheckError_f, Qt::UniqueConnection);
+                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::finished_signal , this, &actionChecksWindow_c::updateCheckResult_f, Qt::UniqueConnection);
+                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::resultsCleared_signal, this, &actionChecksWindow_c::checkResultsCleared_f, Qt::UniqueConnection);
 
                 //on the grid only the above are used
                 //QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::actionExternalOutputUpdated_signal, this, &mainWindow_c::updateActionExternalOutput_f);

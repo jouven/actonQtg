@@ -7,6 +7,7 @@
 #include "logsinJSONQtso/logItemStrMapping.hpp"
 
 #include <QtWidgets>
+#include <QTableWidget>
 
 
 void logsWindow_c::closeEvent(QCloseEvent* event)
@@ -62,6 +63,7 @@ void logsWindow_c::addLoadLogEntry_f(const int index_par_con, const logItem_c* c
 //    qtOutRef_ext() << "Log entry added, message_f " << logItem_par->message_f() << endl;
 //    qtOutRef_ext() << "Log entry added, datetime " << logDateTime_par->toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz") << endl;
 #endif
+    logsTable_pri->scrollToBottom();
 }
 
 void logsWindow_c::loadLogs_f()

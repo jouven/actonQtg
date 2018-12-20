@@ -53,10 +53,10 @@ checkExecutionDetailsWindow_c::checkExecutionDetailsWindow_c(
     executionStateTE_pri->setReadOnly(true);
     firstRowLayoutTmp->addWidget(executionStateTE_pri);
 
-    anyFinishCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Any finish"));
-    anyFinishCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("True if the check is done executing, no matter what state"));
-    anyFinishCheckbox_pri->setMinimumHeight(minHeightTmp);
-    firstRowLayoutTmp->addWidget(anyFinishCheckbox_pri);
+//    anyFinishCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Any finish"));
+//    anyFinishCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("True if the check is done executing, no matter what state"));
+//    anyFinishCheckbox_pri->setMinimumHeight(minHeightTmp);
+//    firstRowLayoutTmp->addWidget(anyFinishCheckbox_pri);
 
     checkResultCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Result"));
     checkResultCheckbox_pri->setMinimumHeight(minHeightTmp);
@@ -176,13 +176,13 @@ checkExecutionDetailsWindow_c::checkExecutionDetailsWindow_c(
     //"programming" wise since it's known before hand
     //when the check will change the signals can be blocked to disable this behavior and change the value
     //and since the this uses the GUI thread, the user has no chance to go around this "hack"
-    connect(anyFinishCheckbox_pri, &QCheckBox::stateChanged, this, [this](int state_par)
-    {
-        //to prevent signal recursion
-        anyFinishCheckbox_pri->blockSignals(true);
-        anyFinishCheckbox_pri->setCheckState(state_par == Qt::Checked ? Qt::Unchecked : Qt::Checked);
-        anyFinishCheckbox_pri->blockSignals(false);
-    });
+//    connect(anyFinishCheckbox_pri, &QCheckBox::stateChanged, this, [this](int state_par)
+//    {
+//        //to prevent signal recursion
+//        anyFinishCheckbox_pri->blockSignals(true);
+//        anyFinishCheckbox_pri->setCheckState(state_par == Qt::Checked ? Qt::Unchecked : Qt::Checked);
+//        anyFinishCheckbox_pri->blockSignals(false);
+//    });
     connect(checkResultCheckbox_pri, &QCheckBox::stateChanged, this, [this](int state_par)
     {
         //to prevent signal recursion
@@ -210,7 +210,7 @@ checkExecutionDetailsWindow_c::checkExecutionDetailsWindow_c(
         updateState_f();
         updateAnyFinish_f();
 
-        connect(checkDataExecutionResultPtr_pri, &checkDataExecutionResult_c::errorUpdated_signal, this, &checkExecutionDetailsWindow_c::updateError_f);
+        connect(checkDataExecutionResultPtr_pri, &checkDataExecutionResult_c::error_signal, this, &checkExecutionDetailsWindow_c::updateError_f);
         connect(checkDataExecutionResultPtr_pri, &checkDataExecutionResult_c::executionStateUpdated_signal, this, &checkExecutionDetailsWindow_c::updateState_f);
         connect(checkDataExecutionResultPtr_pri, &checkDataExecutionResult_c::finished_signal, this, &checkExecutionDetailsWindow_c::updateAnyFinish_f);
     }
@@ -249,7 +249,7 @@ void checkExecutionDetailsWindow_c::updateState_f()
                     QDateTime::fromMSecsSinceEpoch(checkDataExecutionResultPtr_pri->startTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
         );
     }
-    executionStateTE_pri->setText(checkExecutionStateToStrUMap_glo_sta_con.at(checkDataExecutionResultPtr_pri->state_f()));
+    executionStateTE_pri->setText(checkExecutionStateToStrUMap_glo_sta_con.at(checkDataExecutionResultPtr_pri->lastState_f()));
 }
 
 void checkExecutionDetailsWindow_c::updateAnyFinish_f()
@@ -264,9 +264,9 @@ void checkExecutionDetailsWindow_c::updateAnyFinish_f()
         checkResultCheckbox_pri->setCheckState(checkDataExecutionResultPtr_pri->result_f() ? Qt::Checked : Qt::Unchecked);
         checkResultCheckbox_pri->blockSignals(false);
     }
-    anyFinishCheckbox_pri->blockSignals(true);
-    anyFinishCheckbox_pri->setCheckState(checkDataExecutionResultPtr_pri->finished_f() ? Qt::Checked : Qt::Unchecked);
-    anyFinishCheckbox_pri->blockSignals(false);
+//    anyFinishCheckbox_pri->blockSignals(true);
+//    anyFinishCheckbox_pri->setCheckState(checkDataExecutionResultPtr_pri->finished_f() ? Qt::Checked : Qt::Unchecked);
+//    anyFinishCheckbox_pri->blockSignals(false);
 }
 
 

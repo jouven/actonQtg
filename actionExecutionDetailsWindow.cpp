@@ -212,11 +212,11 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
         updateAnyFinish_f();
 
         connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::outputUpdated_signal, this, &actionExecutionDetailsWindow_c::updateOutput_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::errorUpdated_signal, this, &actionExecutionDetailsWindow_c::updateError_f);
+        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::error_signal, this, &actionExecutionDetailsWindow_c::updateError_f);
         connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::externalOutputUpdated_signal, this, &actionExecutionDetailsWindow_c::updateExternalOutput_f);
         connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::externalErrorUpdated_signal, this, &actionExecutionDetailsWindow_c::updateExternalError_f);
         connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::executionStateUpdated_signal, this, &actionExecutionDetailsWindow_c::updateState_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::returnCodeUpdated_signal, this, &actionExecutionDetailsWindow_c::updateReturnCode_f);
+        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::returnCodeSet_signal, this, &actionExecutionDetailsWindow_c::updateReturnCode_f);
         connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::finished_signal, this, &actionExecutionDetailsWindow_c::updateAnyFinish_f);
     }
 }
@@ -268,7 +268,7 @@ void actionExecutionDetailsWindow_c::updateState_f()
                     QDateTime::fromMSecsSinceEpoch(actionDataExecutionResultPtr_pri->startTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
         );
     }
-    executionStateTE_pri->setText(actionExecutionStateToStrUMap_glo_sta_con.at(actionDataExecutionResultPtr_pri->state_f()));
+    executionStateTE_pri->setText(actionExecutionStateToStrUMap_glo_sta_con.at(actionDataExecutionResultPtr_pri->lastState_f()));
 }
 
 void actionExecutionDetailsWindow_c::updateReturnCode_f()

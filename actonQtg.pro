@@ -3,10 +3,12 @@ QT += widgets
 
 CONFIG += no_keywords
 CONFIG -= app_bundle
+#(only windows) fixes the extra tier of debug and release build directories inside the first build directories
+win32:CONFIG -= debug_and_release
 TEMPLATE = app
 
 !android:QMAKE_CXXFLAGS += -std=c++17
-android:CONFIG += c++14
+android:QMAKE_CXXFLAGS += -std=c++14
 
 HEADERS       = \
     appConfig.hpp \
@@ -59,7 +61,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-
 !win32:MYPATH = "/"
 win32:MYPATH = "H:/veryuseddata/portable/msys64/"
 
@@ -76,7 +77,9 @@ CONFIG(release, debug|release){
 }
 #debug
 CONFIG(debug, debug|release){
-    LIBS += -L$${MYPATH}home/jouven/mylibs/debug -lbackwardSTso -ltimeso -lboost_date_time
+LIBS += -L$${MYPATH}home/jouven/mylibs/debug -lbackwardSTso -ltimeso
+win32:LIBS += -lboost_date_time-mt
+!win32:LIBS += -lboost_date_time
     DEPENDPATH += $${MYPATH}home/jouven/mylibs/debug
     QMAKE_RPATHDIR += $${MYPATH}home/jouven/mylibs/debug
     #QMAKE_LFLAGS += -rdynamic
@@ -101,20 +104,24 @@ CONFIG(debug, debug|release){
 
 }
 
-
 LIBS += -lessentialQtso -lsignalso -lessentialQtgso -lactonQtso -lthreadedFunctionQtso -ltranslatorJSONQtso -llogsinJSONQtso
 
 QMAKE_CXXFLAGS_DEBUG -= -g
 QMAKE_CXXFLAGS_DEBUG += -pedantic -Wall -Wextra -g3
 
-linux:QMAKE_LFLAGS += -fuse-ld=gold
-QMAKE_LFLAGS_RELEASE += -fvisibility=hidden
-#if not win32, add flto, mingw (on msys2) can't handle lto
+#if not win32, add flto, mingw (on msys2) can't handle lto, CXXFLAGS
 linux:QMAKE_CXXFLAGS_RELEASE += -flto=jobserver
+#win32::QMAKE_CXXFLAGS_RELEASE += -flto
 !android:QMAKE_CXXFLAGS_RELEASE += -mtune=sandybridge
 
-#for -flto=jobserver in the link step to work with -j4
+#for -flto=jobserver in the link step to work with -jX
 linux:!android:QMAKE_LINK = +g++
+
+linux:QMAKE_LFLAGS += -fuse-ld=gold
+QMAKE_LFLAGS_RELEASE += -fvisibility=hidden
+#if not win32, add flto, mingw (on msys2) can't handle lto, LFLAGS
+linux:QMAKE_LFLAGS_RELEASE += -flto=jobserver
+#win32::QMAKE_LFLAGS_RELEASE += -flto
 
 
 #Android stuff, for an executable project to work with shared libraries
