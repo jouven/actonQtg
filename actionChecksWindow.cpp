@@ -191,7 +191,7 @@ actionChecksWindow_c::actionChecksWindow_c(
     for (int rowIndex_ite = 0, l = checkDataHub_ptr_pri->size_f(); rowIndex_ite < l; ++rowIndex_ite)
     {
         updateCheckRow_f(rowIndex_ite);
-        if (not eines::signal::isRunning_f())
+        if (not signalso::isRunning_f())
         {
             break;
         }

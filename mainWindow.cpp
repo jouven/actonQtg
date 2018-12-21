@@ -66,9 +66,9 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
             break;
         }
 
-        if (eines::signal::isRunning_f())
+        if (signalso::isRunning_f())
         {
-            eines::signal::stopRunning_f();
+            signalso::stopRunning_f();
         }
 
         if (finalCounterSeconds_pri == 0 and threadedFunction_c::qThreadCount_f() == 0)
@@ -371,7 +371,7 @@ void mainWindow_c::mainLoop_f()
     {
         this->close();
     }
-    if (not eines::signal::isRunning_f())
+    if (not signalso::isRunning_f())
     {
         statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Exiting..."));
         finalCounterSeconds_pri = finalCounterSeconds_pri - 1;
@@ -504,7 +504,7 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
 //        //qDebug() << "actionDataRefPairTmp.second " << actionDataRefPairTmp.second << endl;
 //#endif
                     updateActionRow_f(rowIndex_ite);
-                    if (not eines::signal::isRunning_f())
+                    if (not signalso::isRunning_f())
                     {
                         break;
                     }
@@ -522,7 +522,7 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
                     lastLoadedFilePath_pri = fileList_par_con.at(0);
                 }
             }
-            if (not eines::signal::isRunning_f())
+            if (not signalso::isRunning_f())
             {
                 break;
             }
