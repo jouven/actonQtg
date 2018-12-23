@@ -24,6 +24,7 @@ class appConfig_c
 
     QHash<QString, QByteArray> widgetGeometryUMap_pri;
 
+    //TODO revamp and make it per each fileDialog
     //like the actionData with row and actionDataId TWO are needed, this time order is required
     //variables and functions to control the directory history
     //key = path, value = time

@@ -99,10 +99,10 @@ void runProcessWidgets_c::updateEnvironmentPairRow_f(
         , const environmentPair_c& environmentPair_par_con
         , const int row_par_con)
 {
-    argumentsTable_pri->item(row_par_con, 0)->setText(key_par_con);
-    argumentsTable_pri->item(row_par_con, 1)->setText(environmentPair_par_con.value_f());
-    Qt::CheckState checkValue(environmentPair_par_con.enabled_f() ? Qt::Checked : Qt::Unchecked);
-    argumentsTable_pri->item(row_par_con, 2)->setCheckState(checkValue);
+    environmentToAddTable_pri->item(row_par_con, 0)->setText(key_par_con);
+    environmentToAddTable_pri->item(row_par_con, 1)->setText(environmentPair_par_con.value_f());
+    Qt::CheckState checkValueTmp(environmentPair_par_con.enabled_f() ? Qt::Checked : Qt::Unchecked);
+    environmentToAddTable_pri->item(row_par_con, 2)->setCheckState(checkValueTmp);
 }
 
 void runProcessWidgets_c::loadActionSpecificData_f()
@@ -411,8 +411,8 @@ void runProcessWidgets_c::openArgumentEditWindow_f()
     {
         auto firstRowSelection = argumentsTable_pri->selectedItems().first()->row();
         argumentValueTmp = argumentsTable_pri->item(firstRowSelection, 0)->text();
-        argumentIndexTmp = firstRowSelection;
         argumentEnabledTmp = argumentsTable_pri->item(firstRowSelection, 1)->checkState() == Qt::CheckState::Checked;
+        argumentIndexTmp = firstRowSelection;
     }
 
     argumentWindow_pri = new argumentEditWindow_c(
@@ -439,8 +439,8 @@ void runProcessWidgets_c::openEnvironmentPairEditWindow_f()
         auto firstRowSelection = environmentToAddTable_pri->selectedItems().first()->row();
         keyTmp = environmentToAddTable_pri->item(firstRowSelection, 0)->text();
         valueTmp = environmentToAddTable_pri->item(firstRowSelection, 1)->text();
-        environmentPairToAddIndexTmp = firstRowSelection;
         environmentPairEnabledTmp = environmentToAddTable_pri->item(firstRowSelection, 2)->checkState() == Qt::CheckState::Checked;
+        environmentPairToAddIndexTmp = firstRowSelection;
     }
 
     environmentPairWindow_pri = new environmentPairToAddEditWindow_c(

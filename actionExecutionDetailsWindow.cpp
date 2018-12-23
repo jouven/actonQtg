@@ -278,7 +278,7 @@ void actionExecutionDetailsWindow_c::updateReturnCode_f()
 
 void actionExecutionDetailsWindow_c::updateAnyFinish_f()
 {
-    if (actionDataExecutionResultPtr_pri->finished_f())
+    if (actionDataExecutionResultPtr_pri->finished_f() and actionDataExecutionResultPtr_pri->finishedTime_f() not_eq 0)
     {
         executionFinishDatetimeTE_pri->setText(
                     QDateTime::fromMSecsSinceEpoch(actionDataExecutionResultPtr_pri->finishedTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
