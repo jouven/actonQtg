@@ -14,7 +14,7 @@
 
 void sameFileWidgets_c::parentClosing_f()
 {
-    //appConfig_ptr_ext->setSplitterState_f(this->objectName(), mainSplitter_pri->saveState());
+
 }
 
 void sameFileWidgets_c::save_f()
@@ -41,6 +41,7 @@ void sameFileWidgets_c::save_f()
 void sameFileWidgets_c::browseFile_f()
 {
     browseFileDialog_pri = new QFileDialog(qobject_cast<QWidget*>(this->parent()));
+    browseFileDialog_pri->setObjectName("browseFileDialog_");
     //AcceptOpen is the default
     //browseDirectoryToCreateDialog_pri->setAcceptMode(QFileDialog::AcceptOpen);
     browseFileDialog_pri->setFileMode(QFileDialog::AnyFile);
@@ -63,17 +64,17 @@ void sameFileWidgets_c::browseFile_f()
     browseFileDialog_pri.setGeometry(QApplication::desktop()->availableGeometry(this));
 #endif
 
-    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f());
-    QList<QUrl> directoriesTmp;
-    directoriesTmp.reserve(directoryHistoryTmp.size());
+    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f(this->objectName() + browseFileDialog_pri->objectName()));
     if (not directoryHistoryTmp.empty())
     {
+        QList<QUrl> directoriesTmp;
+        directoriesTmp.reserve(directoryHistoryTmp.size());
         for (const QString& directory_par_con : directoryHistoryTmp)
         {
             directoriesTmp.append(QUrl::fromLocalFile(directory_par_con));
         }
+        browseFileDialog_pri->setSidebarUrls(directoriesTmp);
     }
-    browseFileDialog_pri->setSidebarUrls(directoriesTmp);
 
     QObject::connect(browseFileDialog_pri, &QFileDialog::finished, this, &sameFileWidgets_c::fileDialogBrowseFinished_f);
 
@@ -94,6 +95,7 @@ void sameFileWidgets_c::fileDialogBrowseFinished_f(const int result_par)
             {
                 fileBPTE_pri->setPlainText(browseFileDialog_pri->selectedFiles().first());
             }
+            appConfig_ptr_ext->addDirectoryHistory_f(browseFileDialog_pri->directory().path(), this->objectName() + browseFileDialog_pri->objectName());
         }
     }
     browsingFileA_pri = false;
@@ -155,7 +157,7 @@ sameFileWidgets_c::sameFileWidgets_c(
     : QObject(parent)
     , checkData_ptr_pri(checkData_ptr_par)
 {
-    this->setObjectName("sameFileWidgets");
+    this->setObjectName("sameFileWidgets_");
 
     //file A
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;

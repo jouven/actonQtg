@@ -9,6 +9,7 @@
 #include <QtWidgets>
 #include <QTableWidget>
 
+#include <set>
 
 void logsWindow_c::closeEvent(QCloseEvent* event)
 {
@@ -21,9 +22,58 @@ void logsWindow_c::closeEvent(QCloseEvent* event)
     event->accept();
 }
 
-void logsWindow_c::addLoadLogEntry_f(const int index_par_con, const logItem_c* const logItem_par_con, const QDateTime* const logDateTime_par_con)
+void logsWindow_c::keyPressEvent(QKeyEvent* event_par)
+{
+    if (logsTable_pri->hasFocus() and event_par->matches(QKeySequence::Copy))
+    {
+        QList<QTableWidgetItem*> selectedItemsTmp(logsTable_pri->selectedItems());
+        if (selectedItemsTmp.size() > 1)
+        {
+            std::set<int> selectedRowsTmp;
+            for (const QTableWidgetItem* cell_ite_con : selectedItemsTmp)
+            {
+               selectedRowsTmp.emplace(cell_ite_con->row());
+            }
+            //FUTURE now the selection is per row, but if it was per cell, just get the rows, order them like here,
+            //and then iterate the SELECTED cells from left to right, iterate the columns checking selected
+            //setWindowTitle(appConfig_ptr_ext->translate_f("Logs - items selected " + QString::number(selectedItemsTmp.size())));
+            QString textToClipBoardTmp;
+            for (const int row_ite_con : selectedRowsTmp)
+            {
+                 textToClipBoardTmp
+                 .append(logsTable_pri->item(row_ite_con, 0)->text() + "\t")
+                 .append(logsTable_pri->item(row_ite_con, 1)->text() + "\t")
+                 .append(logsTable_pri->item(row_ite_con, 2)->text() + "\t")
+                 .append(logsTable_pri->item(row_ite_con, 3)->text() + "\t")
+                 .append(logsTable_pri->item(row_ite_con, 4)->text() + "\t")
+                 .append(logsTable_pri->item(row_ite_con, 5)->text() + "\t")
+                 .append(logsTable_pri->item(row_ite_con, 6)->text() + "\n")
+                 ;
+            }
+            //remove the last \n
+            textToClipBoardTmp.chop(1);
+            QClipboard *clipboard = QGuiApplication::clipboard();
+            clipboard->setText(textToClipBoardTmp);
+        }
+        else
+        {
+            //normal event woks alright for single cell copy
+        }
+    }
+    //qwidgets events default implementation is to ignore
+    //but when reimplementing if no accept or ignore is called, accept is the default
+    //accept, "accepts" the event and stops event propagation
+    //event_par->accept();
+    //event_par->ignore();
+}
+
+void logsWindow_c::addLogEntry_f(const int index_par_con, const logItem_c* const logItem_par_con, const QDateTime* const logDateTime_par_con)
 {
     int indexTmp(index_par_con);
+#ifdef DEBUGJOUVEN
+    //qtOutRef_ext() << "index_par_con " << index_par_con << endl;
+    //qtOutRef_ext() << "logsTable_pri->rowCount() " << logsTable_pri->rowCount() << endl;
+#endif
     if (indexTmp > logsTable_pri->rowCount())
     {
         indexTmp = logsTable_pri->rowCount();
@@ -63,6 +113,12 @@ void logsWindow_c::addLoadLogEntry_f(const int index_par_con, const logItem_c* c
 //    qtOutRef_ext() << "Log entry added, message_f " << logItem_par->message_f() << endl;
 //    qtOutRef_ext() << "Log entry added, datetime " << logDateTime_par->toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz") << endl;
 #endif
+
+}
+
+void logsWindow_c::addSingleLogEntry_f(const int index_par_con, const logItem_c* const logItem_par_con, const QDateTime* const logDateTime_par_con)
+{
+    addLogEntry_f(index_par_con, logItem_par_con, logDateTime_par_con);
     logsTable_pri->scrollToBottom();
 }
 
@@ -73,15 +129,16 @@ void logsWindow_c::loadLogs_f()
     int indexTmp(0);
     for (const std::pair<const logItem_c* const, const QDateTime* const>& logItem_ite_con : logsTmp)
     {
-        addLoadLogEntry_f(indexTmp, logItem_ite_con.first, logItem_ite_con.second);
+        addLogEntry_f(indexTmp, logItem_ite_con.first, logItem_ite_con.second);
         indexTmp = indexTmp + 1;
     }
+    logsTable_pri->scrollToBottom();
 }
 
 logsWindow_c::logsWindow_c()
     //: QWidget(mainWindow_ptr_ext)
 {
-    this->setObjectName("logsWindow");
+    this->setObjectName("logsWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     connect(mainWindow_ptr_ext, &mainWindow_c::close_signal, this, &QWidget::close);
@@ -93,7 +150,7 @@ logsWindow_c::logsWindow_c()
 
     logsTable_pri = new QTableWidget(0, 7);
     logsTable_pri->verticalHeader()->setVisible(false);
-    logsTable_pri->setObjectName("QTableWidget");
+    logsTable_pri->setObjectName("QTableWidget_");
     logsTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     QStringList labelsTmp({
@@ -106,19 +163,11 @@ logsWindow_c::logsWindow_c()
             , appConfig_ptr_ext->translate_f("Line")
     });
     logsTable_pri->setHorizontalHeaderLabels(labelsTmp);
-    logsTable_pri->horizontalHeader()->setObjectName("QHeaderView");
+    logsTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     logsTable_pri->setShowGrid(true);
     logsTable_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 #ifdef __ANDROID__
     logsTable_pri->setMinimumHeight(screenGeometry.height() / 3);
-#endif
-//    connect(commandsTable_pri, &QTableWidget::customContextMenuRequested,
-//            this, &Window_c::contextMenu);
-#ifdef __ANDROID__
-    baseWidget_pri = new QWidget(this);
-    baseWidget_pri->setAcceptDrops(true);
-#else
-    this->setAcceptDrops(true);
 #endif
 
     tableRowLayoutTmp->addWidget(logsTable_pri);
@@ -164,14 +213,13 @@ logsWindow_c::logsWindow_c()
          logsTable_pri->horizontalHeader()->restoreState(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + logsTable_pri->objectName() + logsTable_pri->horizontalHeader()->objectName()));
     }
 
-    connect(appConfig_ptr_ext->logDataHub_f(), &logDataHub_c::messageAdded_signal, this, &logsWindow_c::addLoadLogEntry_f);
+    connect(appConfig_ptr_ext->logDataHub_f(), &logDataHub_c::messageAdded_signal, this, &logsWindow_c::addSingleLogEntry_f);
 }
 
 void logsWindow_c::cancelButtonClicked_f()
 {
     close();
 }
-
 
 //no need for now
 //void optionsWindow_c::tipsButtonClicked_f()

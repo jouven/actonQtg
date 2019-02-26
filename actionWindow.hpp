@@ -15,6 +15,7 @@ class QMessageBox;
 
 class runProcessWidgets_c;
 class createDirectoryWidgets_c;
+class copyFileWidgets_c;
 
 class actionWindow_c : public QWidget
 {
@@ -50,6 +51,7 @@ class actionWindow_c : public QWidget
     //different action class pointers variables
     runProcessWidgets_c* runProcessWidgets_pri = nullptr;
     createDirectoryWidgets_c* createDirectoryWidgets_pri = nullptr;
+    copyFileWidgets_c* copyFileWidgets_pri = nullptr;
 
     void clearLayoutItems_f(QLayout* layout_par);
 

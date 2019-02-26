@@ -15,7 +15,7 @@
 
 void actionFinishedWidgets_c::parentClosing_f()
 {
-    //appConfig_ptr_ext->setSplitterState_f(this->objectName(), mainSplitter_pri->saveState());
+
 }
 
 void actionFinishedWidgets_c::save_f()
@@ -54,7 +54,7 @@ actionFinishedWidgets_c::actionFinishedWidgets_c(
     : QObject(parent)
     , checkData_ptr_pri(checkData_ptr_par)
 {
-    this->setObjectName("actionFinishedWidgets");
+    this->setObjectName("actionFinishedWidgets_");
 
     //combo to select an actionStringId to check if it has finished
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;

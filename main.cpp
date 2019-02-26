@@ -24,7 +24,10 @@ int main(int argc, char *argv[])
     QApplication::setApplicationName("actonQtg");
     QApplication::setApplicationVersion("1.0");
 
-    //statics = who the F knows the initialization order...
+    //statics + references = who the F knows the initialization order
+    //plus initialization must be done when the reference is declared
+    //so they must be separated per units to really account for that
+    //which makes it more cumbersome
     //let's just use some pointers to local variables
     appConfig_c appConfigTmp;
     appConfig_ptr_ext = std::addressof(appConfigTmp);

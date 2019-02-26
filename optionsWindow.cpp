@@ -21,7 +21,7 @@ optionsWindow_c::optionsWindow_c(
         QWidget *parent_par)
     : QWidget(parent_par)
 {
-    this->setObjectName("optionsWindow");
+    this->setObjectName("optionsWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     //enviroment print
@@ -105,10 +105,24 @@ void optionsWindow_c::showWorkingDirectoryWindow_f()
 
 void optionsWindow_c::showLogsWindow_f()
 {
-    logsWindow_c* logsWindowPtrTmp = new logsWindow_c;
-    logsWindowPtrTmp->setWindowFlag(Qt::Window, true);
-    //logsWindowPtrTmp->setWindowFlag(Qt::WindowStaysOnTopHint, true);
-    logsWindowPtrTmp->setWindowModality(Qt::NonModal);
-    logsWindowPtrTmp->setAttribute(Qt::WA_DeleteOnClose);
-    logsWindowPtrTmp->show();
+    bool logWindowAlreadyOpenTmp(false);
+    //check if it's already open
+    for (QWidget* topLevelWidget_ite : QApplication::topLevelWidgets())
+    {
+        if (topLevelWidget_ite->objectName().startsWith("logsWindow_"))
+        {
+            logWindowAlreadyOpenTmp = true;
+            break;
+        }
+    }
+
+    if (not logWindowAlreadyOpenTmp)
+    {
+        logsWindow_c* logsWindowPtrTmp = new logsWindow_c;
+        logsWindowPtrTmp->setWindowFlag(Qt::Window, true);
+        //logsWindowPtrTmp->setWindowFlag(Qt::WindowStaysOnTopHint, true);
+        logsWindowPtrTmp->setWindowModality(Qt::NonModal);
+        logsWindowPtrTmp->setAttribute(Qt::WA_DeleteOnClose);
+        logsWindowPtrTmp->show();
+    }
 }

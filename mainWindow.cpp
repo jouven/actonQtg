@@ -123,7 +123,7 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
 
 mainWindow_c::mainWindow_c()
 {
-    this->setObjectName("mainWindow");
+    this->setObjectName("mainWindow_");
 
     const QRect screenGeometry = QApplication::desktop()->availableGeometry(this);
 
@@ -211,7 +211,7 @@ mainWindow_c::mainWindow_c()
     QObject::connect(aboutButtonTmp, &QPushButton::clicked, this, &mainWindow_c::showAboutMessage_f);
 
     actionsTable_pri = new QTableWidget(0, 5);
-    actionsTable_pri->setObjectName("QTableWidget");
+    actionsTable_pri->setObjectName("QTableWidget_");
     actionsTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     QStringList labels;
@@ -219,7 +219,7 @@ mainWindow_c::mainWindow_c()
     //action (type) 0 | description 1 |  Execution state 2 | Last output 3 | Last error 4
     labels << appConfig_ptr_ext->translate_f("Action") << appConfig_ptr_ext->translate_f("Description") << appConfig_ptr_ext->translate_f("Execution state") << appConfig_ptr_ext->translate_f("Last output") << appConfig_ptr_ext->translate_f("Last error");
     actionsTable_pri->setHorizontalHeaderLabels(labels);
-    actionsTable_pri->horizontalHeader()->setObjectName("QHeaderView");
+    actionsTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     actionsTable_pri->setShowGrid(true);
     //TODO on android there is no right mouse button (touch holding or doing gestures doesn't make it) by default
     //so no context menus
@@ -522,6 +522,10 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
                     lastLoadedFilePath_pri = fileList_par_con.at(0);
                 }
             }
+            else
+            {
+                statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("JSON file " + fileStr_ite_con + " has no actions"));
+            }
             if (not signalso::isRunning_f())
             {
                 break;
@@ -550,6 +554,7 @@ void mainWindow_c::loadActionsFileButtonPushed_f()
         }
 
         selectActionFilesToLoadDialog_pri = new QFileDialog(this);
+        selectActionFilesToLoadDialog_pri->setObjectName("selectActionFilesToLoadDialog_");
         selectActionFilesToLoadDialog_pri->setFileMode(QFileDialog::ExistingFiles);
         selectActionFilesToLoadDialog_pri->setDirectory(QDir::currentPath());
         selectActionFilesToLoadDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Select action files..."));
@@ -562,17 +567,17 @@ void mainWindow_c::loadActionsFileButtonPushed_f()
         selectActionFilesToLoad_pri->setGeometry(QApplication::desktop()->availableGeometry(this));
 #endif
 
-        std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f());
-        QList<QUrl> directoriesTmp;
-        directoriesTmp.reserve(directoryHistoryTmp.size());
+        std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f(this->objectName() + "_" + selectActionFilesToLoadDialog_pri->objectName()));
         if (not directoryHistoryTmp.empty())
         {
+            QList<QUrl> directoriesTmp;
+            directoriesTmp.reserve(directoryHistoryTmp.size());
             for (const QString& directory_par_con : directoryHistoryTmp)
             {
                 directoriesTmp.append(QUrl::fromLocalFile(directory_par_con));
             }
+            selectActionFilesToLoadDialog_pri->setSidebarUrls(directoriesTmp);
         }
-        selectActionFilesToLoadDialog_pri->setSidebarUrls(directoriesTmp);
 
         QObject::connect(selectActionFilesToLoadDialog_pri, &QFileDialog::finished, this, &mainWindow_c::fileDialogActionFilesToLoadFinished_f);
 
@@ -588,6 +593,7 @@ void mainWindow_c::fileDialogActionFilesToLoadFinished_f(const int result_par)
         if (not selectActionFilesToLoadDialog_pri->selectedFiles().isEmpty())
         {
             loadFileList_f(selectActionFilesToLoadDialog_pri->selectedFiles());
+            appConfig_ptr_ext->addDirectoryHistory_f(selectActionFilesToLoadDialog_pri->directory().path(), this->objectName() + selectActionFilesToLoadDialog_pri->objectName());
         }
     }
     selectActionFilesToLoadDialog_pri->deleteLater();
@@ -626,6 +632,7 @@ void mainWindow_c::messageBoxOverwriteLastActionLoadedFileFinished_f(const int r
     if (result_par == QMessageBox::No)
     {
         saveActionFileDialog_pri = new QFileDialog(this);
+        saveActionFileDialog_pri->setObjectName("saveActionFileDialog_");
         saveActionFileDialog_pri->setAcceptMode(QFileDialog::AcceptSave);
         saveActionFileDialog_pri->setFileMode(QFileDialog::AnyFile);
         saveActionFileDialog_pri->setDirectory(QDir::currentPath());
@@ -640,17 +647,17 @@ void mainWindow_c::messageBoxOverwriteLastActionLoadedFileFinished_f(const int r
         saveDialogTmp.setGeometry(QApplication::desktop()->availableGeometry(this));
 #endif
 
-        std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f());
-        QList<QUrl> directoriesTmp;
-        directoriesTmp.reserve(directoryHistoryTmp.size());
+        std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f(this->objectName() + saveActionFileDialog_pri->objectName()));
         if (not directoryHistoryTmp.empty())
         {
+            QList<QUrl> directoriesTmp;
+            directoriesTmp.reserve(directoryHistoryTmp.size());
             for (const QString& directory_par_con : directoryHistoryTmp)
             {
                 directoriesTmp.append(QUrl::fromLocalFile(directory_par_con));
             }
+            saveActionFileDialog_pri->setSidebarUrls(directoriesTmp);
         }
-        saveActionFileDialog_pri->setSidebarUrls(directoriesTmp);
 
         QObject::connect(saveActionFileDialog_pri, &QFileDialog::finished, this, &mainWindow_c::fileDialogSelectSaveActionFileFinished_f);
 
@@ -676,6 +683,7 @@ void mainWindow_c::fileDialogSelectSaveActionFileFinished_f(const int result_par
         {
             savePathTmp = saveActionFileDialog_pri->selectedFiles().first();
             saveActionFile_f(savePathTmp);
+            appConfig_ptr_ext->addDirectoryHistory_f(saveActionFileDialog_pri->directory().path(), this->objectName() + saveActionFileDialog_pri->objectName());
         }
         else
         {
@@ -778,7 +786,7 @@ void mainWindow_c::copyAction_f()
         copyActionIndexInputDialog_pri->setWindowTitle("Copy Action");
         copyActionIndexInputDialog_pri->setLabelText(
                     "Input a new index to copy the action to.\nAction source:"
-                    "\nType: " + actionTypeToStrUMap_glo_sta_con.at(actionDataSourcePtrTmp->type_f()) +
+                    "\nType: " + actionTypeToStrUMap_ext_con.at(actionDataSourcePtrTmp->type_f()) +
                     "\nDescription: " + actionDataSourcePtrTmp->description_f().left(80) +
                     "\nRow index: " + QString::number(selectedRowTmp)
                     );
@@ -831,7 +839,7 @@ void mainWindow_c::insertActionRow_f(
         //, const bool haltOnFail_par_con
         , const int row_par_con)
 {
-    QString actionTypeStr(actionTypeToStrUMap_glo_sta_con.at(actionType_par_con));
+    QString actionTypeStr(actionTypeToStrUMap_ext_con.at(actionType_par_con));
 
     QTableWidgetItem *actionValueCellTmp(new QTableWidgetItem(actionTypeStr));
     actionValueCellTmp->setFlags(actionValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
@@ -862,7 +870,7 @@ void mainWindow_c::updateExistingActionRow_f(
         //, const bool haltOnFail_par_con
         , const int row_par_con)
 {
-    QString actionTypeStr(actionTypeToStrUMap_glo_sta_con.at(actionType_par_con));
+    QString actionTypeStr(actionTypeToStrUMap_ext_con.at(actionType_par_con));
 
     actionsTable_pri->item(row_par_con, 0)->setText(actionTypeStr);
     actionsTable_pri->item(row_par_con, 1)->setText(description_par_con);
@@ -1124,7 +1132,7 @@ void mainWindow_c::updateActionExecutionState_f(actionData_c* actionData_par_ptr
 #ifdef DEBUGJOUVEN
     //qDebug() << "actionData_par_con.id_f() " << QString::number(actionData_par_ptr_con->id_f()) << endl;
 #endif
-    QString actionExecutionStateStrTmp(actionExecutionStateToStrUMap_glo_sta_con.at(actionData_par_ptr_con->actionDataExecutionResult_ptr_f()->lastState_f()));
+    QString actionExecutionStateStrTmp(actionExecutionStateToStrUMap_ext_con.at(actionData_par_ptr_con->actionDataExecutionResult_ptr_f()->lastState_f()));
     int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(actionData_par_ptr_con->id_f()));
 
 #ifdef DEBUGJOUVEN
@@ -1152,14 +1160,16 @@ void mainWindow_c::removeActions_f()
             break;
         }
 
-        std::unordered_set<int> rowIndexUSetTmp;
+        std::set<int> rowIndexSetTmp;
         //get the selected row (indexes)
         for (const QTableWidgetItem* item_ite_con : selectionTmp)
         {
-            rowIndexUSetTmp.emplace(item_ite_con->row());
+            rowIndexSetTmp.emplace(item_ite_con->row());
         }
 
-        for (const int item_ite_con : rowIndexUSetTmp)
+        std::vector<int> rowsToRemoveTmp(rowIndexSetTmp.begin(), rowIndexSetTmp.end());
+        std::reverse(rowsToRemoveTmp.begin(), rowsToRemoveTmp.end());
+        for (const int item_ite_con : rowsToRemoveTmp)
         {
             actionsTable_pri->removeRow(item_ite_con);
             actonDataHub_ptr_ext->removeActionDataUsingRow_f(item_ite_con);

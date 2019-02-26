@@ -3,6 +3,7 @@
 #include "appConfig.hpp"
 #include "actionWidgets/runProcessWidgets.hpp"
 #include "actionWidgets/createDirectoryWidgets.hpp"
+#include "actionWidgets/copyFileWidgets.hpp"
 
 #include "actionChecksWindow.hpp"
 
@@ -97,7 +98,7 @@ actionWindow_c::actionWindow_c(
     : QWidget(parent_par)
     , row_pri_con(row_par_con)
 {
-    this->setObjectName("actionWindow");
+    this->setObjectName("actionWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     actionStringIdPTE_pri = new QPlainTextEdit(this);
@@ -123,7 +124,7 @@ actionWindow_c::actionWindow_c(
     firstRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Type")));
     firstRowLayoutTmp->addWidget(actionTypeCombo_pri);
 
-    for (const QString& actionStr_ite_con : strToActionTypeMap_glo_sta_con.keys())
+    for (const QString& actionStr_ite_con : strToActionTypeMap_ext_con.keys())
     {
         actionTypeCombo_pri->insertItem(actionTypeCombo_pri->count(), appConfig_ptr_ext->translate_f(actionStr_ite_con), actionStr_ite_con);
     }
@@ -190,27 +191,27 @@ actionWindow_c::actionWindow_c(
 //    QPushButton* tipsButtonTmp = new QPushButton("Tips");
 //    lastRowLayoutTmp->addWidget(tipsButtonTmp);
 
-    QWidget* row1Tmp = new QWidget;
-    //row1Tmp->setContentsMargins(0,0,0,0);
     QWidget* row2Tmp = new QWidget;
-    //row2Tmp->setContentsMargins(0,0,0,0);
+    //row1Tmp->setContentsMargins(0,0,0,0);
     QWidget* row3Tmp = new QWidget;
+    //row2Tmp->setContentsMargins(0,0,0,0);
+    QWidget* row4Tmp = new QWidget;
     //row3Tmp->setContentsMargins(0,0,0,0);
     //QWidget* row4Tmp = new QWidget;
 
-    row1Tmp->setLayout(secondRowLayoutTmp);
-    row2Tmp->setLayout(thirdRowLayoutTmp);
+    row2Tmp->setLayout(secondRowLayoutTmp);
+    row3Tmp->setLayout(thirdRowLayoutTmp);
     variableLayout_pri = new QVBoxLayout;
     //variableLayout_pri->setSpacing(0);
-    row3Tmp->setLayout(variableLayout_pri);
+    row4Tmp->setLayout(variableLayout_pri);
 
     //seems that qsplitter has an innate margin/border and, as 20180222, I don't see how to remove/hide/reduce
     mainSplitter_pri = new QSplitter(Qt::Vertical);
-    mainSplitter_pri->setObjectName("QSplitter");
+    mainSplitter_pri->setObjectName("QSplitter_");
 
-    mainSplitter_pri->addWidget(row1Tmp);
     mainSplitter_pri->addWidget(row2Tmp);
     mainSplitter_pri->addWidget(row3Tmp);
+    mainSplitter_pri->addWidget(row4Tmp);
     mainSplitter_pri->setCollapsible(0, false);
     mainSplitter_pri->setCollapsible(1, false);
     mainSplitter_pri->setCollapsible(2, false);
@@ -246,7 +247,7 @@ actionWindow_c::actionWindow_c(
         isNew_pri = false;
         actionData_ptr_pri = actonDataHub_ptr_ext->actionData_ptr_f(actionIdTmp);
 
-        QString actionTypeStrTmp(actionTypeToStrUMap_glo_sta_con.at(actionData_ptr_pri->type_f()));
+        QString actionTypeStrTmp(actionTypeToStrUMap_ext_con.at(actionData_ptr_pri->type_f()));
         loadedActionTypeIndexTmp = actionTypeCombo_pri->findData(actionTypeStrTmp.toLower());
         actionTypeCombo_pri->setCurrentIndex(loadedActionTypeIndexTmp);
         //actionTypeCombo_pri->setEditable(false);
@@ -278,14 +279,19 @@ void actionWindow_c::createWidgetsPerAction_f(
 #ifdef DEBUGJOUVEN
         //qDebug() << "createWidgetsPerAction_f actionTypeStrTmp " << actionTypeStrTmp << endl;
 #endif
-        if (actionTypeStrTmp == actionTypeToStrUMap_glo_sta_con.at(actionType_ec::runProcess).toLower())
+        if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::runProcess).toLower())
         {
             createActionTypeWidgets_f(runProcessWidgets_pri);
             break;
         }
-        if (actionTypeStrTmp == actionTypeToStrUMap_glo_sta_con.at(actionType_ec::createDirectory).toLower())
+        if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::createDirectory).toLower())
         {
             createActionTypeWidgets_f(createDirectoryWidgets_pri);
+            break;
+        }
+        if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::copyFile).toLower())
+        {
+            createActionTypeWidgets_f(copyFileWidgets_pri);
             break;
         }
         break;
@@ -300,16 +306,22 @@ void actionWindow_c::removeWidgetClassPerAction_f(
     while (true)
     {
         QString actionTypeStrTmp(actionTypeCombo_pri->itemData(index_par_con).toString());
-        if (actionTypeStrTmp == actionTypeToStrUMap_glo_sta_con.at(actionType_ec::runProcess).toLower())
+        if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::runProcess).toLower())
         {
             runProcessWidgets_pri->deleteLater();
             runProcessWidgets_pri = nullptr;
             break;
         }
-        if (actionTypeStrTmp == actionTypeToStrUMap_glo_sta_con.at(actionType_ec::createDirectory).toLower())
+        if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::createDirectory).toLower())
         {
             createDirectoryWidgets_pri->deleteLater();
             createDirectoryWidgets_pri = nullptr;
+            break;
+        }
+        if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::copyFile).toLower())
+        {
+            copyFileWidgets_pri->deleteLater();
+            copyFileWidgets_pri = nullptr;
             break;
         }
         break;
@@ -369,7 +381,7 @@ void actionWindow_c::save_f()
 {
     while (true)
     {
-        actionType_ec actionTypeTmp(strToActionTypeMap_glo_sta_con.value(actionTypeCombo_pri->currentData().toString()));
+        actionType_ec actionTypeTmp(strToActionTypeMap_ext_con.value(actionTypeCombo_pri->currentData().toString()));
         QString actionStringIdTmp(actionStringIdPTE_pri->toPlainText());
         QString descriptionTmp(descriptionPTE_pri->toPlainText());
         if (descriptionTmp.isEmpty())

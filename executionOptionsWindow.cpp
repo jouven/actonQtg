@@ -23,7 +23,6 @@ void executionOptionsWindow_c::save_f()
     actonDataHub_ptr_ext->setExecutionOptions({
 
     loopExecutionCheckbox_pri->isChecked()
-    , stopExecutingOnErrorCheckbox_pri->isChecked()
     , extraThreadsLineEdit_pri->text().toLong()
     , killTimeoutMillisecondsLineEdit_pri->text().toLong()
     });
@@ -34,7 +33,6 @@ void executionOptionsWindow_c::save_f()
 void executionOptionsWindow_c::load_f()
 {
     loopExecutionCheckbox_pri->setChecked(actonDataHub_ptr_ext->executionOptions_f().loopExecution_f());
-    stopExecutingOnErrorCheckbox_pri->setChecked(actonDataHub_ptr_ext->executionOptions_f().stopExecutingOnError_f());
     extraThreadsLineEdit_pri->setText(QString::number(actonDataHub_ptr_ext->executionOptions_f().extraThreads_f()));
     killTimeoutMillisecondsLineEdit_pri->setText(QString::number(actonDataHub_ptr_ext->executionOptions_f().killTimeoutMilliseconds_f()));
 }
@@ -43,7 +41,7 @@ executionOptionsWindow_c::executionOptionsWindow_c(
         QWidget *parent_par)
     : QWidget(parent_par)
 {
-    this->setObjectName("executionOptionsWindow");
+    this->setObjectName("executionOptionsWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;
@@ -51,8 +49,8 @@ executionOptionsWindow_c::executionOptionsWindow_c(
     loopExecutionCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Loop execution"));
     firstRowLayoutTmp->addWidget(loopExecutionCheckbox_pri);
 
-    stopExecutingOnErrorCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Stop execution on error"));
-    firstRowLayoutTmp->addWidget(stopExecutingOnErrorCheckbox_pri);
+//    stopExecutingOnErrorCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Stop execution on error"));
+//    firstRowLayoutTmp->addWidget(stopExecutingOnErrorCheckbox_pri);
 
 
     QLabel* extraThreadsLabelTmp = new QLabel(appConfig_ptr_ext->translate_f("Extra execution threads"));

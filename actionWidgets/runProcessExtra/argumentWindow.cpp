@@ -29,7 +29,7 @@ argumentEditWindow_c::argumentEditWindow_c(
     : QWidget(parent_par)
     , rowCount_pri_con(rowCount_par_con)
 {
-    setObjectName("argumentWindow");
+    setObjectName("argumentWindow_");
     setAttribute(Qt::WA_DeleteOnClose);
     //20180209 subwindow doesn't seem to work, popup has no "window", it's only the frame
     setWindowFlag(Qt::Window, true);
@@ -81,7 +81,7 @@ argumentEditWindow_c::argumentEditWindow_c(
 //    row3Tmp->setLayout(buttonsLayoutTmp);
 
 //    mainSplitter_pri = new QSplitter(Qt::Vertical, this);
-//    mainSplitter_pri->setObjectName("QSplitter");
+//    mainSplitter_pri->setObjectName("QSplitter_");
 //    mainSplitter_pri->addWidget(row1Tmp);
 //    mainSplitter_pri->addWidget(row2Tmp);
 //    mainSplitter_pri->addWidget(row3Tmp);

@@ -25,7 +25,7 @@ checkExecutionDetailsWindow_c::checkExecutionDetailsWindow_c(
     : QWidget(parent_par)
     , checkDataExecutionResultPtr_pri(checkDataExecutionResult_ptr_par)
 {
-    this->setObjectName("actionExecutionDetailsWindow");
+    this->setObjectName("actionExecutionDetailsWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     //state and return code
@@ -249,7 +249,7 @@ void checkExecutionDetailsWindow_c::updateState_f()
                     QDateTime::fromMSecsSinceEpoch(checkDataExecutionResultPtr_pri->startTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
         );
     }
-    executionStateTE_pri->setText(checkExecutionStateToStrUMap_glo_sta_con.at(checkDataExecutionResultPtr_pri->lastState_f()));
+    executionStateTE_pri->setText(checkExecutionStateToStrUMap_ext_con.at(checkDataExecutionResultPtr_pri->lastState_f()));
 }
 
 void checkExecutionDetailsWindow_c::updateAnyFinish_f()

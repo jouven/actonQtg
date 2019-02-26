@@ -78,7 +78,7 @@ checkWindow_c::checkWindow_c(
     , row_pri_con(row_par_con)
     , checkDataHub_ptr_pri(checkDataHub_ptr_par)
 {
-    this->setObjectName("checkWindow");
+    this->setObjectName("checkWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     //statusBarLabel_pri = new QLabel;
@@ -151,7 +151,7 @@ checkWindow_c::checkWindow_c(
 
     //seems that qsplitter has an innate margin/border and, as 20180222, I don't see how to remove/hide/reduce
     mainSplitter_pri = new QSplitter(Qt::Vertical);
-    mainSplitter_pri->setObjectName("QSplitter");
+    mainSplitter_pri->setObjectName("QSplitter_");
 
     //mainSplitter_pri->addWidget(row1Tmp);
     mainSplitter_pri->addWidget(row2Tmp);

@@ -16,7 +16,7 @@ void environmentWindow_c::closeEvent(QCloseEvent* event)
 environmentWindow_c::environmentWindow_c(QWidget* parent_par)
     : QWidget(parent_par)
 {
-    this->setObjectName("environmentWindow");
+    this->setObjectName("environmentWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     QProcessEnvironment processEnvironmentTmp(QProcessEnvironment::systemEnvironment());

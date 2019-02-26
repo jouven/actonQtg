@@ -13,8 +13,7 @@
 
 #include <vector>
 
-
-//don't call inside the appConfig_c class (like calling from the ctor and hanging the process... without errors...)
+//don't call this macro inside the appConfig_c class (like calling from the ctor and hanging the process... without errors...)
 //inside use MACRO_ADDMESSAGE
 #define MACRO_ADDACTONQTGLOG(MESSAGE, TYPE) appConfig_ptr_ext->addLogMessage_f(MESSAGE, TYPE, MACRO_FILENAME, __func__, __LINE__)
 
@@ -24,15 +23,7 @@ class appConfig_c
 
     QHash<QString, QByteArray> widgetGeometryUMap_pri;
 
-    //TODO revamp and make it per each fileDialog
-    //like the actionData with row and actionDataId TWO are needed, this time order is required
-    //variables and functions to control the directory history
-    //key = path, value = time
-    QMap<QString, uint_fast64_t> directoryPathToDateTime_pri;
-    //lower values are first, ascending order (so time wise older are first),
-    //delete old using first
-    //key = time, value = path
-    QMap<uint_fast64_t, QString> dateTimeToDirectoryPath_pri;
+    QHash<QString, QMap<int_fast64_t, QString>> fileDialogNameToDirectoryNameAndTimeMap_pri;
 
     //to prevent resaving if the file data is the same as the data being saved
     QByteArray loadChecksum_pri;
@@ -44,7 +35,7 @@ class appConfig_c
     //still it won't SET the variables so they don't get saved with the default values
     //because or the default path nature is dynamic
     //or the default value is an absolute path (if the program gets moved it will use the old path still)
-    //right now they only get SET if the come from the json config file
+    //right now they only get SET if they come from the json config file
     QString translationConfigFile_pri;
     bool translationConfigFileSet_pri = false;
 
@@ -59,8 +50,8 @@ class appConfig_c
 
     void tryLoadTranslations_f();
 
-    void read_f(const QJsonObject &json);
-    void write_f(QJsonObject &json) const;
+    void read_f(const QJsonObject &json_par_con);
+    void write_f(QJsonObject &json_par) const;
 public:
     appConfig_c();
 
@@ -72,8 +63,8 @@ public:
     QByteArray widgetGeometry_f(const QString& key_par_con) const;
     void setWidgetGeometry_f(const QString& key_par_con, const QByteArray& windowGeometry_par_con);
 
-    std::vector<QString> directoryHistory_f() const;
-    void addDirectoryHistory_f(const QString& directory_par_con);
+    std::vector<QString> directoryHistory_f(const QString& fileDialogStringId_par_con) const;
+    void addDirectoryHistory_f(const QString& fileDialogStringId_par_con, const QString& directory_par_con);
 
     QString translate_f(const QString& key_par_con);
     //FUTURE allow to change language using translationFromToPairs_f (the "to" part)
@@ -95,6 +86,7 @@ public:
     logDataHub_c* logDataHub_f();
 };
 
+//needs to be initialized
 extern appConfig_c* appConfig_ptr_ext;
 
 #endif // ACTONQTG_APPCONFIG_HPP

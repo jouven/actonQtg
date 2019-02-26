@@ -19,7 +19,7 @@
 #include <QFileDialog>
 #include <QDir>
 
-#include <unordered_set>
+#include <set>
 
 void runProcessWidgets_c::parentClosing_f()
 {
@@ -137,7 +137,7 @@ runProcessWidgets_c::runProcessWidgets_c(
     , actionData_ptr_pri(actionData_ptr_par)
     //, actionDataId_pri(actionDataId_par_con)
 {
-    this->setObjectName("runProcessWidgets");
+    this->setObjectName("runProcessWidgets_");
 
     //order
     //process location
@@ -293,7 +293,7 @@ runProcessWidgets_c::runProcessWidgets_c(
 
     //seems that qsplitter has an innate margin/border and, as 20180222, I don't see how to remove/hide/reduce
     mainSplitter_pri = new QSplitter(Qt::Vertical);
-    mainSplitter_pri->setObjectName("QSplitter");
+    mainSplitter_pri->setObjectName("QSplitter_");
 
     mainSplitter_pri->addWidget(row1Tmp);
     mainSplitter_pri->addWidget(row2Tmp);
@@ -358,6 +358,7 @@ void runProcessWidgets_c::saveActionDataJSON_f() const
 void runProcessWidgets_c::browseProcessFile_f()
 {
     selectProcessFileDialog_pri = new QFileDialog(qobject_cast<QWidget*>(this->parent()));
+    selectProcessFileDialog_pri->setObjectName("selectProcessFileDialog_");
     //AcceptOpen is the default
     //selectProcessFileDialog_pri->setAcceptMode(QFileDialog::AcceptOpen);
     selectProcessFileDialog_pri->setFileMode(QFileDialog::ExistingFile);
@@ -372,17 +373,18 @@ void runProcessWidgets_c::browseProcessFile_f()
 #endif
     selectProcessFileDialog_pri->setOption(QFileDialog::ReadOnly, true);
 
-    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f());
-    QList<QUrl> directoriesTmp;
-    directoriesTmp.reserve(directoryHistoryTmp.size());
+    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f(this->objectName() + selectProcessFileDialog_pri->objectName()));
+
     if (not directoryHistoryTmp.empty())
     {
+        QList<QUrl> directoriesTmp;
+        directoriesTmp.reserve(directoryHistoryTmp.size());
         for (const QString& directory_par_con : directoryHistoryTmp)
         {
             directoriesTmp.append(QUrl::fromLocalFile(directory_par_con));
         }
+        selectProcessFileDialog_pri->setSidebarUrls(directoriesTmp);
     }
-    selectProcessFileDialog_pri->setSidebarUrls(directoriesTmp);
 
     QObject::connect(selectProcessFileDialog_pri, &QFileDialog::finished, this, &runProcessWidgets_c::fileDialogProcessFileFinished_f);
 
@@ -396,6 +398,7 @@ void runProcessWidgets_c::fileDialogProcessFileFinished_f(const int result_par)
         if (not selectProcessFileDialog_pri->selectedFiles().isEmpty())
         {
             processPathPTE_pri->setPlainText(selectProcessFileDialog_pri->selectedFiles().first());
+            appConfig_ptr_ext->addDirectoryHistory_f(selectProcessFileDialog_pri->directory().path(), this->objectName() + selectProcessFileDialog_pri->objectName());
         }
     }
     selectProcessFileDialog_pri->deleteLater();
@@ -467,14 +470,16 @@ void runProcessWidgets_c::removeArgument_f()
             break;
         }
 
-        std::unordered_set<int> rowIndexUSetTmp;
+        std::set<int> rowIndexSetTmp;
         //get the selected row (indexes)
         for (const QTableWidgetItem* item_ite_con : selectionTmp)
         {
-            rowIndexUSetTmp.emplace(item_ite_con->row());
+            rowIndexSetTmp.emplace(item_ite_con->row());
         }
 
-        for (const int item_ite_con : rowIndexUSetTmp)
+        std::vector<int> rowsToRemoveTmp(rowIndexSetTmp.begin(), rowIndexSetTmp.end());
+        std::reverse(rowsToRemoveTmp.begin(), rowsToRemoveTmp.end());
+        for (const int item_ite_con : rowsToRemoveTmp)
         {
             argumentsTable_pri->removeRow(item_ite_con);
         }
@@ -493,14 +498,16 @@ void runProcessWidgets_c::removeEnvironmentPair_f()
             break;
         }
 
-        std::unordered_set<int> rowIndexUSetTmp;
+        std::set<int> rowIndexSetTmp;
         //get the selected row (indexes)
         for (const QTableWidgetItem* item_ite_con : selectionTmp)
         {
-            rowIndexUSetTmp.emplace(item_ite_con->row());
+            rowIndexSetTmp.emplace(item_ite_con->row());
         }
 
-        for (const int item_ite_con : rowIndexUSetTmp)
+        std::vector<int> rowsToRemoveTmp(rowIndexSetTmp.begin(), rowIndexSetTmp.end());
+        std::reverse(rowsToRemoveTmp.begin(), rowsToRemoveTmp.end());
+        for (const int item_ite_con : rowsToRemoveTmp)
         {
             environmentToAddTable_pri->removeRow(item_ite_con);
         }
@@ -544,6 +551,7 @@ void runProcessWidgets_c::addUpdateEnvironmentPairRow_f(
 void runProcessWidgets_c::browseWorkingDirectory_f()
 {
     selectWorkingDirectoryDialog_pri = new QFileDialog(qobject_cast<QWidget*>(this->parent()));
+    selectWorkingDirectoryDialog_pri->setObjectName("selectWorkingDirectoryDialog_");
     selectWorkingDirectoryDialog_pri->setFileMode(QFileDialog::Directory);
     selectWorkingDirectoryDialog_pri->setDirectory(QDir::currentPath());
     selectWorkingDirectoryDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Select directory..."));
@@ -558,17 +566,17 @@ void runProcessWidgets_c::browseWorkingDirectory_f()
 #endif
     selectWorkingDirectoryDialog_pri->setOption(QFileDialog::ReadOnly, true);
 
-    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f());
-    QList<QUrl> directoriesTmp;
-    directoriesTmp.reserve(directoryHistoryTmp.size());
+    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f(this->objectName() + selectWorkingDirectoryDialog_pri->objectName()));
     if (not directoryHistoryTmp.empty())
     {
+        QList<QUrl> directoriesTmp;
+        directoriesTmp.reserve(directoryHistoryTmp.size());
         for (const QString& directory_par_con : directoryHistoryTmp)
         {
             directoriesTmp.append(QUrl::fromLocalFile(directory_par_con));
         }
+        selectWorkingDirectoryDialog_pri->setSidebarUrls(directoriesTmp);
     }
-    selectWorkingDirectoryDialog_pri->setSidebarUrls(directoriesTmp);
 
     QObject::connect(selectWorkingDirectoryDialog_pri, &QFileDialog::finished, this, &runProcessWidgets_c::fileDialogWorkingDirectoryFinished_f);
     selectWorkingDirectoryDialog_pri->show();
@@ -587,7 +595,7 @@ void runProcessWidgets_c::fileDialogWorkingDirectoryFinished_f(const int result_
         if (not directoryTmp.isEmpty())
         {
             workingDirectoryPTE_pri->setPlainText(directoryTmp);
-            appConfig_ptr_ext->addDirectoryHistory_f(selectWorkingDirectoryDialog_pri->directory().path());
+            appConfig_ptr_ext->addDirectoryHistory_f(selectWorkingDirectoryDialog_pri->directory().path(), this->objectName() + selectWorkingDirectoryDialog_pri->objectName());
         }
     }
     selectWorkingDirectoryDialog_pri->deleteLater();

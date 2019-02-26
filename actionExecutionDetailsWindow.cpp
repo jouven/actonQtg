@@ -25,7 +25,7 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
     : QWidget(parent_par)
     , actionDataExecutionResultPtr_pri(actionDataExecutionResult_ptr_par)
 {
-    this->setObjectName("actionExecutionDetailsWindow");
+    this->setObjectName("actionExecutionDetailsWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     //state and return code
@@ -154,7 +154,7 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
 
     //seems that qsplitter has an innate margin/border and, as 20180222, I don't see how to remove/hide/reduce
     mainSplitter_pri = new QSplitter(Qt::Vertical);
-    mainSplitter_pri->setObjectName("QSplitter");
+    mainSplitter_pri->setObjectName("QSplitter_");
 
     mainSplitter_pri->addWidget(row1Tmp);
     mainSplitter_pri->addWidget(row3Tmp);
@@ -268,7 +268,7 @@ void actionExecutionDetailsWindow_c::updateState_f()
                     QDateTime::fromMSecsSinceEpoch(actionDataExecutionResultPtr_pri->startTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
         );
     }
-    executionStateTE_pri->setText(actionExecutionStateToStrUMap_glo_sta_con.at(actionDataExecutionResultPtr_pri->lastState_f()));
+    executionStateTE_pri->setText(actionExecutionStateToStrUMap_ext_con.at(actionDataExecutionResultPtr_pri->lastState_f()));
 }
 
 void actionExecutionDetailsWindow_c::updateReturnCode_f()

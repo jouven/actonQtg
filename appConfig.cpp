@@ -11,11 +11,11 @@
 #include <QCryptographicHash>
 #include <QTimer>
 
-void appConfig_c::read_f(const QJsonObject& json)
+void appConfig_c::read_f(const QJsonObject& json_par_con)
 {
-    if (not json["widgetGeometry"].isUndefined())
+    if (not json_par_con["widgetGeometry"].isUndefined())
     {
-        QJsonObject jsonWindowGeometryTmp(json["widgetGeometry"].toObject());
+        QJsonObject jsonWindowGeometryTmp(json_par_con["widgetGeometry"].toObject());
         if (not jsonWindowGeometryTmp.keys().isEmpty() )
         {
             widgetGeometryUMap_pri.reserve(jsonWindowGeometryTmp.keys().size());
@@ -28,43 +28,72 @@ void appConfig_c::read_f(const QJsonObject& json)
         }
     }
 
-    if (not json["selectedDirectoryHistory"].isUndefined())
+    if (not json_par_con["fileDialogsSettings"].isUndefined())
     {
-        QJsonArray jsonArraySelectedDirectoryHistoryTmp(json["selectedDirectoryHistory"].toArray());
+        QJsonArray jsonArraySelectedDirectoryHistoryTmp(json_par_con["fileDialogsSettings"].toArray());
         if (not jsonArraySelectedDirectoryHistoryTmp.isEmpty())
         {
-            //selectedDirectoryHistory_pri.reserve(jsonArraySelectedDirectoryHistoryTmp.size());
-            for (const auto jsonArrayItem_ite_con : jsonArraySelectedDirectoryHistoryTmp)
+            for (const auto jsonArrayFileDialogItem_ite_con : jsonArraySelectedDirectoryHistoryTmp)
             {
-                addDirectoryHistory_f(jsonArrayItem_ite_con.toString());
+                QJsonObject fileDialogSettingObjectTmp(jsonArrayFileDialogItem_ite_con.toObject());
+                QJsonArray jsonArraySelectedDirectoryHistoryTmp(fileDialogSettingObjectTmp["selectedDirectoryHistory"].toArray());
+                if (not jsonArraySelectedDirectoryHistoryTmp.isEmpty())
+                {
+                    //put them in a vector because since they were written in the array in order,
+                    //first one had the bigger/recent time,
+                    //when using addDirectoryHistory_f, the first one from the array will get
+                    //the smaller/later time, a reverse is necessary
+                    std::vector<QString> directoryVectorTmp;
+                    for (const auto jsonArrayDirectoryHistoryItem_ite_con : jsonArraySelectedDirectoryHistoryTmp)
+                    {
+                        directoryVectorTmp.emplace_back(jsonArrayDirectoryHistoryItem_ite_con.toString());
+                    }
+                    std::reverse(directoryVectorTmp.begin(), directoryVectorTmp.end());
+                    for (const QString& directoryItem_ite_con : directoryVectorTmp)
+                    {
+                        addDirectoryHistory_f(fileDialogSettingObjectTmp["fileDialogStringId"].toString(), directoryItem_ite_con);
+                    }
+                }
             }
         }
     }
 
-    if (not json["translationConfigFile"].isUndefined())
+    if (not json_par_con["translationConfigFile"].isUndefined())
     {
         translationConfigFileSet_pri = true;
-        translationConfigFile_pri = json["translationConfigFile"].toString();
+        translationConfigFile_pri = json_par_con["translationConfigFile"].toString();
     }
-    if (not json["logsDirectoryPath"].isUndefined())
+    if (not json_par_con["logsDirectoryPath"].isUndefined())
     {
         logsDirectoryPathSet_pri = true;
-        logsDirectoryPath_pri = json["logsDirectoryPath"].toString();
+        logsDirectoryPath_pri = json_par_con["logsDirectoryPath"].toString();
     }
 }
 
-void appConfig_c::write_f(QJsonObject& json) const
+void appConfig_c::write_f(QJsonObject& json_par) const
 {
-    std::vector<QString> directoryHistoryTmp(directoryHistory_f());
-    if (not directoryHistoryTmp.empty())
+    //create a filedialogsSettings arraay
+    //and the object will have the directory history for now
+    QJsonArray jsonArrayFileDialongSettingsTmp;
+    QHash<QString, QMap<int_fast64_t, QString>>::const_iterator iteTmp(fileDialogNameToDirectoryNameAndTimeMap_pri.constBegin());
+    while (iteTmp not_eq fileDialogNameToDirectoryNameAndTimeMap_pri.constEnd())
     {
-        QJsonArray jsonArraySelectedDirectoryHistoryTmp;
-        for (const QString& directoryItem_ite_con : directoryHistoryTmp)
+        std::vector<QString> directoryHistoryTmp(directoryHistory_f(iteTmp.key()));
+        if (not directoryHistoryTmp.empty())
         {
-            jsonArraySelectedDirectoryHistoryTmp.append(QJsonValue(directoryItem_ite_con));
+            QJsonArray jsonArraySelectedDirectoryHistoryTmp;
+            for (const QString& directoryItem_ite_con : directoryHistoryTmp)
+            {
+                jsonArraySelectedDirectoryHistoryTmp.append(QJsonValue(directoryItem_ite_con));
+            }
+            QJsonObject fileDialogSettingsTmp;
+            fileDialogSettingsTmp["fileDialogStringId"] = iteTmp.key();
+            fileDialogSettingsTmp["selectedDirectoryHistory"] = jsonArraySelectedDirectoryHistoryTmp;
+            jsonArrayFileDialongSettingsTmp.append(fileDialogSettingsTmp);
         }
-        json["selectedDirectoryHistory"] = jsonArraySelectedDirectoryHistoryTmp;
+        ++iteTmp;
     }
+    json_par["fileDialogsSettings"] = jsonArrayFileDialongSettingsTmp;
 
     if (not widgetGeometryUMap_pri.isEmpty())
     {
@@ -77,15 +106,15 @@ void appConfig_c::write_f(QJsonObject& json) const
             pairsTmp[iteratorTmp.key()] = qStringTmp;
             ++iteratorTmp;
         }
-        json["widgetGeometry"] = pairsTmp;
+        json_par["widgetGeometry"] = pairsTmp;
     }
     if (translationConfigFileSet_pri)
     {
-        json["translationConfigFile"] = translationConfigFile_pri;
+        json_par["translationConfigFile"] = translationConfigFile_pri;
     }
     if (logsDirectoryPathSet_pri)
     {
-        json["logsDirectoryPath"] = logsDirectoryPath_pri;
+        json_par["logsDirectoryPath"] = logsDirectoryPath_pri;
     }
 }
 
@@ -244,18 +273,29 @@ void appConfig_c::setWidgetGeometry_f(const QString& key_par_con, const QByteArr
 }
 
 
-void appConfig_c::addDirectoryHistory_f(const QString& directory_par_con)
+void appConfig_c::addDirectoryHistory_f(
+        const QString& fileDialogStringId_par_con
+        , const QString& directory_par_con
+)
 {
     uint_fast64_t nowTmp(std::chrono::steady_clock::now().time_since_epoch().count());
-    directoryPathToDateTime_pri.insert(directory_par_con, nowTmp);
-    dateTimeToDirectoryPath_pri.insert(nowTmp, directory_par_con);
-    if (dateTimeToDirectoryPath_pri.size() > 10)
+    if (fileDialogNameToDirectoryNameAndTimeMap_pri.count(fileDialogStringId_par_con) > 0)
     {
-        uint_fast64_t lastItemKeyTmp(dateTimeToDirectoryPath_pri.firstKey());
-        QString lastItemValueTmp(dateTimeToDirectoryPath_pri.first());
 
-        directoryPathToDateTime_pri.remove(lastItemValueTmp);
-        dateTimeToDirectoryPath_pri.remove(lastItemKeyTmp);
+    }
+    else
+    {
+        QMap<int_fast64_t, QString> accessTimeToDirectoryMapTmp;
+        fileDialogNameToDirectoryNameAndTimeMap_pri.insert(fileDialogStringId_par_con, accessTimeToDirectoryMapTmp);
+    }
+
+    QHash<QString, QMap<int_fast64_t, QString>>::iterator accessTimeToDirectoryMapTmp(fileDialogNameToDirectoryNameAndTimeMap_pri.find(fileDialogStringId_par_con));
+    accessTimeToDirectoryMapTmp->insert(nowTmp, directory_par_con);
+
+    if (accessTimeToDirectoryMapTmp->size() > 10)
+    {
+        uint_fast64_t lastItemKeyTmp(accessTimeToDirectoryMapTmp->firstKey());
+        accessTimeToDirectoryMapTmp->remove(lastItemKeyTmp);
     }
 }
 
@@ -299,17 +339,21 @@ QStringList appConfig_c::commandLinePositionalArguments_f() const
     return commandLineParser_pri.positionalArguments();
 }
 
-std::vector<QString> appConfig_c::directoryHistory_f() const
+std::vector<QString> appConfig_c::directoryHistory_f(const QString& fileDialogStringId_par_con) const
 {
     std::vector<QString> historyVector;
-    historyVector.reserve(dateTimeToDirectoryPath_pri.size());
-    //(from qt doc) "If you only need to extract the values from a map (not the keys), you can also use foreach:"
-    for (const QString& directory_ite_con : dateTimeToDirectoryPath_pri)
+    if (fileDialogNameToDirectoryNameAndTimeMap_pri.count(fileDialogStringId_par_con) > 0)
     {
-        historyVector.emplace_back(directory_ite_con);
+        QMap<int_fast64_t, QString> accessTimeToDirectoryMapTmp(fileDialogNameToDirectoryNameAndTimeMap_pri.value(fileDialogStringId_par_con));
+        historyVector.reserve(accessTimeToDirectoryMapTmp.size());
+        //(from qt doc) "If you only need to extract the values from a map (not the keys), you can also use foreach:"
+        for (const QString& directory_ite_con : accessTimeToDirectoryMapTmp)
+        {
+            historyVector.emplace_back(directory_ite_con);
+        }
+        //since the default order is using "less" the old ones will be first, reverse
+        std::reverse(historyVector.begin(), historyVector.end());
     }
-    //since it's on ascending order the old ones will be first, reverse
-    std::reverse(historyVector.begin(), historyVector.end());
     return historyVector;
 }
 

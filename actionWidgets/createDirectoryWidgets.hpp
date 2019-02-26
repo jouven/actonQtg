@@ -3,8 +3,6 @@
 
 #include <QObject>
 
-#include <utility>
-
 class QPlainTextEdit;
 class QVBoxLayout;
 class QCheckBox;

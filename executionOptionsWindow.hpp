@@ -17,7 +17,7 @@ class executionOptionsWindow_c : public QWidget
 
     //TODO loop count, i.e. loop 100 times, in the library
     QCheckBox* loopExecutionCheckbox_pri;
-    QCheckBox* stopExecutingOnErrorCheckbox_pri;
+    //QCheckBox* stopExecutingOnErrorCheckbox_pri;
     QLineEdit* extraThreadsLineEdit_pri;
     QLineEdit* killTimeoutMillisecondsLineEdit_pri;
 

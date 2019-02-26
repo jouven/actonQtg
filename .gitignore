@@ -22,6 +22,7 @@ includeheaders
 Makefile
 Makefile.Debug
 Makefile.Release
+actonQtg.pro.user.4.8-pre1
 
 #file types
 *.o

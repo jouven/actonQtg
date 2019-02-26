@@ -24,6 +24,9 @@ class logsWindow_c : public QWidget
     QTableWidget* logsTable_pri;
 
     void closeEvent(QCloseEvent* event) override;
+    void keyPressEvent(QKeyEvent* event_par) override;
+
+    void addLogEntry_f(const int index_par_con, const logItem_c* const logItem_par_con, const QDateTime* const logDateTime_par_con);
 
     void loadLogs_f();
 public:
@@ -33,8 +36,9 @@ Q_SIGNALS:
 public Q_SLOTS:
 private Q_SLOTS:
     void cancelButtonClicked_f();
-    void addLoadLogEntry_f(const int index_par_con, const logItem_c* const logItem_par_con, const QDateTime* const logDateTime_par_con);
+
     //void tipsButtonClicked_f();
+    void addSingleLogEntry_f(const int index_par_con, const logItem_c* const logItem_par_con, const QDateTime* const logDateTime_par_con);
 };
 
 #endif // ACTONQTG_LOGSWINDOW_HPP

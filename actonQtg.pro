@@ -28,7 +28,11 @@ HEADERS       = \
     checkWidgets/sameFileWidgets.hpp \
     checkExecutionDetailsWindow.hpp \
     executionOptionsWindow.hpp \
-    logsWindow.hpp
+    logsWindow.hpp \
+    actionWidgets/copyFileWidgets.hpp \
+    actionWidgets/copyFileExtra/fileListWindow.hpp \
+    actionWidgets/copyFileExtra/extensionQLineEditForDelegate.hpp \
+    actionWidgets/copyFileExtra/regexQLineEditForDelegate.hpp
 
 SOURCES       = main.cpp \
     appConfig.cpp \
@@ -48,7 +52,11 @@ SOURCES       = main.cpp \
     checkWidgets/sameFileWidgets.cpp \
     checkExecutionDetailsWindow.cpp \
     executionOptionsWindow.cpp \
-    logsWindow.cpp
+    logsWindow.cpp \
+    actionWidgets/copyFileWidgets.cpp \
+    actionWidgets/copyFileExtra/fileListWindow.cpp \
+    actionWidgets/copyFileExtra/extensionQLineEditForDelegate.cpp \
+    actionWidgets/copyFileExtra/regexQLineEditForDelegate.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -104,7 +112,7 @@ CONFIG(debug, debug|release){
 
 }
 
-LIBS += -lessentialQtso -lsignalso -lessentialQtgso -lactonQtso -lthreadedFunctionQtso -ltranslatorJSONQtso -llogsinJSONQtso
+LIBS += -lessentialQtso -lsignalso -lessentialQtgso -lactonQtso -lthreadedFunctionQtso -ltranslatorJSONQtso -llogsinJSONQtso -lsizeConversionso
 
 QMAKE_CXXFLAGS_DEBUG -= -g
 QMAKE_CXXFLAGS_DEBUG += -pedantic -Wall -Wextra -g3

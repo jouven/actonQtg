@@ -16,7 +16,7 @@ void workingDirectoryWindow_c::closeEvent(QCloseEvent* event)
 workingDirectoryWindow_c::workingDirectoryWindow_c(QWidget* parent_par)
     : QWidget(parent_par)
 {
-    this->setObjectName("workingDirectoryWindow");
+    this->setObjectName("workingDirectoryWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     QPlainTextEdit* workingDirectoryPTETmp = new QPlainTextEdit;
@@ -31,7 +31,7 @@ workingDirectoryWindow_c::workingDirectoryWindow_c(QWidget* parent_par)
     mainLayoutTmp->addWidget(okButtonPtrTmp);
     this->setLayout(mainLayoutTmp);
 
-    setWindowTitle(appConfig_ptr_ext->translate_f("Environment"));
+    setWindowTitle(appConfig_ptr_ext->translate_f("Current working directory"));
 
     if (appConfig_ptr_ext->configLoaded_f())
     {

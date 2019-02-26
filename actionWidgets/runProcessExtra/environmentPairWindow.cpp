@@ -27,7 +27,7 @@ environmentPairToAddEditWindow_c::environmentPairToAddEditWindow_c(const QString
     : QWidget(parent_par)
     , editedRowIndex_pri_con(editedRowIndex_par_con)
 {
-    setObjectName("environmentPairWindow");
+    setObjectName("environmentPairWindow_");
     setAttribute(Qt::WA_DeleteOnClose);
     //20180209 subwindow doesn't seem to work, popup has no "window", it's only the frame
     setWindowFlag(Qt::Window, true);
@@ -81,7 +81,7 @@ environmentPairToAddEditWindow_c::environmentPairToAddEditWindow_c(const QString
     //row3Tmp->setLayout(thirdRowLayoutTmp);
 
     mainSplitter_pri = new QSplitter(Qt::Vertical, this);
-    mainSplitter_pri->setObjectName("QSplitter");
+    mainSplitter_pri->setObjectName("QSplitter_");
     mainSplitter_pri->addWidget(row1Tmp);
     mainSplitter_pri->addWidget(row2Tmp);
     //mainSplitter_pri->addWidget(row3Tmp);

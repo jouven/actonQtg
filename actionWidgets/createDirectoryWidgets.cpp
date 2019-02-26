@@ -20,7 +20,7 @@
 
 void createDirectoryWidgets_c::parentClosing_f()
 {
-    //appConfig_ptr_ext->setSplitterState_f(this->objectName(), mainSplitter_pri->saveState());
+
 }
 
 void createDirectoryWidgets_c::save_f()
@@ -42,6 +42,7 @@ void createDirectoryWidgets_c::save_f()
 void createDirectoryWidgets_c::browseDirectory_f()
 {
     browseDirectoryToCreateDialog_pri = new QFileDialog(qobject_cast<QWidget*>(this->parent()));
+    browseDirectoryToCreateDialog_pri->setObjectName("browseDirectoryToCreateDialog_");
     //AcceptOpen is the default
     //browseDirectoryToCreateDialog_pri->setAcceptMode(QFileDialog::AcceptOpen);
     browseDirectoryToCreateDialog_pri->setFileMode(QFileDialog::Directory);
@@ -55,17 +56,17 @@ void createDirectoryWidgets_c::browseDirectory_f()
     selectFileDialogTmp.setGeometry(QApplication::desktop()->availableGeometry(this));
 #endif
 
-    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f());
-    QList<QUrl> directoriesTmp;
-    directoriesTmp.reserve(directoryHistoryTmp.size());
+    std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f(this->objectName() + browseDirectoryToCreateDialog_pri->objectName()));
     if (not directoryHistoryTmp.empty())
     {
+        QList<QUrl> directoriesTmp;
+        directoriesTmp.reserve(directoryHistoryTmp.size());
         for (const QString& directory_par_con : directoryHistoryTmp)
         {
             directoriesTmp.append(QUrl::fromLocalFile(directory_par_con));
         }
+        browseDirectoryToCreateDialog_pri->setSidebarUrls(directoriesTmp);
     }
-    browseDirectoryToCreateDialog_pri->setSidebarUrls(directoriesTmp);
 
     QObject::connect(browseDirectoryToCreateDialog_pri, &QFileDialog::finished, this, &createDirectoryWidgets_c::fileDialogBrowseDirectoryToCreateFinished_f);
 
@@ -79,6 +80,7 @@ void createDirectoryWidgets_c::fileDialogBrowseDirectoryToCreateFinished_f(const
         if (not browseDirectoryToCreateDialog_pri->selectedFiles().isEmpty())
         {
             createDirectoryPathPTE_pri->setPlainText(browseDirectoryToCreateDialog_pri->selectedFiles().first());
+            appConfig_ptr_ext->addDirectoryHistory_f(browseDirectoryToCreateDialog_pri->directory().path(), this->objectName() + browseDirectoryToCreateDialog_pri->objectName());
         }
     }
     browseDirectoryToCreateDialog_pri->deleteLater();
@@ -105,7 +107,7 @@ createDirectoryWidgets_c::createDirectoryWidgets_c(
     : QObject(parent)
     , actionData_ptr_pri(actionData_ptr_par)
 {
-    this->setObjectName("createDirectoryWidgets");
+    this->setObjectName("createDirectoryWidgets_");
 
     //current working directory
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;

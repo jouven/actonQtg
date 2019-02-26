@@ -55,7 +55,7 @@ actionChecksWindow_c::actionChecksWindow_c(
     : QWidget(parent_par)
     , checkDataHub_ptr_pri(checkDataHub_ptr_par)
 {
-    this->setObjectName("actionChecksWindow");
+    this->setObjectName("actionChecksWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     statusBarLabel_pri = new QLabel;
@@ -94,7 +94,7 @@ actionChecksWindow_c::actionChecksWindow_c(
 
 
     actionChecksTable_pri = new QTableWidget(0, 5);
-    actionChecksTable_pri->setObjectName("QTableWidget");
+    actionChecksTable_pri->setObjectName("QTableWidget_");
     actionChecksTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     QStringList labels;
@@ -102,7 +102,7 @@ actionChecksWindow_c::actionChecksWindow_c(
     //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
     labels << appConfig_ptr_ext->translate_f("Check") << appConfig_ptr_ext->translate_f("Description") << appConfig_ptr_ext->translate_f("Execution state")  << appConfig_ptr_ext->translate_f("Last error") << appConfig_ptr_ext->translate_f("Result");
     actionChecksTable_pri->setHorizontalHeaderLabels(labels);
-    actionChecksTable_pri->horizontalHeader()->setObjectName("QHeaderView");
+    actionChecksTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     actionChecksTable_pri->setShowGrid(true);
     //TODO on android there is no right mouse button by default
     //FUTURE implement context on holding for x seconds?
@@ -356,14 +356,16 @@ void actionChecksWindow_c::removeChecksButtonClicked_f()
             break;
         }
 
-        std::unordered_set<int> rowIndexUSetTmp;
+        std::set<int> rowIndexSetTmp;
         //get the selected row (indexes)
         for (const QTableWidgetItem* item_ite_con : selectionTmp)
         {
-            rowIndexUSetTmp.emplace(item_ite_con->row());
+            rowIndexSetTmp.emplace(item_ite_con->row());
         }
 
-        for (const int item_ite_con : rowIndexUSetTmp)
+        std::vector<int> rowsToRemoveTmp(rowIndexSetTmp.begin(), rowIndexSetTmp.end());
+        std::reverse(rowsToRemoveTmp.begin(), rowsToRemoveTmp.end());
+        for (const int item_ite_con : rowsToRemoveTmp)
         {
             actionChecksTable_pri->removeRow(item_ite_con);
             checkDataHub_ptr_pri->removeCheckDataUsingRow_f(item_ite_con);
@@ -461,7 +463,7 @@ void actionChecksWindow_c::updateCheckError_f(checkData_c* const checkData_par_p
 void actionChecksWindow_c::updateCheckExecutionState_f(checkData_c* const checkData_par_ptr_con)
 {
     int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(checkData_par_ptr_con->id_f()));
-    QString checkExecutionStateStrTmp(checkExecutionStateToStrUMap_glo_sta_con.at(checkData_par_ptr_con->checkDataExecutionResult_ptr_f()->lastState_f()));
+    QString checkExecutionStateStrTmp(checkExecutionStateToStrUMap_ext_con.at(checkData_par_ptr_con->checkDataExecutionResult_ptr_f()->lastState_f()));
     //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
     actionChecksTable_pri->item(rowTmp, 2)->setText(checkExecutionStateStrTmp.left(32));
 }
