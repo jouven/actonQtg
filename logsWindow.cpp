@@ -2,6 +2,7 @@
 
 #include "mainWindow.hpp"
 #include "appConfig.hpp"
+#include "logsWindowWidgets/QDatetimeEditDelegate.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
 #include "logsinJSONQtso/logItemStrMapping.hpp"
@@ -69,31 +70,50 @@ void logsWindow_c::keyPressEvent(QKeyEvent* event_par)
 
 void logsWindow_c::addLogEntry_f(const int index_par_con, const logItem_c* const logItem_par_con, const QDateTime* const logDateTime_par_con)
 {
-    int indexTmp(index_par_con);
-#ifdef DEBUGJOUVEN
-    //qtOutRef_ext() << "index_par_con " << index_par_con << endl;
-    //qtOutRef_ext() << "logsTable_pri->rowCount() " << logsTable_pri->rowCount() << endl;
-#endif
-    if (indexTmp > logsTable_pri->rowCount())
-    {
-        indexTmp = logsTable_pri->rowCount();
-    }
+//    int indexTmp(index_par_con);
+//    if (indexTmp > logsTable_pri->rowCount())
+//    {
+//        indexTmp = logsTable_pri->rowCount();
+//    }
 
-    logsTable_pri->insertRow(indexTmp);
-    QTableWidgetItem *indexCellTmp(new QTableWidgetItem(QString::number(indexTmp)));
+    //20190307 IMPORTANT seems there is a Qt bug, the first/s? time a signal from another thread
+    //gets to the slot addSingleLogEntry_f (which call this function)
+    //the issue is that, and this happens for exactly two rows, the rows are added, the first cell/column is created fine,
+    //has data and it's not editable, but all the other cells
+    //are like they were only "new", BUT the cells are inserted, so in the end they are empty and editable
+    //makes no sense
+
+#ifdef DEBUGJOUVEN
+//    qtOutRef_ext() << "index_par_con " << index_par_con << "\n"
+//    //<< "indexTmp " << indexTmp << "\n"
+//    << "logsTable_pri->rowCount() " << logsTable_pri->rowCount() << "\n"
+//    << "message " << logItem_par_con->message_f()
+//    << endl;
+#endif
+    int newRowIndexTmp(logsTable_pri->rowCount());
+    logsTable_pri->insertRow(newRowIndexTmp);
+    //QTableWidgetItem *indexCellTmp(new QTableWidgetItem(QString::number(indexTmp)));
+    QTableWidgetItem* indexCellTmp(new QTableWidgetItem);
+    //Note: The default implementation treats Qt::EditRole and Qt::DisplayRole as referring to the same data.
+    indexCellTmp->setData(Qt::DisplayRole, index_par_con);
     indexCellTmp->setFlags(indexCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *typeCellTmp(new QTableWidgetItem(logTypeToStrUMap_glo_sta_con.at(logItem_par_con->type_f())));
-    typeCellTmp->setFlags(typeCellTmp->flags() bitand compl Qt::ItemIsEditable);
+    QTableWidgetItem* threadIdCellTmp(new QTableWidgetItem);
+    threadIdCellTmp->setData(Qt::DisplayRole, logItem_par_con->threadId_f());
+    threadIdCellTmp->setFlags(threadIdCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *messageCellTmp(new QTableWidgetItem(logItem_par_con->message_f()));
-    messageCellTmp->setFlags(messageCellTmp->flags() bitand compl Qt::ItemIsEditable);
-
-    QTableWidgetItem *dateTimeCellTmp(new QTableWidgetItem(logDateTime_par_con->toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")));
+    QTableWidgetItem *dateTimeCellTmp(new QTableWidgetItem);
+    dateTimeCellTmp->setData(Qt::DisplayRole, logDateTime_par_con->toLocalTime());
     dateTimeCellTmp->setFlags(dateTimeCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *fileCellTmp(new QTableWidgetItem(logItem_par_con->sourceFileName_f()));
+    QTableWidgetItem *typeCellTmp(new QTableWidgetItem);
+    typeCellTmp->setData(Qt::DisplayRole, logTypeToStrUMap_glo_sta_con.at(logItem_par_con->type_f()));
+    typeCellTmp->setFlags(typeCellTmp->flags() bitand compl Qt::ItemIsEditable);
+
+    QTableWidgetItem *fileCellTmp(new QTableWidgetItem);
+    fileCellTmp->setData(Qt::DisplayRole, logItem_par_con->sourceFileName_f());
     fileCellTmp->setFlags(fileCellTmp->flags() bitand compl Qt::ItemIsEditable);
+    fileCellTmp->setToolTip(logItem_par_con->sourceFileName_f());
 
     QTableWidgetItem *functionCellTmp(new QTableWidgetItem(logItem_par_con->sourceFunctionName_f()));
     functionCellTmp->setFlags(functionCellTmp->flags() bitand compl Qt::ItemIsEditable);
@@ -101,13 +121,19 @@ void logsWindow_c::addLogEntry_f(const int index_par_con, const logItem_c* const
     QTableWidgetItem *lineNumberCellTmp(new QTableWidgetItem(QString::number(logItem_par_con->sourceLineNumber_f())));
     lineNumberCellTmp->setFlags(lineNumberCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    logsTable_pri->setItem(indexTmp, 0, indexCellTmp);
-    logsTable_pri->setItem(indexTmp, 1, typeCellTmp);
-    logsTable_pri->setItem(indexTmp, 2, messageCellTmp);
-    logsTable_pri->setItem(indexTmp, 3, dateTimeCellTmp);
-    logsTable_pri->setItem(indexTmp, 4, fileCellTmp);
-    logsTable_pri->setItem(indexTmp, 5, functionCellTmp);
-    logsTable_pri->setItem(indexTmp, 6, lineNumberCellTmp);
+    QTableWidgetItem *messageCellTmp(new QTableWidgetItem);
+    messageCellTmp->setData(Qt::DisplayRole, logItem_par_con->message_f());
+    messageCellTmp->setFlags(messageCellTmp->flags() bitand compl Qt::ItemIsEditable);
+    messageCellTmp->setToolTip(logItem_par_con->message_f());
+
+    logsTable_pri->setItem(newRowIndexTmp, 0, indexCellTmp);
+    logsTable_pri->setItem(newRowIndexTmp, 1, threadIdCellTmp);
+    logsTable_pri->setItem(newRowIndexTmp, 2, dateTimeCellTmp);
+    logsTable_pri->setItem(newRowIndexTmp, 3, typeCellTmp);
+    logsTable_pri->setItem(newRowIndexTmp, 4, fileCellTmp);
+    logsTable_pri->setItem(newRowIndexTmp, 5, functionCellTmp);
+    logsTable_pri->setItem(newRowIndexTmp, 6, lineNumberCellTmp);
+    logsTable_pri->setItem(newRowIndexTmp, 7, messageCellTmp);
 #ifdef DEBUGJOUVEN
 //    qtOutRef_ext() << "Log entry added, index " << index_par << endl;
 //    qtOutRef_ext() << "Log entry added, message_f " << logItem_par->message_f() << endl;
@@ -126,7 +152,7 @@ void logsWindow_c::loadLogs_f()
 {
     std::vector<std::pair<const logItem_c* const, const QDateTime* const>> logsTmp(appConfig_ptr_ext->getLogs_f());
 
-    int indexTmp(0);
+    int indexTmp(1);
     for (const std::pair<const logItem_c* const, const QDateTime* const>& logItem_ite_con : logsTmp)
     {
         addLogEntry_f(indexTmp, logItem_ite_con.first, logItem_ite_con.second);
@@ -148,24 +174,31 @@ logsWindow_c::logsWindow_c()
 
     QHBoxLayout* tableRowLayoutTmp = new QHBoxLayout;
 
-    logsTable_pri = new QTableWidget(0, 7);
+    logsTable_pri = new QTableWidget(0, 8);
     logsTable_pri->verticalHeader()->setVisible(false);
     logsTable_pri->setObjectName("QTableWidget_");
     logsTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     QStringList labelsTmp({
             appConfig_ptr_ext->translate_f("Index")
-            , appConfig_ptr_ext->translate_f("Type")
-            , appConfig_ptr_ext->translate_f("Message")
+            , appConfig_ptr_ext->translate_f("ThreadId")
             , appConfig_ptr_ext->translate_f("DateTime")
+            , appConfig_ptr_ext->translate_f("Type")
             , appConfig_ptr_ext->translate_f("File")
             , appConfig_ptr_ext->translate_f("Function")
             , appConfig_ptr_ext->translate_f("Line")
+            , appConfig_ptr_ext->translate_f("Message")
     });
     logsTable_pri->setHorizontalHeaderLabels(labelsTmp);
     logsTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     logsTable_pri->setShowGrid(true);
     logsTable_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+    logsTable_pri->sortItems(0);
+    logsTable_pri->setSortingEnabled(true);
+
+    QDateTimeStyledDelegate_c* dateTimeCellDelegate(new QDateTimeStyledDelegate_c(this));
+    logsTable_pri->setItemDelegateForColumn(2, dateTimeCellDelegate);
+
 #ifdef __ANDROID__
     logsTable_pri->setMinimumHeight(screenGeometry.height() / 3);
 #endif

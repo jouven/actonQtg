@@ -128,6 +128,8 @@ void argumentEditWindow_c::saveButtonPushed_f()
             break;
         }
 
+        //TODO if curret index has changed, notify it, right now it will replace the value of the new index or add it the end if doesn't exist
+        //but if moving arguments is required, shift all the arguments from the new index to the end and the replace the index
         argument_c argumentTmp(argumentField_pri->toPlainText(), enabledCheckbox_pri->isChecked());
 
         Q_EMIT saveArgumentResult_signal(

@@ -32,7 +32,9 @@ HEADERS       = \
     actionWidgets/copyFileWidgets.hpp \
     actionWidgets/copyFileExtra/fileListWindow.hpp \
     actionWidgets/copyFileExtra/extensionQLineEditForDelegate.hpp \
-    actionWidgets/copyFileExtra/regexQLineEditForDelegate.hpp
+    actionWidgets/copyFileExtra/regexQLineEditForDelegate.hpp \
+    logsWindowWidgets/QDateTimeEditForDelegate.hpp \
+    logsWindowWidgets/QDatetimeEditDelegate.hpp
 
 SOURCES       = main.cpp \
     appConfig.cpp \
@@ -56,7 +58,9 @@ SOURCES       = main.cpp \
     actionWidgets/copyFileWidgets.cpp \
     actionWidgets/copyFileExtra/fileListWindow.cpp \
     actionWidgets/copyFileExtra/extensionQLineEditForDelegate.cpp \
-    actionWidgets/copyFileExtra/regexQLineEditForDelegate.cpp
+    actionWidgets/copyFileExtra/regexQLineEditForDelegate.cpp \
+    logsWindowWidgets/QDateTimeEditForDelegate.cpp \
+    logsWindowWidgets/QDatetimeEditDelegate.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings

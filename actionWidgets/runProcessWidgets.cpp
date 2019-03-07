@@ -24,6 +24,10 @@
 void runProcessWidgets_c::parentClosing_f()
 {
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + argumentsTable_pri->objectName(), argumentsTable_pri->saveGeometry());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + argumentsTable_pri->objectName() + argumentsTable_pri->horizontalHeader()->objectName(), argumentsTable_pri->horizontalHeader()->saveState());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + environmentToAddTable_pri->objectName(), environmentToAddTable_pri->saveGeometry());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + environmentToAddTable_pri->objectName() + environmentToAddTable_pri->horizontalHeader()->objectName(), environmentToAddTable_pri->horizontalHeader()->saveState());
 }
 
 void runProcessWidgets_c::save_f()
@@ -179,6 +183,8 @@ runProcessWidgets_c::runProcessWidgets_c(
     QHBoxLayout* argumentTableRowTmp = new QHBoxLayout;
 
     argumentsTable_pri = new QTableWidget(0, 2);
+    argumentsTable_pri->setObjectName("argumentsTable_");
+    argumentsTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     argumentsTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
     argumentsTable_pri->setDragEnabled(true);
     argumentsTable_pri->setDropIndicatorShown(true);
@@ -244,6 +250,8 @@ runProcessWidgets_c::runProcessWidgets_c(
     QHBoxLayout* environmentToAddTableRowTmp = new QHBoxLayout;
 
     environmentToAddTable_pri = new QTableWidget(0, 3);
+    environmentToAddTable_pri->setObjectName("environmentToAddTable_");
+    environmentToAddTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     environmentToAddTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
     environmentToAddTable_pri->setDragEnabled(true);
     environmentToAddTable_pri->setDropIndicatorShown(true);
@@ -314,6 +322,10 @@ runProcessWidgets_c::runProcessWidgets_c(
     if (appConfig_ptr_ext->configLoaded_f())
     {
          mainSplitter_pri->restoreState(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + mainSplitter_pri->objectName()));
+         argumentsTable_pri->restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + argumentsTable_pri->objectName()));
+         argumentsTable_pri->horizontalHeader()->restoreState(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + argumentsTable_pri->objectName() + argumentsTable_pri->horizontalHeader()->objectName()));
+         environmentToAddTable_pri->restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + environmentToAddTable_pri->objectName()));
+         environmentToAddTable_pri->horizontalHeader()->restoreState(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + environmentToAddTable_pri->objectName() + environmentToAddTable_pri->horizontalHeader()->objectName()));
     }
 
     loadActionSpecificData_f();
@@ -321,6 +333,9 @@ runProcessWidgets_c::runProcessWidgets_c(
 
 void runProcessWidgets_c::saveActionDataJSON_f() const
 {
+    //TODO all the path fields use fromNative
+    //not needed as long as the execution part fixes it, it shouldn't
+    //be changing paths when they can be fixed on execution
     QString processPathTmp(processPathPTE_pri->toPlainText());
     std::vector<argument_c> argumentsTmp;
     argumentsTmp.reserve(argumentsTable_pri->rowCount());
@@ -398,7 +413,7 @@ void runProcessWidgets_c::fileDialogProcessFileFinished_f(const int result_par)
         if (not selectProcessFileDialog_pri->selectedFiles().isEmpty())
         {
             processPathPTE_pri->setPlainText(selectProcessFileDialog_pri->selectedFiles().first());
-            appConfig_ptr_ext->addDirectoryHistory_f(selectProcessFileDialog_pri->directory().path(), this->objectName() + selectProcessFileDialog_pri->objectName());
+            appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + selectProcessFileDialog_pri->objectName(), selectProcessFileDialog_pri->directory().path());
         }
     }
     selectProcessFileDialog_pri->deleteLater();
@@ -595,7 +610,7 @@ void runProcessWidgets_c::fileDialogWorkingDirectoryFinished_f(const int result_
         if (not directoryTmp.isEmpty())
         {
             workingDirectoryPTE_pri->setPlainText(directoryTmp);
-            appConfig_ptr_ext->addDirectoryHistory_f(selectWorkingDirectoryDialog_pri->directory().path(), this->objectName() + selectWorkingDirectoryDialog_pri->objectName());
+            appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + selectWorkingDirectoryDialog_pri->objectName(), selectWorkingDirectoryDialog_pri->directory().path());
         }
     }
     selectWorkingDirectoryDialog_pri->deleteLater();

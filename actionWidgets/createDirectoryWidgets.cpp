@@ -80,7 +80,7 @@ void createDirectoryWidgets_c::fileDialogBrowseDirectoryToCreateFinished_f(const
         if (not browseDirectoryToCreateDialog_pri->selectedFiles().isEmpty())
         {
             createDirectoryPathPTE_pri->setPlainText(browseDirectoryToCreateDialog_pri->selectedFiles().first());
-            appConfig_ptr_ext->addDirectoryHistory_f(browseDirectoryToCreateDialog_pri->directory().path(), this->objectName() + browseDirectoryToCreateDialog_pri->objectName());
+            appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + browseDirectoryToCreateDialog_pri->objectName(), browseDirectoryToCreateDialog_pri->directory().path());
         }
     }
     browseDirectoryToCreateDialog_pri->deleteLater();

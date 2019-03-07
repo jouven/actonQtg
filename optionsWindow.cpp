@@ -122,7 +122,6 @@ void optionsWindow_c::showLogsWindow_f()
         logsWindowPtrTmp->setWindowFlag(Qt::Window, true);
         //logsWindowPtrTmp->setWindowFlag(Qt::WindowStaysOnTopHint, true);
         logsWindowPtrTmp->setWindowModality(Qt::NonModal);
-        logsWindowPtrTmp->setAttribute(Qt::WA_DeleteOnClose);
         logsWindowPtrTmp->show();
     }
 }

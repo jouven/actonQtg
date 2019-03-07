@@ -95,7 +95,7 @@ void sameFileWidgets_c::fileDialogBrowseFinished_f(const int result_par)
             {
                 fileBPTE_pri->setPlainText(browseFileDialog_pri->selectedFiles().first());
             }
-            appConfig_ptr_ext->addDirectoryHistory_f(browseFileDialog_pri->directory().path(), this->objectName() + browseFileDialog_pri->objectName());
+            appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + browseFileDialog_pri->objectName(), browseFileDialog_pri->directory().path());
         }
     }
     browsingFileA_pri = false;

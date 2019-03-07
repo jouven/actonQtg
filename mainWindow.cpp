@@ -77,6 +77,7 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
             appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + actionsTable_pri->objectName() + actionsTable_pri->horizontalHeader()->objectName(), actionsTable_pri->horizontalHeader()->saveState());
             appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + actionsTable_pri->objectName(), actionsTable_pri->saveGeometry());
             appConfig_ptr_ext->setWidgetGeometry_f(this->objectName(), saveGeometry());
+            Q_EMIT close_signal();
             MACRO_ADDACTONQTGLOG("Geometry saved", logItem_c::type_ec::debug);
             appConfig_ptr_ext->saveConfigFile_f();
             MACRO_ADDACTONQTGLOG("Config file/s saved", logItem_c::type_ec::debug);
@@ -97,7 +98,6 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
     }
     if (evenAcceptedTmp)
     {
-        Q_EMIT close_signal();
         event->accept();
     }
     else
@@ -593,7 +593,7 @@ void mainWindow_c::fileDialogActionFilesToLoadFinished_f(const int result_par)
         if (not selectActionFilesToLoadDialog_pri->selectedFiles().isEmpty())
         {
             loadFileList_f(selectActionFilesToLoadDialog_pri->selectedFiles());
-            appConfig_ptr_ext->addDirectoryHistory_f(selectActionFilesToLoadDialog_pri->directory().path(), this->objectName() + selectActionFilesToLoadDialog_pri->objectName());
+            appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + selectActionFilesToLoadDialog_pri->objectName(), selectActionFilesToLoadDialog_pri->directory().path());
         }
     }
     selectActionFilesToLoadDialog_pri->deleteLater();
@@ -683,7 +683,7 @@ void mainWindow_c::fileDialogSelectSaveActionFileFinished_f(const int result_par
         {
             savePathTmp = saveActionFileDialog_pri->selectedFiles().first();
             saveActionFile_f(savePathTmp);
-            appConfig_ptr_ext->addDirectoryHistory_f(saveActionFileDialog_pri->directory().path(), this->objectName() + saveActionFileDialog_pri->objectName());
+            appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + saveActionFileDialog_pri->objectName(), saveActionFileDialog_pri->directory().path());
         }
         else
         {
@@ -1174,6 +1174,7 @@ void mainWindow_c::removeActions_f()
             actionsTable_pri->removeRow(item_ite_con);
             actonDataHub_ptr_ext->removeActionDataUsingRow_f(item_ite_con);
         }
+        break;
     }
 }
 

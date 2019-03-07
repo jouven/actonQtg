@@ -8,6 +8,10 @@
 
 #include <QApplication>
 
+#ifdef DEBUGJOUVEN
+#include <QDebug>
+#endif
+
 int main(int argc, char *argv[])
 {
     MACRO_signalHandler
@@ -29,6 +33,7 @@ int main(int argc, char *argv[])
     //so they must be separated per units to really account for that
     //which makes it more cumbersome
     //let's just use some pointers to local variables
+
     appConfig_c appConfigTmp;
     appConfig_ptr_ext = std::addressof(appConfigTmp);
 
@@ -36,7 +41,9 @@ int main(int argc, char *argv[])
     actonDataHub_ptr_ext = std::addressof(actonDataHubTmp);
 
     actonDataHubTmp.setLogDataHub_f(appConfigTmp.logDataHub_f());
-
+//#ifdef DEBUGJOUVEN
+//    qDebug() << "actonDataHubTmp.setLogDataHub_f(appConfigTmp.logDataHub_f());";
+//#endif
     MACRO_ADDACTONQTGLOG("Create main window", logItem_c::type_ec::info);
 
     mainWindow_c mainWindowTmp;

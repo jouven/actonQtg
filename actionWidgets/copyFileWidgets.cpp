@@ -27,6 +27,10 @@
 
 void copyFileWidgets_c::parentClosing_f()
 {
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + filenameFullExtensionsTable_pri->objectName() + filenameFullExtensionsTable_pri->horizontalHeader()->objectName(), filenameFullExtensionsTable_pri->horizontalHeader()->saveState());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + filenameFullExtensionsTable_pri->objectName(), filenameFullExtensionsTable_pri->saveGeometry());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + filenameRegexTable_pri->objectName() + filenameRegexTable_pri->horizontalHeader()->objectName(), filenameRegexTable_pri->horizontalHeader()->saveState());
+    appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + filenameRegexTable_pri->objectName(), filenameRegexTable_pri->saveGeometry());
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
 }
 
@@ -142,7 +146,7 @@ void copyFileWidgets_c::fileDialogBrowseSourceFinished_f(const int result_par)
                 destinationPathPTE_pri->setPlainText(browsePathFileDialog_pri->selectedFiles().first());
                 browseDestination_pri = false;
             }
-            appConfig_ptr_ext->addDirectoryHistory_f(browsePathFileDialog_pri->directory().path(), this->objectName() + browsePathFileDialog_pri->objectName());
+            appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + browsePathFileDialog_pri->objectName(), browsePathFileDialog_pri->directory().path());
         }
     }
     browsePathFileDialog_pri->deleteLater();
@@ -459,6 +463,8 @@ but it does the job.)"
     QHBoxLayout* fifthRowLayoutTmp = new QHBoxLayout;
 
     filenameFullExtensionsTable_pri = new QTableWidget(0, 1);
+    filenameFullExtensionsTable_pri->setObjectName("filenameFullExtensionsTable_");
+    filenameFullExtensionsTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     filenameFullExtensionsTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
     filenameFullExtensionsTable_pri->setDragEnabled(true);
     filenameFullExtensionsTable_pri->setDropIndicatorShown(true);
@@ -512,6 +518,8 @@ Filter is applied "or" wise)"
     QHBoxLayout* sixthRowLayoutTmp = new QHBoxLayout;
 
     filenameRegexTable_pri = new QTableWidget(0, 1);
+    filenameRegexTable_pri->setObjectName("filenameRegexTable_");
+    filenameRegexTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     filenameRegexTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
     filenameRegexTable_pri->setDragEnabled(true);
     filenameRegexTable_pri->setDropIndicatorShown(true);
@@ -698,6 +706,14 @@ Filter is applied "or" wise)"
 //    variableLayout_par_con->addLayout(fifthRowLayoutTmp);
 //    variableLayout_par_con->addLayout(sixthRowLayoutTmp);
 //    variableLayout_par_con->addLayout(seventhRowLayoutTmp);
+
+    if (appConfig_ptr_ext->configLoaded_f())
+    {
+        filenameFullExtensionsTable_pri->restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + filenameFullExtensionsTable_pri->objectName()));filenameFullExtensionsTable_pri->restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + filenameFullExtensionsTable_pri->objectName()));
+        filenameFullExtensionsTable_pri->horizontalHeader()->restoreState(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + filenameFullExtensionsTable_pri->objectName() + filenameFullExtensionsTable_pri->horizontalHeader()->objectName()));
+        filenameRegexTable_pri->restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + filenameRegexTable_pri->objectName()));
+        filenameRegexTable_pri->horizontalHeader()->restoreState(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + filenameRegexTable_pri->objectName() + filenameRegexTable_pri->horizontalHeader()->objectName()));
+    }
 
     loadActionSpecificData_f();
 }

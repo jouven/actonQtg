@@ -22,7 +22,7 @@ class appConfig_c
     bool configLoaded_pri = false;
 
     QHash<QString, QByteArray> widgetGeometryUMap_pri;
-
+    //first key is dialog name/id, nested qmap key is datetime and value is the directory path
     QHash<QString, QMap<int_fast64_t, QString>> fileDialogNameToDirectoryNameAndTimeMap_pri;
 
     //to prevent resaving if the file data is the same as the data being saved
@@ -79,7 +79,7 @@ public:
             , const int_fast32_t line_par_con
     );
 
-    std::vector<std::pair<const logItem_c* const, const QDateTime* const> > getLogs_f(const logFilter_c& logFilter_par_con = logFilter_c()) const;
+    std::vector<std::pair<const logItem_c* const, const QDateTime* const>> getLogs_f(const logFilter_c& logFilter_par_con = logFilter_c()) const;
 
     QStringList commandLinePositionalArguments_f() const;
 
