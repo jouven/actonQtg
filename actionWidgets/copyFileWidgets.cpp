@@ -3,9 +3,9 @@
 #include "copyFileExtra/fileListWindow.hpp"
 #include "copyFileExtra/extensionQLineEditForDelegate.hpp"
 #include "copyFileExtra/regexQLineEditForDelegate.hpp"
-#include "../optionsWidgets/workingDirectoryWindow.hpp"
 
-#include "appConfig.hpp"
+#include "../optionsWidgets/workingDirectoryWindow.hpp"
+#include "../appConfig.hpp"
 
 #include "actonQtso/actionData.hpp"
 #include "actonQtso/actonDataHub.hpp"

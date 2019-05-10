@@ -29,7 +29,7 @@ class appConfig_c
     QByteArray loadChecksum_pri;
 
     //right now, translationConfigFile_pri and logsDirectoryPath_pri
-    //can't be set in the program (TODO),
+    //can't be set from-inside the program (TODO),
     //the set variables will confirm when a legit SET of these variables happens.
     //When not set the program will use default values but
     //still it won't SET the variables so they don't get saved with the default values

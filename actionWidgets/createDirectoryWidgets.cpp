@@ -2,7 +2,7 @@
 
 #include "actonQtso/actions/createDirectory.hpp"
 
-#include "appConfig.hpp"
+#include "../appConfig.hpp"
 
 #include "actonQtso/actionData.hpp"
 #include "actonQtso/actonDataHub.hpp"

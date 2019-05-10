@@ -5,6 +5,7 @@
 
 #include "signalso/signal.hpp"
 #include "essentialQtso/essentialQt.hpp"
+#include "stringParserMapQtso/stringParserMap.hpp"
 
 #include <QApplication>
 
@@ -40,6 +41,12 @@ int main(int argc, char *argv[])
     actonDataHub_c actonDataHubTmp;
     actonDataHub_ptr_ext = std::addressof(actonDataHubTmp);
 
+    //the parser class can be used from the ptr in the parser library or from the
+    //actonHub.executionOptions ptr member (they both point to this local variable)
+    stringParserMap_c stringParserMapTmp;
+    stringParserMap_ptr_ext = std::addressof(stringParserMapTmp);
+
+    actonDataHubTmp.executionOptions_f().setStringParserMap_f(stringParserMap_ptr_ext);
     actonDataHubTmp.setLogDataHub_f(appConfigTmp.logDataHub_f());
 //#ifdef DEBUGJOUVEN
 //    qDebug() << "actonDataHubTmp.setLogDataHub_f(appConfigTmp.logDataHub_f());";

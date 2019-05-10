@@ -62,6 +62,7 @@ void actionWindow_c::askUpdateStringIdDepdenciesWindowFinished_f(const int resul
     }
     askUpdateStringIdDepdenciesWindow_pri->deleteLater();
     askUpdateStringIdDepdenciesWindow_pri = nullptr;
+    close();
 }
 
 void actionWindow_c::openAskUpdateStringIdDepdenciesWindow_f()
@@ -83,6 +84,8 @@ template <typename T>
 void actionWindow_c::createActionTypeWidgets_f(T*& actionTypeClassPtr_par)
 {
     actionTypeClassPtr_par = new T(actionData_ptr_pri, variableLayout_pri, this);
+    //TODO make a return additional tooltip function (do it when I migrate this to virtuals)
+    //to add to the tooltip button for each type of extraWidgets
 
     //make the saving of the window position/size, and its items, generic
     connect(this, &actionWindow_c::closeWindow_signal, actionTypeClassPtr_par, &T::parentClosing_f);
@@ -237,7 +240,7 @@ actionWindow_c::actionWindow_c(
 
     connect(saveButtonTmp, &QPushButton::clicked, this, &actionWindow_c::saveButtonClicked_f);
     connect(cancelButtonTmp, &QPushButton::clicked, this, &actionWindow_c::cancelButtonClicked_f);
-    connect(this, &actionWindow_c::askUpdateStringIdDepdencies_signal, this, &actionWindow_c::openAskUpdateStringIdDepdenciesWindow_f);
+    //connect(this, &actionWindow_c::askUpdateStringIdDepdencies_signal, this, &actionWindow_c::openAskUpdateStringIdDepdenciesWindow_f);
     //connect(tipsButtonTmp, &QPushButton::clicked, this, &actionWindow_c::tipsButtonClicked_f);
 
     int loadedActionTypeIndexTmp(0);
@@ -250,7 +253,7 @@ actionWindow_c::actionWindow_c(
         QString actionTypeStrTmp(actionTypeToStrUMap_ext_con.at(actionData_ptr_pri->type_f()));
         loadedActionTypeIndexTmp = actionTypeCombo_pri->findData(actionTypeStrTmp.toLower());
         actionTypeCombo_pri->setCurrentIndex(loadedActionTypeIndexTmp);
-        //actionTypeCombo_pri->setEditable(false);
+        actionTypeCombo_pri->setEnabled(false);
 
         actionStringIdPTE_pri->setPlainText(actionData_ptr_pri->stringId_f());
         descriptionPTE_pri->setPlainText(actionData_ptr_pri->description_f());
@@ -417,7 +420,8 @@ void actionWindow_c::save_f()
         Q_EMIT updateRow_Signal(row_pri_con);
         if (askUpdateStringIdDepdencies)
         {
-            Q_EMIT askUpdateStringIdDepdencies_signal();
+            openAskUpdateStringIdDepdenciesWindow_f();
+            //Q_EMIT askUpdateStringIdDepdencies_signal();
         }
         else
         {

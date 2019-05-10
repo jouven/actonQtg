@@ -196,8 +196,7 @@ checkWindow_c::checkWindow_c(
         QString checkTypeStrTmp(checkTypeToStrUMap_glo_sta_con.at(checkData_ptr_pri->type_f()));
         loadedCheckTypeIndexTmp = checkTypeCombo_pri->findData(checkTypeStrTmp.toLower());
         checkTypeCombo_pri->setCurrentIndex(loadedCheckTypeIndexTmp);
-
-        //checkTypeCombo_pri->setEditable(false);
+        checkTypeCombo_pri->setEnabled(false);
 
         //actionStringIdPTE_pri->setPlainText(itemTmp.stringId_f());
         descriptionPTE_pri->setPlainText(checkData_ptr_pri->description_f());

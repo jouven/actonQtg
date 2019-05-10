@@ -15,7 +15,7 @@
 void logsWindow_c::closeEvent(QCloseEvent* event)
 {
 #ifdef DEBUGJOUVEN
-    qtOutRef_ext() << "Close log window" << endl;
+    //qtOutRef_ext() << "Close log window" << endl;
 #endif
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + logsTable_pri->objectName() + logsTable_pri->horizontalHeader()->objectName(), logsTable_pri->horizontalHeader()->saveState());
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + logsTable_pri->objectName(), logsTable_pri->saveGeometry());

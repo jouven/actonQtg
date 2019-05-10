@@ -34,7 +34,11 @@ HEADERS       = \
     actionWidgets/copyFileExtra/extensionQLineEditForDelegate.hpp \
     actionWidgets/copyFileExtra/regexQLineEditForDelegate.hpp \
     logsWindowWidgets/QDateTimeEditForDelegate.hpp \
-    logsWindowWidgets/QDatetimeEditDelegate.hpp
+    logsWindowWidgets/QDatetimeEditDelegate.hpp \
+    executionOptionsWidgets/stringParserWidgets/stringReplacerWidgets.hpp \
+    executionOptionsWidgets/stringParserWidgets/baseClassStringParserWidgets.hpp \
+    executionOptionsWidgets/stringParserManagerWindow.hpp \
+    executionOptionsWidgets/stringParserEditorWindow.hpp
 
 SOURCES       = main.cpp \
     appConfig.cpp \
@@ -60,7 +64,11 @@ SOURCES       = main.cpp \
     actionWidgets/copyFileExtra/extensionQLineEditForDelegate.cpp \
     actionWidgets/copyFileExtra/regexQLineEditForDelegate.cpp \
     logsWindowWidgets/QDateTimeEditForDelegate.cpp \
-    logsWindowWidgets/QDatetimeEditDelegate.cpp
+    logsWindowWidgets/QDatetimeEditDelegate.cpp \
+    executionOptionsWidgets/stringParserWidgets/stringReplacerWidgets.cpp \
+    executionOptionsWidgets/stringParserWidgets/baseClassStringParserWidgets.cpp \
+    executionOptionsWidgets/stringParserManagerWindow.cpp \
+    executionOptionsWidgets/stringParserEditorWindow.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -116,7 +124,9 @@ CONFIG(debug, debug|release){
 
 }
 
-LIBS += -lessentialQtso -lsignalso -lessentialQtgso -lactonQtso -lthreadedFunctionQtso -ltranslatorJSONQtso -llogsinJSONQtso -lsizeConversionso
+LIBS += -lessentialQtso -lsignalso -lessentialQtgso -lactonQtso -lthreadedFunctionQtso \
+-ltranslatorJSONQtso -llogsinJSONQtso -lsizeConversionso -lstringParserMapQtso \
+-lbaseClassQtso
 
 QMAKE_CXXFLAGS_DEBUG -= -g
 QMAKE_CXXFLAGS_DEBUG += -pedantic -Wall -Wextra -g3
@@ -135,7 +145,7 @@ QMAKE_LFLAGS_RELEASE += -fvisibility=hidden
 linux:QMAKE_LFLAGS_RELEASE += -flto=jobserver
 win32::QMAKE_LFLAGS_RELEASE += -flto
 
-
+#TODO add missing libs when, some day, I test it on android
 #Android stuff, for an executable project to work with shared libraries
 #the library files used by the project must be manually
 #specified

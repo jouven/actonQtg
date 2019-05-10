@@ -4,9 +4,10 @@
 #include <QObject>
 
 class QComboBox;
-//class QPushButton;
 class QVBoxLayout;
 class QCheckBox;
+class QSplitter;
+class QTableWidget;
 
 class checkData_c;
 
@@ -17,8 +18,11 @@ class actionFinishedWidgets_c : public QObject
     //to choose actions
     QComboBox* actionStringIdCombo_pri;
     //FUTURE do a grid to select an action with some details
-    //right now make do the a combo with autocomplete
     QCheckBox* failCheckOnNotSuccessfulCheckbox_pri;
+
+    QTableWidget* actionResultTypeToStringParserTable_pri;
+
+    QSplitter* mainSplitter_pri;
 
     checkData_c* const checkData_ptr_pri;
 
@@ -29,8 +33,8 @@ public:
     //canviar checkData_c per jsonObject
     explicit actionFinishedWidgets_c(
             checkData_c* const checkData_ptr_par
-            , QVBoxLayout* const variableLayout_par_con
-            , QObject *parent = nullptr);
+            , QVBoxLayout* const variableLayout_par
+            , QObject* parent_par = nullptr);
 
 Q_SIGNALS:
     void JSONSaved_signal();

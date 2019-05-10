@@ -3,10 +3,10 @@
 #include "runProcessExtra/argumentWindow.hpp"
 #include "runProcessExtra/environmentPairWindow.hpp"
 
-#include "optionsWidgets/environmentWindow.hpp"
-#include "optionsWidgets/workingDirectoryWindow.hpp"
+#include "../optionsWidgets/environmentWindow.hpp"
+#include "../optionsWidgets/workingDirectoryWindow.hpp"
 
-#include "appConfig.hpp"
+#include "../appConfig.hpp"
 
 #include "actonQtso/actionData.hpp"
 #include "actonQtso/actonDataHub.hpp"
@@ -66,12 +66,12 @@ void runProcessWidgets_c::insertArgumentRow_f(
 
 void runProcessWidgets_c::insertEnvironmentPairRow_f(
         const QString& key_par_con
-        , const environmentPair_c& environmentPair_par_con)
+        , const environmentPairConfig_c& environmentPair_par_con)
 {
     QTableWidgetItem *environmentKeyCellTmp(new QTableWidgetItem(key_par_con));
     environmentKeyCellTmp->setFlags(environmentKeyCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *environmentValueCellTmp(new QTableWidgetItem(environmentPair_par_con.value_f()));
+    QTableWidgetItem *environmentValueCellTmp(new QTableWidgetItem(environmentPair_par_con.environmentValue()));
     environmentValueCellTmp->setFlags(environmentValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     QTableWidgetItem *environmentPairEnabledCellTmp(new QTableWidgetItem);
@@ -100,11 +100,11 @@ void runProcessWidgets_c::updateArgumentRow_f(
 //index must be valid
 void runProcessWidgets_c::updateEnvironmentPairRow_f(
         const QString& key_par_con
-        , const environmentPair_c& environmentPair_par_con
+        , const environmentPairConfig_c& environmentPair_par_con
         , const int row_par_con)
 {
     environmentToAddTable_pri->item(row_par_con, 0)->setText(key_par_con);
-    environmentToAddTable_pri->item(row_par_con, 1)->setText(environmentPair_par_con.value_f());
+    environmentToAddTable_pri->item(row_par_con, 1)->setText(environmentPair_par_con.environmentValue());
     Qt::CheckState checkValueTmp(environmentPair_par_con.enabled_f() ? Qt::Checked : Qt::Unchecked);
     environmentToAddTable_pri->item(row_par_con, 2)->setCheckState(checkValueTmp);
 }
@@ -124,7 +124,7 @@ void runProcessWidgets_c::loadActionSpecificData_f()
             insertArgumentRow_f(argument_ite_con);
         }
 
-        QHash<QString, environmentPair_c>::const_iterator iteratorTmp = processActionTmp.environmentToAdd_f().constBegin();
+        QHash<QString, environmentPairConfig_c>::const_iterator iteratorTmp = processActionTmp.environmentToAdd_f().constBegin();
         while (iteratorTmp not_eq processActionTmp.environmentToAdd_f().constEnd())
         {
             insertEnvironmentPairRow_f(iteratorTmp.key(), iteratorTmp.value());
@@ -160,6 +160,7 @@ runProcessWidgets_c::runProcessWidgets_c(
     auto minHeightTmp(processPathPTE_pri->fontMetrics().lineSpacing() + 14);
     processPathPTE_pri->setMinimumHeight(minHeightTmp);
     processPathPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+    processPathPTE_pri->setToolTip(appConfig_ptr_ext->translate_f("Path isn't validated/checked until execution"));
     firstRowTmp->addWidget(processPathPTE_pri);
     QPushButton* browseProcessPathButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Browse"));
     firstRowTmp->addWidget(browseProcessPathButtonTmp);
@@ -210,6 +211,7 @@ runProcessWidgets_c::runProcessWidgets_c(
 
     thirdRowTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Working directory")));
     workingDirectoryPTE_pri = new QPlainTextEdit;
+    workingDirectoryPTE_pri->setToolTip(appConfig_ptr_ext->translate_f("Path isn't validated/checked until execution"));
     workingDirectoryPTE_pri->setMinimumHeight(minHeightTmp);
     workingDirectoryPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
     thirdRowTmp->addWidget(workingDirectoryPTE_pri);
@@ -333,9 +335,10 @@ runProcessWidgets_c::runProcessWidgets_c(
 
 void runProcessWidgets_c::saveActionDataJSON_f() const
 {
-    //TODO all the path fields use fromNative
-    //not needed as long as the execution part fixes it, it shouldn't
-    //be changing paths when they can be fixed on execution
+    //paths aren't checked/valitated on save,
+    //but they are on execution
+    //otherwise all the paths must exist and if stuff is created dynamically
+    //it wouldn't work
     QString processPathTmp(processPathPTE_pri->toPlainText());
     std::vector<argument_c> argumentsTmp;
     argumentsTmp.reserve(argumentsTable_pri->rowCount());
@@ -348,7 +351,7 @@ void runProcessWidgets_c::saveActionDataJSON_f() const
 
     QString workingDirectoryTmp(workingDirectoryPTE_pri->toPlainText());
 
-    QHash<QString, environmentPair_c> environmentToAddPairsTmp;
+    QHash<QString, environmentPairConfig_c> environmentToAddPairsTmp;
     environmentToAddPairsTmp.reserve(environmentToAddTable_pri->rowCount());
     for (auto rowIndex_ite = 0, l = environmentToAddTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
     {
@@ -549,7 +552,7 @@ void runProcessWidgets_c::addUpdateArgumentRow_f(
 //this is called from an emit in the environment pair edit class window function
 void runProcessWidgets_c::addUpdateEnvironmentPairRow_f(
         const QString& savedKey_par_con
-        , const environmentPair_c& savedEnvironmentPair_par_con
+        , const environmentPairConfig_c& savedEnvironmentPair_par_con
         , const int index_par_con
 )
 {

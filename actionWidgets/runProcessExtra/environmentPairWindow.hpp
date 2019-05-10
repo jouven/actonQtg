@@ -35,7 +35,7 @@ public:
     );
 
 Q_SIGNALS:
-    void saveEnvironmentPairResult_signal(const QString& key_par_con, const environmentPair_c& environmentPair_par_con, const int editedRowIndex_par_con);
+    void saveEnvironmentPairResult_signal(const QString& key_par_con, const environmentPairConfig_c& environmentPair_par_con, const int editedRowIndex_par_con);
 private Q_SLOTS:
     void cancelButtonPushed_f();
     void saveButtonPushed_f();

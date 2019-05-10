@@ -45,8 +45,8 @@ class runProcessWidgets_c : public QObject
     void insertArgumentRow_f(const argument_c& argument_par_con);
     void updateArgumentRow_f(const argument_c& argument_par_con, const int row_par_con);
 
-    void insertEnvironmentPairRow_f(const QString& key_par_con, const environmentPair_c& environmentPair_par_con);
-    void updateEnvironmentPairRow_f(const QString& key_par_con, const environmentPair_c& environmentPair_par_con, const int row_par_con);
+    void insertEnvironmentPairRow_f(const QString& key_par_con, const environmentPairConfig_c& environmentPair_par_con);
+    void updateEnvironmentPairRow_f(const QString& key_par_con, const environmentPairConfig_c& environmentPair_par_con, const int row_par_con);
 
     void saveActionDataJSON_f() const;
 public:
@@ -71,7 +71,7 @@ private Q_SLOTS:
     void showCurrentWorkingDirectoryWindow_f();
     void openEnvironmentPairEditWindow_f();
     void removeEnvironmentPair_f();
-    void addUpdateEnvironmentPairRow_f(const QString& savedKey_par_con, const environmentPair_c& savedEnvironmentPair_par_con, const int index_par_con);
+    void addUpdateEnvironmentPairRow_f(const QString& savedKey_par_con, const environmentPairConfig_c& savedEnvironmentPair_par_con, const int index_par_con);
     void showCurrentEnvironmentWindow_f();
 };
 

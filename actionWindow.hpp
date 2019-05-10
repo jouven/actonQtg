@@ -47,6 +47,9 @@ class actionWindow_c : public QWidget
 
     //old combo index to know if the initial one (which shouldn't trigger a clear)
     int lastIndex_pri = -1;
+    //after save if the stringId changed it's asked to update the dependencies with the old value
+    //since the save is already done this field is used before saving to save the old value
+    //so it can be used, after, to replace dependencies if that option is selected
     QString oldStringId_pri;
     //different action class pointers variables
     runProcessWidgets_c* runProcessWidgets_pri = nullptr;
@@ -73,7 +76,7 @@ Q_SIGNALS:
     void closeWindow_signal();
     void saveJSON_signal();
     void updateRow_Signal(const int row_par_con);
-    void askUpdateStringIdDepdencies_signal();
+    //void askUpdateStringIdDepdencies_signal();
 public Q_SLOTS:
 private Q_SLOTS:
     void actionComboChanged_f(int index_par);

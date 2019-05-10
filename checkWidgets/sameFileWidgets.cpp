@@ -1,7 +1,7 @@
 #include "sameFileWidgets.hpp"
 
-#include "appConfig.hpp"
-#include "optionsWidgets/workingDirectoryWindow.hpp"
+#include "../appConfig.hpp"
+#include "../optionsWidgets/workingDirectoryWindow.hpp"
 
 #include "actonQtso/checkData.hpp"
 #include "actonQtso/checks/sameFile.hpp"

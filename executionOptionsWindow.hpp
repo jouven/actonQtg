@@ -36,6 +36,7 @@ private Q_SLOTS:
     void saveButtonClicked_f();
     void cancelButtonClicked_f();
     void tipsButtonClicked_f();
+    void stringParserButtonClicked_f();
 };
 
 #endif // ACTONQTG_EXECUTIONOPTIONSWINDOW_HPP

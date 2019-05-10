@@ -302,19 +302,16 @@ void appConfig_c::addDirectoryHistory_f(
 QString appConfig_c::translate_f(const QString& key_par_con)
 {
     QString resultTmp;
-    if (translator_pri.isConfigSet_f() or translator_pri.addNotFoundKeys_f())
+    bool foundTmp(false);
+    if (translator_pri.isConfigSet_f())
     {
-        resultTmp = translator_pri.translate_f(key_par_con);
-        //because the result will be an empty string
-        if (resultTmp.isEmpty() and translator_pri.addNotFoundKeys_f())
-        {
-             resultTmp = key_par_con;
-        }
+        resultTmp = translator_pri.translate_f(key_par_con, std::addressof(foundTmp));
     }
-    else
+    if (not foundTmp)
     {
         resultTmp = key_par_con;
     }
+    //try to translate else return the same key, otherwise a lot of texts/labels will be empty
     return resultTmp;
 }
 

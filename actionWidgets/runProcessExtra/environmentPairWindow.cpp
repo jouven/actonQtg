@@ -1,6 +1,6 @@
 #include "environmentPairWindow.hpp"
 
-#include "appConfig.hpp"
+#include "../../appConfig.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
 
@@ -121,7 +121,7 @@ void environmentPairToAddEditWindow_c::saveButtonPushed_f()
             break;
         }
 
-        environmentPair_c environmentPairTmp(valueField_pri->toPlainText(), enabledCheckbox_pri->isChecked());
+        environmentPairConfig_c environmentPairTmp(valueField_pri->toPlainText(), enabledCheckbox_pri->isChecked());
 
         Q_EMIT saveEnvironmentPairResult_signal
         (

@@ -1,7 +1,7 @@
 #include "fileListWindow.hpp"
 
-#include "mainWindow.hpp"
-#include "appConfig.hpp"
+#include "../../mainWindow.hpp"
+#include "../../appConfig.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
 #include "logsinJSONQtso/logItemStrMapping.hpp"
@@ -77,7 +77,7 @@ void fileListWindow_c::loadFileVectorToTableGrid_f(const std::vector<QString>& f
     {
         QFileInfo fileInfoTmp(filename_ite_con);
         QString filenameTmp(filename_ite_con);
-        QString sizeStrTmp(QString::fromStdString(eines::formatByteSizeValue_f(fileInfoTmp.size())));
+        QString sizeStrTmp(QString::fromStdString(formatByteSizeValue_f(fileInfoTmp.size())));
         QString datetimeModStrTmp(fileInfoTmp.lastModified().toString("yyyy-MM-dd hh:mm:ss.zzz"));
 
         addFileEntry_f(filenameTmp, datetimeModStrTmp, sizeStrTmp);

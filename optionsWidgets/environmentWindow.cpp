@@ -1,5 +1,5 @@
 #include "environmentWindow.hpp"
-#include "appConfig.hpp"
+#include "../appConfig.hpp"
 
 #include <QPlainTextEdit>
 #include <QPushButton>

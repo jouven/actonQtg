@@ -24,6 +24,7 @@
 #include "signalso/signal.hpp"
 //#include "sizeConversionso/byte.hpp"
 
+#include <QStringList>
 #include <QtWidgets>
 
 //#include <chrono>
@@ -263,18 +264,18 @@ mainWindow_c::mainWindow_c()
 
     fifthRowLayoutTmp->addLayout(indexChangingLayoutTmp);
 
-    mainLayout_pri = new QVBoxLayout;
-    mainLayout_pri->addLayout(firstRowLayoutTmp);
-    mainLayout_pri->addLayout(secondRowLayoutTmp);
-    mainLayout_pri->addLayout(thirdRowLayoutTmp);
-    mainLayout_pri->addLayout(fourthRowLayoutTmp);
-    mainLayout_pri->addLayout(fifthRowLayoutTmp);
-    mainLayout_pri->addWidget(statusBarLabel_pri);
+    QVBoxLayout* mainLayoutTmp(new QVBoxLayout);
+    mainLayoutTmp->addLayout(firstRowLayoutTmp);
+    mainLayoutTmp->addLayout(secondRowLayoutTmp);
+    mainLayoutTmp->addLayout(thirdRowLayoutTmp);
+    mainLayoutTmp->addLayout(fourthRowLayoutTmp);
+    mainLayoutTmp->addLayout(fifthRowLayoutTmp);
+    mainLayoutTmp->addWidget(statusBarLabel_pri);
 #ifdef __ANDROID__
-    baseWidget_pri->setLayout(mainLayout_pri);
+    baseWidget_pri->setLayout(mainLayoutTmp);
 
 #else
-    this->setLayout(mainLayout_pri);
+    this->setLayout(mainLayoutTmp);
 #endif
 
     //qInfo() << "moveActionDownButton_pri->parent()->objectName() " << moveActionDownButton_pri->parent()->objectName() << endl;
@@ -845,6 +846,7 @@ void mainWindow_c::insertActionRow_f(
     actionValueCellTmp->setFlags(actionValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     QTableWidgetItem *descriptionCellTmp(new QTableWidgetItem(description_par_con));
+    descriptionCellTmp->setToolTip(description_par_con);
     descriptionCellTmp->setFlags(descriptionCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     int newIndexTmp(row_par_con);
@@ -874,6 +876,7 @@ void mainWindow_c::updateExistingActionRow_f(
 
     actionsTable_pri->item(row_par_con, 0)->setText(actionTypeStr);
     actionsTable_pri->item(row_par_con, 1)->setText(description_par_con);
+    actionsTable_pri->item(row_par_con, 1)->setToolTip(description_par_con);
     //Qt::CheckState checkValue(haltOnFail_par_con ? Qt::Checked : Qt::Unchecked);
     //actionsTable_pri->item(row_par_con, 2)->setCheckState(checkValue);
 }

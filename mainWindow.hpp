@@ -3,21 +3,19 @@
 
 #include "actonQtso/actionMappings/actions.hpp"
 
-#include <QStringList>
 #include <QWidget>
-
 
 class QTableWidget;
 //class QPlainTextEdit;
 //class QComboBox;
 class QPushButton;
 class QLabel;
-class QVBoxLayout;
 //class QRadioButton;
 //class QCheckBox;
 class QFileDialog;
 class QMessageBox;
 class QInputDialog;
+class QStringList;
 
 #ifdef __ANDROID__
 class QScrollArea;
@@ -29,7 +27,6 @@ class mainWindow_c : public QWidget
 {
     Q_OBJECT
 
-    QVBoxLayout* mainLayout_pri;
 #ifdef __ANDROID__
     QScrollArea* scrollArea_pri;
     QWidget* baseWidget_pri;

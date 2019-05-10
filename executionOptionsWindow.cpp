@@ -1,5 +1,7 @@
 #include "executionOptionsWindow.hpp"
 
+#include "executionOptionsWidgets/stringParserManagerWindow.hpp"
+
 #include "actonQtso/actonDataHub.hpp"
 
 #include "appConfig.hpp"
@@ -20,12 +22,9 @@ void executionOptionsWindow_c::closeEvent(QCloseEvent* event)
 
 void executionOptionsWindow_c::save_f()
 {
-    actonDataHub_ptr_ext->setExecutionOptions({
-
-    loopExecutionCheckbox_pri->isChecked()
-    , extraThreadsLineEdit_pri->text().toLong()
-    , killTimeoutMillisecondsLineEdit_pri->text().toLong()
-    });
+    actonDataHub_ptr_ext->executionOptions_f().setLoopExecution_f(loopExecutionCheckbox_pri->isChecked());
+    actonDataHub_ptr_ext->executionOptions_f().setExtraThreads_f(extraThreadsLineEdit_pri->text().toLong());
+    actonDataHub_ptr_ext->executionOptions_f().setKillTimeoutMilliseconds_f(killTimeoutMillisecondsLineEdit_pri->text().toLong());
 
     threadedFunction_c::setMaxConcurrentQThreads_f(actonDataHub_ptr_ext->executionOptions_f().extraThreads_f());
 }
@@ -82,6 +81,12 @@ executionOptionsWindow_c::executionOptionsWindow_c(
     killTimeoutMillisecondsLineEdit_pri->setValidator(validatorTmp);
     firstRowLayoutTmp->addWidget(killTimeoutMillisecondsLineEdit_pri);
 
+    QHBoxLayout* secondRowLayoutTmp = new QHBoxLayout;
+
+    QPushButton* openStringParserMainWindowButtonTmp = new QPushButton("String &Parsers");
+    secondRowLayoutTmp->addWidget(openStringParserMainWindowButtonTmp);
+    connect(openStringParserMainWindowButtonTmp, &QPushButton::clicked, this, &executionOptionsWindow_c::stringParserButtonClicked_f);
+
     //for the bottom buttons
     QHBoxLayout* lastRowLayoutTmp = new QHBoxLayout;
 
@@ -99,6 +104,7 @@ executionOptionsWindow_c::executionOptionsWindow_c(
 
     mainLayout_pri = new QVBoxLayout;
     mainLayout_pri->addLayout(firstRowLayoutTmp);
+    mainLayout_pri->addLayout(secondRowLayoutTmp);
     mainLayout_pri->addLayout(lastRowLayoutTmp);
     this->setLayout(mainLayout_pri);
 
@@ -145,7 +151,16 @@ void executionOptionsWindow_c::tipsButtonClicked_f()
                 )
             , "Tips"
             , this
-    );
+                );
+}
+
+void executionOptionsWindow_c::stringParserButtonClicked_f()
+{
+    stringParserManagerWindow_c* stringParserWindowTmp = new stringParserManagerWindow_c(this);
+    stringParserWindowTmp->setWindowFlag(Qt::Window, true);
+    stringParserWindowTmp->setWindowModality(Qt::WindowModal);
+    stringParserWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
+    stringParserWindowTmp->show();
 }
 
 
