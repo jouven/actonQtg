@@ -4,7 +4,6 @@
 #include "actonQtso/checkMappings/checks.hpp"
 
 #include <QWidget>
-#include <QJsonObject>
 
 #include <deque>
 #include <vector>
@@ -21,7 +20,7 @@ class QMessageBox;
 class QScrollArea;
 #endif
 
-class checkData_c;
+class check_c;
 class checksDataHub_c;
 
 class actionChecksWindow_c : public QWidget
@@ -42,9 +41,9 @@ class actionChecksWindow_c : public QWidget
     checksDataHub_c* checkDataHub_ptr_pri;
 
     //checks to run sequentially
-    std::deque<checkData_c*> checksToExecuteSeq_pri;
+    std::deque<check_c*> checksToExecuteSeq_pri;
     //checks that are running or finished running (only the last part is considered right now)
-    std::vector<checkData_c*> checksStarted_pri;
+    std::vector<check_c*> checksStarted_pri;
 
     bool stoppingCheckExecution_pri = false;
     bool finishedExecutingChecks_pri = false;
@@ -101,13 +100,13 @@ private Q_SLOTS:
     void moveSelectedChecksDownByOneButtonClicked_f();
     void inputDialogCopyCheckIndexFinished_f(const int result_par);
     void inputDialogChangeCheckIndexFinished_f(const int result_par);
-    void updateCheckError_f(checkData_c* const checkData_par_ptr_con);
-    void updateCheckExecutionState_f(checkData_c* const checkData_par_ptr_con);
-    void updateCheckResult_f(checkData_c* const checkData_par_ptr_con);
+    void updateCheckError_f(check_c* const check_par_ptr_con);
+    void updateCheckExecutionState_f(check_c* const check_par_ptr_con);
+    void updateCheckResult_f(check_c* const check_par_ptr_con);
     void stoppingExecution_f();
     void executionStarted_f();
     void executionFinished_f();
-    void checkResultsCleared_f(checkData_c* const checkData_par_ptr_con);
+    void checkResultsCleared_f(check_c* const check_par_ptr_con);
 
     void stopExecutingChecksAndClose_f();
 };

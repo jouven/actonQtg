@@ -16,6 +16,7 @@
 #include "actonQtso/actonBaseSerialization.hpp"
 #include "actonQtso/actionMappings/actionStrMapping.hpp"
 #include "actonQtso/actionMappings/actionExecutionStateStrMapping.hpp"
+#include "stringParserMapQtso/stringParserMap.hpp"
 
 
 #include "essentialQtgso/messageBox.hpp"
@@ -450,9 +451,6 @@ void mainWindow_c::clearAllActions_f()
     }
 }
 
-//FUTURE when I implement the execution dependency order
-//allow loading multiple files but check if they use the same exeuction "orders" (sequential or dependency)
-//and if dependecy check for nonexisting ones
 void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
 {
     MACRO_ADDACTONQTGLOG("Load file list (for acton files with actions)", logItem_c::type_ec::debug);
@@ -781,7 +779,7 @@ void mainWindow_c::copyAction_f()
 
         int selectedRowTmp(selectionTmp.first()->row());
 
-        actionData_c* actionDataSourcePtrTmp(actonDataHub_ptr_ext->actionData_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(selectedRowTmp)));
+        action_c* actionDataSourcePtrTmp(actonDataHub_ptr_ext->action_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(selectedRowTmp)));
 
         copyActionIndexInputDialog_pri = new QInputDialog(this);
         copyActionIndexInputDialog_pri->setWindowTitle("Copy Action");
@@ -811,15 +809,14 @@ void mainWindow_c::inputDialogCopyActionIndexFinished_f(const int result_par)
         {
             QList<QTableWidgetItem *> selectionTmp(actionsTable_pri->selectedItems());
             int selectedRowTmp(selectionTmp.first()->row());
-            actionData_c actionDataCopyTmp;
-            actionDataCopyTmp = *(actonDataHub_ptr_ext->actionData_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(selectedRowTmp)));
+            action_c* actionCopyTmp(actonDataHub_ptr_ext->action_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(selectedRowTmp))->clone_f());
 
-            actionDataCopyTmp.setStringId_f(actionDataCopyTmp.stringId_f() + "_copy");
+            actionCopyTmp->setStringId_f(actionCopyTmp->stringId_f() + "_copy");
 
-            actonDataHub_ptr_ext->insertActionData_f(actionDataCopyTmp, newIndexTmp);
+            actonDataHub_ptr_ext->insertActionData_f(actionCopyTmp, newIndexTmp);
             insertActionRow_f(
-                        actionDataCopyTmp.type_f()
-                        , actionDataCopyTmp.description_f()
+                        actionCopyTmp->type_f()
+                        , actionCopyTmp->description_f()
                         //, copyTmp.haltOnFail_f()
                         , newIndexTmp
             );
@@ -943,7 +940,7 @@ void mainWindow_c::createMessageBoxAskAboutStoppingExecutionOnClose_f()
 void mainWindow_c::updateActionRow_f(const int row_par_con)
 {
     int_fast32_t actionDataId(actonDataHub_ptr_ext->rowToActionDataId_f(row_par_con));
-    actionData_c* actionDataPtrTmp(actonDataHub_ptr_ext->actionData_ptr_f(actionDataId));
+    action_c* actionDataPtrTmp(actonDataHub_ptr_ext->action_ptr_f(actionDataId));
     //qInfo() << "3 actionDataTmp.description_f() " << actionDataTmp.description_f() << endl;
     if (row_par_con == actionsTable_pri->rowCount())
     {
@@ -1010,10 +1007,10 @@ void mainWindow_c::moveSelectedActions_f(const int moveOffSet_par_con)
                 actonDataHub_ptr_ext->moveRowActionData_f(index_ite_con, destinationRow);
                 //change the grid (visual)
                 actionsTable_pri->removeRow(index_ite_con);
-                actionData_c* actionDataTmp(actonDataHub_ptr_ext->actionData_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(destinationRow)));
+                action_c* actionTmp(actonDataHub_ptr_ext->action_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(destinationRow)));
                 insertActionRow_f(
-                            actionDataTmp->type_f()
-                            , actionDataTmp->description_f()
+                            actionTmp->type_f()
+                            , actionTmp->description_f()
                             //, actionDataTmp.haltOnFail_f()
                             , destinationRow
                 );
@@ -1095,11 +1092,11 @@ void mainWindow_c::inputDialogChangeActionIndexFinished_f(const int result_par)
             //change the data
             actonDataHub_ptr_ext->moveRowActionData_f(currentIndexTmp, newIndexTmp);
             //change the grid (visual)
-            actionData_c* actionDataTmp(actonDataHub_ptr_ext->actionData_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(newIndexTmp)));
+            action_c* actionTmp(actonDataHub_ptr_ext->action_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(newIndexTmp)));
             actionsTable_pri->removeRow(currentIndexTmp);
             insertActionRow_f(
-                        actionDataTmp->type_f()
-                        , actionDataTmp->description_f()
+                        actionTmp->type_f()
+                        , actionTmp->description_f()
                         //, actionDataTmp->haltOnFail_f()
                         , newIndexTmp
             );
@@ -1114,29 +1111,29 @@ void mainWindow_c::inputDialogChangeActionIndexFinished_f(const int result_par)
     changeActionIndexInputDialog_pri = nullptr;
 }
 
-void mainWindow_c::updateActionOutput_f(actionData_c* actionData_par_ptr_con)
+void mainWindow_c::updateActionOutput_f(action_c* action_par_ptr_con)
 {
     //get the row, get the acionData Obj for the id (to get the executionResult Obj)
     //update the cell of the row with the last part of the str
-    int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(actionData_par_ptr_con->id_f()));
+    int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(action_par_ptr_con->id_f()));
     //action (type) 0 | description 1 | Execution state 2 | Last output 3 | Last error 4
-    actionsTable_pri->item(rowTmp, 3)->setText(actionData_par_ptr_con->actionDataExecutionResult_ptr_f()->output_f().left(32));
+    actionsTable_pri->item(rowTmp, 3)->setText(action_par_ptr_con->actionDataExecutionResult_ptr_f()->output_f().left(32));
 }
 
-void mainWindow_c::updateActionError_f(actionData_c* actionData_par_ptr_con)
+void mainWindow_c::updateActionError_f(action_c* action_par_ptr_con)
 {
-    int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(actionData_par_ptr_con->id_f()));
+    int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(action_par_ptr_con->id_f()));
     //action (type) 0 | description 1 |  Execution state 2 | Last output 3 | Last error 4
-    actionsTable_pri->item(rowTmp, 4)->setText(actionData_par_ptr_con->actionDataExecutionResult_ptr_f()->error_f().left(32));
+    actionsTable_pri->item(rowTmp, 4)->setText(action_par_ptr_con->actionDataExecutionResult_ptr_f()->error_f().left(32));
 }
 
-void mainWindow_c::updateActionExecutionState_f(actionData_c* actionData_par_ptr_con)
+void mainWindow_c::updateActionExecutionState_f(action_c* action_par_ptr_con)
 {
 #ifdef DEBUGJOUVEN
     //qDebug() << "actionData_par_con.id_f() " << QString::number(actionData_par_ptr_con->id_f()) << endl;
 #endif
-    QString actionExecutionStateStrTmp(actionExecutionStateToStrUMap_ext_con.at(actionData_par_ptr_con->actionDataExecutionResult_ptr_f()->lastState_f()));
-    int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(actionData_par_ptr_con->id_f()));
+    QString actionExecutionStateStrTmp(actionExecutionStateToStrUMap_ext_con.at(action_par_ptr_con->actionDataExecutionResult_ptr_f()->lastState_f()));
+    int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(action_par_ptr_con->id_f()));
 
 #ifdef DEBUGJOUVEN
     //qDebug() << "rowTmp " << QString::number(rowTmp) << endl;
@@ -1275,11 +1272,11 @@ void mainWindow_c::executionStopped_f()
     executeActionsButton_pri->setToolTip("No selection executes all actions, selection executes selected actions");
 }
 
-void mainWindow_c::actionResultsCleared_f(actionData_c* const actionData_par_ptr_con)
+void mainWindow_c::actionResultsCleared_f(action_c* const action_par_ptr_con)
 {
-    updateActionOutput_f(actionData_par_ptr_con);
-    updateActionError_f(actionData_par_ptr_con);
-    updateActionExecutionState_f(actionData_par_ptr_con);
+    updateActionOutput_f(action_par_ptr_con);
+    updateActionError_f(action_par_ptr_con);
+    updateActionExecutionState_f(action_par_ptr_con);
 }
 
 void mainWindow_c::stopExecutingActionsAndClose_f()
@@ -1407,7 +1404,7 @@ void mainWindow_c::executeActions_f()
         {
             int_fast64_t actionIdToRunTmp(actonDataHub_ptr_ext->rowToActionDataId_f(actionRow_ite_con));
 
-            actionData_c* actionDataPtrTmp(actonDataHub_ptr_ext->actionData_ptr_f(actionIdToRunTmp));
+            action_c* actionPtrTmp(actonDataHub_ptr_ext->action_ptr_f(actionIdToRunTmp));
 #ifdef DEBUGJOUVEN
 //            qDebug() << "actionIdToRunTmp " << actionIdToRunTmp << endl;
 //            qDebug() << "actionDataPtrTmp is? " << (actionDataPtrTmp == nullptr ? "null" : "not null") << endl;
@@ -1415,19 +1412,21 @@ void mainWindow_c::executeActions_f()
             //qDebug() << "actionDataPtrTmp->enabled_f() " << actionDataPtrTmp->enabled_f() << endl;
             //qDebug() << "actionDataPtrTmp->checksEnabled_f() " << actionDataPtrTmp->checksEnabled_f() << endl;
 #endif
-            if (actionDataPtrTmp not_eq nullptr)
+            if (actionPtrTmp not_eq nullptr)
             {
-                actionDataExecutionResult_c* actionExecutionResultPtr(actionDataPtrTmp->createGetActionDataExecutionResult_ptr_f());
+                actionDataExecutionResult_c* actionExecutionResultPtr(actionPtrTmp->createGetActionDataExecutionResult_ptr_f());
+                //will be nullptr if the action is disabled
+                if (actionExecutionResultPtr not_eq nullptr)
+                {
+                    QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::executionStateUpdated_signal, this, &mainWindow_c::updateActionExecutionState_f, Qt::UniqueConnection);
+                    QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::outputUpdated_signal, this, &mainWindow_c::updateActionOutput_f, Qt::UniqueConnection);
+                    QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::error_signal, this, &mainWindow_c::updateActionError_f, Qt::UniqueConnection);
+                    QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::resultsCleared_signal, this, &mainWindow_c::actionResultsCleared_f, Qt::UniqueConnection);
 
-                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::executionStateUpdated_signal, this, &mainWindow_c::updateActionExecutionState_f, Qt::UniqueConnection);
-                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::outputUpdated_signal, this, &mainWindow_c::updateActionOutput_f, Qt::UniqueConnection);
-                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::error_signal, this, &mainWindow_c::updateActionError_f, Qt::UniqueConnection);
-                QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::resultsCleared_signal, this, &mainWindow_c::actionResultsCleared_f, Qt::UniqueConnection);
-
-                //on the grid only the above are used
-                //QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::actionExternalOutputUpdated_signal, this, &mainWindow_c::updateActionExternalOutput_f);
-                //QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::actionExternalOutputUpdated_signal, this, &mainWindow_c::updateActionExternalOutput_f);
-
+                    //on the grid only the above are used
+                    //QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::actionExternalOutputUpdated_signal, this, &mainWindow_c::updateActionExternalOutput_f);
+                    //QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::actionExternalOutputUpdated_signal, this, &mainWindow_c::updateActionExternalOutput_f);
+                }
             }
         }
 
@@ -1451,17 +1450,17 @@ void mainWindow_c::showExecutionDetails_f()
 
         int rowTmp(actionsTable_pri->selectedItems().first()->row());
         int_fast64_t actionDataIdTmp(actonDataHub_ptr_ext->rowToActionDataId_f(rowTmp));
-        actionData_c* actionDataPtrTmp(actonDataHub_ptr_ext->actionData_ptr_f(actionDataIdTmp));
-        if (actionDataPtrTmp not_eq nullptr)
+        action_c* actionPtrTmp(actonDataHub_ptr_ext->action_ptr_f(actionDataIdTmp));
+        if (actionPtrTmp not_eq nullptr)
         {
-            if (actionDataPtrTmp->actionDataExecutionResult_ptr_f() == nullptr)
+            if (actionPtrTmp->actionDataExecutionResult_ptr_f() == nullptr)
             {
                 errorQMessageBox_f("Action has no execution results", "Error", this);
                 break;
             }
             else
             {
-                actionResultTmp_ptr = actionDataPtrTmp->actionDataExecutionResult_ptr_f();
+                actionResultTmp_ptr = actionPtrTmp->actionDataExecutionResult_ptr_f();
             }
         }
         else
@@ -1490,8 +1489,8 @@ void mainWindow_c::showAboutMessage_f()
                 appConfig_ptr_ext->translate_f(
                     "<p>ActonQtg</b> allows run actions in an organized maner i.e. (1) create directory, (2) copy stuff to this new directory... stopping if there are errors on any step or taking alternative paths</p>"
                     "<p>Creaded by: Jouven<br>"
-                    R"(Source: <a href="//github.com/jouven/ActonQtg">github.com/jouven/ActonQtg</a><br>)"
-                    R"(Homepage: <a href="//avidcalm.com">avidcalm.com</a></p>)"
+                    R"(Source: <a href="https://github.com/jouven/ActonQtg">github.com/jouven/ActonQtg</a><br>)"
+                    R"(Homepage: <a href="https://avidcalm.com">avidcalm.com</a></p>)"
                     )
                 , "About actonQtg"
                 , this

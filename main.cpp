@@ -11,6 +11,9 @@
 
 #ifdef DEBUGJOUVEN
 #include <QDebug>
+#ifndef Q_OS_WIN
+#include "backwardSTso/backward.hpp"
+#endif
 #endif
 
 int main(int argc, char *argv[])

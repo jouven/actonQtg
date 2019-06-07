@@ -14,6 +14,11 @@ void stringReplacerWidgets_c::derivedParentClosing_f()
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + splitter_pri->objectName(), splitter_pri->saveState());
 }
 
+QString stringReplacerWidgets_c::derivedExtraTips_f() const
+{
+    return appConfig_ptr_ext->translate_f("<p>string replacer widget tips</p>");
+}
+
 bool stringReplacerWidgets_c::derivedSave_f(const QString& stringTrigger_par_con)
 {
     bool resultTmp(false);
@@ -24,14 +29,17 @@ bool stringReplacerWidgets_c::derivedSave_f(const QString& stringTrigger_par_con
         QString valueOrFormatStr(replaceValueOrFormatPTE_pri->toPlainText());
         if (replaceTypeTmp == stringReplacer_c::replaceType_ec::currentDatetimeString and valueOrFormatStr.isEmpty())
         {
-            errorQMessageBox_f("Format can't be empty for this type", "Error", qobject_cast<QWidget*>(this->parent()));
+            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Format can't be empty for this type")
+                               , appConfig_ptr_ext->translate_f("Error")
+                               , static_cast<QWidget*>(this->parent()));
             break;
         }
         if (replaceTypeTmp == stringReplacer_c::replaceType_ec::currentDatetimeString)
         {
             if (QDateTime::currentDateTime().toString(valueOrFormatStr).isEmpty())
             {
-                errorQMessageBox_f("Parsed format returns empty value", "Error", qobject_cast<QWidget*>(this->parent()));
+                errorQMessageBox_f(appConfig_ptr_ext->translate_f("Parsed format returns empty value")
+                                   , appConfig_ptr_ext->translate_f("Error"), static_cast<QWidget*>(this->parent()));
                 break;
             }
         }
@@ -41,12 +49,18 @@ bool stringReplacerWidgets_c::derivedSave_f(const QString& stringTrigger_par_con
 #endif
         if (stringReplacer_pri == nullptr)
         {
-            stringReplacer_pri = new stringReplacer_c(stringTrigger_par_con, replaceTypeTmp, valueOrFormatStr);
+            stringReplacer_pri = new stringReplacer_c(
+                        stringTrigger_par_con
+                        , replaceTypeTmp
+                        , valueOrFormatStr
+                        , useUTCCheckbox_pri->isChecked()
+            );
             parserBasePtr_pro = stringReplacer_pri;
         }
         else
         {
             stringReplacer_pri->setReplaceValueOrFormat_f(valueOrFormatStr);
+            stringReplacer_pri->setUseUTC_f(useUTCCheckbox_pri->isChecked());
         }
 #ifdef DEBUGJOUVEN
         //qDebug() << "2 parserBasePtr_pro " << parserBasePtr_pro << endl;
@@ -69,10 +83,13 @@ void stringReplacerWidgets_c::loadActionSpecificData_f()
         replaceTypeCombo_pri->setEnabled(false);
 
         replaceValueOrFormatPTE_pri->setPlainText(stringReplacer_pri->valueFormat_f());
+
+        useUTCCheckbox_pri->setChecked(stringReplacer_pri->useUTC_f());
     }
 }
 
-stringReplacerWidgets_c::stringReplacerWidgets_c(parserBase_c*& parserBasePtr_par
+stringReplacerWidgets_c::stringReplacerWidgets_c(
+        parserBase_c*& parserBasePtr_par
         , QVBoxLayout* const variableLayout_par_con)
     : baseClassStringParserWidgets_c(parserBasePtr_par, variableLayout_par_con->parentWidget())
     , stringReplacer_pri(parserBasePtr_par == nullptr ? nullptr : static_cast<stringReplacer_c*>(parserBasePtr_par))

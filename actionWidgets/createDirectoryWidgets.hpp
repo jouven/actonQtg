@@ -1,16 +1,18 @@
 #ifndef ACTONQTG_CREATEDIRECTORYWIDGETS_HPP
 #define ACTONQTG_CREATEDIRECTORYWIDGETS_HPP
 
-#include <QObject>
+#include "baseClassActionWidgets.hpp"
 
 class QPlainTextEdit;
 class QVBoxLayout;
 class QCheckBox;
 class QFileDialog;
 
+class createDirectoryData_c;
+class createDirectoryAction_c;
 class actionData_c;
 
-class createDirectoryWidgets_c : public QObject
+class createDirectoryWidgets_c : public baseClassActionWidgets_c
 {
     Q_OBJECT
 
@@ -19,22 +21,22 @@ class createDirectoryWidgets_c : public QObject
     QCheckBox* errorIfExistsCheckbox_pri;
     QFileDialog* browseDirectoryToCreateDialog_pri = nullptr;
 
-    actionData_c* const actionData_ptr_pri;
+    createDirectoryAction_c* createDirectoryAction_ptr_pri = nullptr;
 
     void loadActionSpecificData_f();
-    void saveActionDataJSON_f() const;
+
+    bool derivedSaveNew_f(const actionData_c& actionDataBlock_par_con) override;
+    bool derivedSaveUpdate_f() override;
+    void derivedParentClosing_f() override;
+    QString derivedExtraTips_f() const override;
+    bool isFieldsDataValid_f() const;
+    createDirectoryData_c fieldsToCreateDirectoryDataObject_f() const;
 public:
     explicit createDirectoryWidgets_c(
-            actionData_c* const actionData_ptr_par
+            action_c*& actionData_ptr_par
             , QVBoxLayout* const variableLayout_par_con
-            , QObject *parent = nullptr);
+    );
 
-Q_SIGNALS:
-    //this signal needs to always have this name because of template usage in actionWindow.cpp
-    void JSONSaved_signal();
-public Q_SLOTS:
-    void parentClosing_f();
-    void save_f();
 private Q_SLOTS:
     void browseDirectory_f();
     void fileDialogBrowseDirectoryToCreateFinished_f(const int result_par);

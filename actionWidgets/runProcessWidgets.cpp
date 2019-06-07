@@ -8,20 +8,17 @@
 
 #include "../appConfig.hpp"
 
-#include "actonQtso/actionData.hpp"
-#include "actonQtso/actonDataHub.hpp"
-
+#include "actonQtso/actions/runProcess.hpp"
 #include "essentialQtgso/messageBox.hpp"
 
 #include <QtWidgets>
-#include <QJsonObject>
 #include <QSplitter>
 #include <QFileDialog>
 #include <QDir>
 
 #include <set>
 
-void runProcessWidgets_c::parentClosing_f()
+void runProcessWidgets_c::derivedParentClosing_f()
 {
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + argumentsTable_pri->objectName(), argumentsTable_pri->saveGeometry());
@@ -30,25 +27,126 @@ void runProcessWidgets_c::parentClosing_f()
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + environmentToAddTable_pri->objectName() + environmentToAddTable_pri->horizontalHeader()->objectName(), environmentToAddTable_pri->horizontalHeader()->saveState());
 }
 
-void runProcessWidgets_c::save_f()
+QString runProcessWidgets_c::derivedExtraTips_f() const
 {
+    return appConfig_ptr_ext->translate_f("<p>run process widget tips</p>");
+}
+
+runProcessData_c runProcessWidgets_c::fieldsToRunProcessDataObject_f() const
+{
+    //paths aren't checked/valitated on save,
+    //but they are on execution
+    //otherwise all the paths must exist and if stuff is created dynamically
+    //it wouldn't work
+    QString processPathTmp(processPathPTE_pri->toPlainText());
+    std::vector<argument_c> argumentsTmp;
+    argumentsTmp.reserve(argumentsTable_pri->rowCount());
+    for (auto rowIndex_ite = 0, l = argumentsTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
+    {
+        bool enabledTmp(argumentsTable_pri->item(rowIndex_ite, 2)->checkState() == Qt::CheckState::Checked);
+        QString argumentTmp(argumentsTable_pri->item(rowIndex_ite, 1)->text());
+        argumentsTmp.emplace_back(argumentTmp, enabledTmp);
+    }
+
+    QString workingDirectoryTmp(workingDirectoryPTE_pri->toPlainText());
+
+    QHash<QString, environmentPairConfig_c> environmentToAddPairsTmp;
+    environmentToAddPairsTmp.reserve(environmentToAddTable_pri->rowCount());
+    for (auto rowIndex_ite = 0, l = environmentToAddTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
+    {
+        bool enabledTmp(environmentToAddTable_pri->item(rowIndex_ite, 2)->checkState() == Qt::CheckState::Checked);
+        QString keyTmp(environmentToAddTable_pri->item(rowIndex_ite, 0)->text());
+        QString valueTmp(environmentToAddTable_pri->item(rowIndex_ite, 1)->text());
+        environmentToAddPairsTmp.insert(keyTmp, {valueTmp, enabledTmp});
+    }
+    return runProcessData_c(
+                processPathTmp
+                , argumentsTmp
+                , workingDirectoryTmp
+                , useActonEnviroment_pri->isChecked()
+                , environmentToAddPairsTmp
+                );
+
+}
+
+bool runProcessWidgets_c::isFieldsDataValid_f() const
+{
+    bool resultTmp(false);
     while (true)
     {
         QString processPathStr(processPathPTE_pri->toPlainText());
-        if (processPathStr.isEmpty())
+        if (processPathStr.length() > 255)
         {
-            errorQMessageBox_f("Process path is empty", "Error", qobject_cast<QWidget*>(this->parent()));
+            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Process path is too long (>255): ") + QString::number(processPathStr.length())
+                               , appConfig_ptr_ext->translate_f("Error")
+                               , static_cast<QWidget*>(this->parent()));
             break;
         }
-        saveActionDataJSON_f();
-        Q_EMIT JSONSaved_signal();
+        if (processPathStr.isEmpty())
+        {
+            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Process path is empty")
+                               , appConfig_ptr_ext->translate_f("Error")
+                               , static_cast<QWidget*>(this->parent()));
+            break;
+        }
+        resultTmp = true;
         break;
+    }
+    return resultTmp;
+}
+
+
+
+bool runProcessWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
+{
+    bool resultTmp(false);
+    if (isFieldsDataValid_f())
+    {
+        runProcessAction_ptr_pri =
+                    new runProcessAction_c(
+                        actionDataBlock_par_con
+                        , fieldsToRunProcessDataObject_f()
+                        )
+                    ;
+        actionPtr_pro = runProcessAction_ptr_pri;
+
+        resultTmp = true;
+    }
+    return resultTmp;
+}
+
+bool runProcessWidgets_c::derivedSaveUpdate_f()
+{
+    bool resultTmp(false);
+    if (isFieldsDataValid_f())
+    {
+        runProcessAction_ptr_pri->runProcessData_c::operator=(fieldsToRunProcessDataObject_f());
+        resultTmp = true;
+    }
+    return resultTmp;
+}
+
+void runProcessWidgets_c::refreshIndexColumn_f(const int index_par_con)
+{
+    for (auto rowIndex_ite = index_par_con, l = argumentsTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
+    {
+        if (rowIndex_ite not_eq argumentsTable_pri->item(rowIndex_ite, 0)->text().toInt())
+        {
+            argumentsTable_pri->item(rowIndex_ite, 0)->setText(QString::number(rowIndex_ite));
+        }
     }
 }
 
 void runProcessWidgets_c::insertArgumentRow_f(
-        const argument_c& argument_par_con)
+        const argument_c& argument_par_con
+        , const int row_par_con)
 {
+    const int_fast32_t indexTmp_con(row_par_con == -1 ? argumentsTable_pri->rowCount() : row_par_con);
+    const bool lastRowInsertTmp(row_par_con == argumentsTable_pri->rowCount());
+
+    QTableWidgetItem *indexValueCellTmp(new QTableWidgetItem(QString::number(indexTmp_con)));
+    indexValueCellTmp->setFlags(indexValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
+
     QTableWidgetItem *argumentValueCellTmp(new QTableWidgetItem(argument_par_con.argument_f()));
     argumentValueCellTmp->setFlags(argumentValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
@@ -57,11 +155,18 @@ void runProcessWidgets_c::insertArgumentRow_f(
     argumentEnabledCellTmp->setCheckState(checkValue);
     argumentEnabledCellTmp->setFlags(argumentEnabledCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    const int_fast32_t indexTmp(argumentsTable_pri->rowCount());
+    argumentsTable_pri->insertRow(indexTmp_con);
+    argumentsTable_pri->setItem(indexTmp_con, 0, indexValueCellTmp);
+    argumentsTable_pri->setItem(indexTmp_con, 1, argumentValueCellTmp);
+    argumentsTable_pri->setItem(indexTmp_con, 2, argumentEnabledCellTmp);
 
-    argumentsTable_pri->insertRow(indexTmp);
-    argumentsTable_pri->setItem(indexTmp, 0, argumentValueCellTmp);
-    argumentsTable_pri->setItem(indexTmp, 1, argumentEnabledCellTmp);
+    if (lastRowInsertTmp)
+    {
+    }
+    else
+    {
+        refreshIndexColumn_f(indexTmp_con + 1);
+    }
 }
 
 void runProcessWidgets_c::insertEnvironmentPairRow_f(
@@ -92,9 +197,9 @@ void runProcessWidgets_c::updateArgumentRow_f(
         const argument_c& argument_par_con
         , const int row_par_con)
 {
-    argumentsTable_pri->item(row_par_con, 0)->setText(argument_par_con.argument_f());
+    argumentsTable_pri->item(row_par_con, 1)->setText(argument_par_con.argument_f());
     Qt::CheckState checkValue(argument_par_con.enabled_f() ? Qt::Checked : Qt::Unchecked);
-    argumentsTable_pri->item(row_par_con, 1)->setCheckState(checkValue);
+    argumentsTable_pri->item(row_par_con, 2)->setCheckState(checkValue);
 }
 
 //index must be valid
@@ -111,21 +216,19 @@ void runProcessWidgets_c::updateEnvironmentPairRow_f(
 
 void runProcessWidgets_c::loadActionSpecificData_f()
 {
-    if (not actionData_ptr_pri->actionDataJSON_f().isEmpty())
+    if (runProcessAction_ptr_pri not_eq nullptr)
     {
-        runProcessAction_c processActionTmp;
-        processActionTmp.read_f(actionData_ptr_pri->actionDataJSON_f());
-        processPathPTE_pri->setPlainText(processActionTmp.processPath_f());
-        workingDirectoryPTE_pri->setPlainText(processActionTmp.workingDirectory_f());
-        useActonEnviroment_pri->setChecked(processActionTmp.useActonEnvironment_f());
+        processPathPTE_pri->setPlainText(runProcessAction_ptr_pri->processPath_f());
+        workingDirectoryPTE_pri->setPlainText(runProcessAction_ptr_pri->workingDirectory_f());
+        useActonEnviroment_pri->setChecked(runProcessAction_ptr_pri->useActonEnvironment_f());
 
-        for (const argument_c& argument_ite_con : processActionTmp.arguments_f())
+        for (const argument_c& argument_ite_con : runProcessAction_ptr_pri->arguments_f())
         {
             insertArgumentRow_f(argument_ite_con);
         }
 
-        QHash<QString, environmentPairConfig_c>::const_iterator iteratorTmp = processActionTmp.environmentToAdd_f().constBegin();
-        while (iteratorTmp not_eq processActionTmp.environmentToAdd_f().constEnd())
+        QHash<QString, environmentPairConfig_c>::const_iterator iteratorTmp = runProcessAction_ptr_pri->environmentToAdd_f().constBegin();
+        while (iteratorTmp not_eq runProcessAction_ptr_pri->environmentToAdd_f().constEnd())
         {
             insertEnvironmentPairRow_f(iteratorTmp.key(), iteratorTmp.value());
             ++iteratorTmp;
@@ -134,12 +237,11 @@ void runProcessWidgets_c::loadActionSpecificData_f()
 }
 
 runProcessWidgets_c::runProcessWidgets_c(
-        actionData_c* const actionData_ptr_par
+        action_c*& actionData_ptr_par
         , QVBoxLayout* const variableLayout_par_con
-        , QObject *parent)
-    : QObject(parent)
-    , actionData_ptr_pri(actionData_ptr_par)
-    //, actionDataId_pri(actionDataId_par_con)
+        )
+    : baseClassActionWidgets_c(actionData_ptr_par, variableLayout_par_con->parentWidget())
+    , runProcessAction_ptr_pri(actionData_ptr_par == nullptr ? nullptr : static_cast<runProcessAction_c*>(actionData_ptr_par))
 {
     this->setObjectName("runProcessWidgets_");
 
@@ -183,7 +285,7 @@ runProcessWidgets_c::runProcessWidgets_c(
     //arguments table, goes into buttonsAndTableTmp (secondRowTmp)
     QHBoxLayout* argumentTableRowTmp = new QHBoxLayout;
 
-    argumentsTable_pri = new QTableWidget(0, 2);
+    argumentsTable_pri = new QTableWidget(0, 3);
     argumentsTable_pri->setObjectName("argumentsTable_");
     argumentsTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     argumentsTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -192,10 +294,11 @@ runProcessWidgets_c::runProcessWidgets_c(
     argumentsTable_pri->setDragDropMode(QAbstractItemView::InternalMove);
 
     QStringList tablelabels;
-    tablelabels << appConfig_ptr_ext->translate_f("Argument") << appConfig_ptr_ext->translate_f("Enabled");
+    tablelabels << appConfig_ptr_ext->translate_f("Index") << appConfig_ptr_ext->translate_f("Argument") << appConfig_ptr_ext->translate_f("Enabled");
     argumentsTable_pri->setHorizontalHeaderLabels(tablelabels);
     argumentsTable_pri->setShowGrid(true);
     argumentsTable_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+    argumentsTable_pri->verticalHeader()->setVisible(false);
     argumentTableRowTmp->addWidget(argumentsTable_pri);
 
     //goes into secondRowTmp
@@ -333,49 +436,9 @@ runProcessWidgets_c::runProcessWidgets_c(
     loadActionSpecificData_f();
 }
 
-void runProcessWidgets_c::saveActionDataJSON_f() const
-{
-    //paths aren't checked/valitated on save,
-    //but they are on execution
-    //otherwise all the paths must exist and if stuff is created dynamically
-    //it wouldn't work
-    QString processPathTmp(processPathPTE_pri->toPlainText());
-    std::vector<argument_c> argumentsTmp;
-    argumentsTmp.reserve(argumentsTable_pri->rowCount());
-    for (auto rowIndex_ite = 0, l = argumentsTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
-    {
-        bool enabledTmp(argumentsTable_pri->item(rowIndex_ite, 1)->checkState() == Qt::CheckState::Checked);
-        QString argumentTmp(argumentsTable_pri->item(rowIndex_ite, 0)->text());
-        argumentsTmp.emplace_back(argumentTmp, enabledTmp);
-    }
-
-    QString workingDirectoryTmp(workingDirectoryPTE_pri->toPlainText());
-
-    QHash<QString, environmentPairConfig_c> environmentToAddPairsTmp;
-    environmentToAddPairsTmp.reserve(environmentToAddTable_pri->rowCount());
-    for (auto rowIndex_ite = 0, l = environmentToAddTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
-    {
-        bool enabledTmp(environmentToAddTable_pri->item(rowIndex_ite, 2)->checkState() == Qt::CheckState::Checked);
-        QString keyTmp(environmentToAddTable_pri->item(rowIndex_ite, 0)->text());
-        QString valueTmp(environmentToAddTable_pri->item(rowIndex_ite, 1)->text());
-        environmentToAddPairsTmp.insert(keyTmp, {valueTmp, enabledTmp});
-    }
-
-    runProcessAction_c processTmp(
-                processPathTmp
-                , argumentsTmp
-                , workingDirectoryTmp
-                , useActonEnviroment_pri->isChecked()
-                , environmentToAddPairsTmp
-    );
-    QJsonObject saveValuesJSONObjectTmp;
-    processTmp.write_f(saveValuesJSONObjectTmp);
-    actionData_ptr_pri->setActionDataJSON_f(saveValuesJSONObjectTmp);
-}
-
 void runProcessWidgets_c::browseProcessFile_f()
 {
-    selectProcessFileDialog_pri = new QFileDialog(qobject_cast<QWidget*>(this->parent()));
+    selectProcessFileDialog_pri = new QFileDialog(static_cast<QWidget*>(this->parent()));
     selectProcessFileDialog_pri->setObjectName("selectProcessFileDialog_");
     //AcceptOpen is the default
     //selectProcessFileDialog_pri->setAcceptMode(QFileDialog::AcceptOpen);
@@ -431,8 +494,8 @@ void runProcessWidgets_c::openArgumentEditWindow_f()
     if (not argumentsTable_pri->selectedItems().empty())
     {
         auto firstRowSelection = argumentsTable_pri->selectedItems().first()->row();
-        argumentValueTmp = argumentsTable_pri->item(firstRowSelection, 0)->text();
-        argumentEnabledTmp = argumentsTable_pri->item(firstRowSelection, 1)->checkState() == Qt::CheckState::Checked;
+        argumentValueTmp = argumentsTable_pri->item(firstRowSelection, 1)->text();
+        argumentEnabledTmp = argumentsTable_pri->item(firstRowSelection, 2)->checkState() == Qt::CheckState::Checked;
         argumentIndexTmp = firstRowSelection;
     }
 
@@ -441,10 +504,12 @@ void runProcessWidgets_c::openArgumentEditWindow_f()
                 , argumentIndexTmp
                 , argumentEnabledTmp
                 , argumentsTable_pri->rowCount()
-                , qobject_cast<QWidget*>(this->parent())
+                , static_cast<QWidget*>(this->parent())
     );
 
     connect(argumentWindow_pri, &argumentEditWindow_c::saveArgumentResult_signal, this, &runProcessWidgets_c::addUpdateArgumentRow_f);
+    connect(argumentWindow_pri, &argumentEditWindow_c::deleteArgument_signal, this, &runProcessWidgets_c::removeArgumentRow_f);
+    connect(argumentWindow_pri, &argumentEditWindow_c::refreshArgumentIndexColumn_signal, this, &runProcessWidgets_c::refreshIndexColumn_f);
     argumentWindow_pri->show();
 }
 
@@ -469,12 +534,17 @@ void runProcessWidgets_c::openEnvironmentPairEditWindow_f()
                 , valueTmp
                 , environmentPairEnabledTmp
                 , environmentPairToAddIndexTmp
-                , qobject_cast<QWidget*>(this->parent())
+                , static_cast<QWidget*>(this->parent())
     );
 
     connect(environmentPairWindow_pri, &environmentPairToAddEditWindow_c::saveEnvironmentPairResult_signal, this, &runProcessWidgets_c::addUpdateEnvironmentPairRow_f);
 
     environmentPairWindow_pri->show();
+}
+
+void runProcessWidgets_c::removeArgumentRow_f(const int index_par_con)
+{
+    argumentsTable_pri->removeRow(index_par_con);
 }
 
 void runProcessWidgets_c::removeArgument_f()
@@ -484,7 +554,9 @@ void runProcessWidgets_c::removeArgument_f()
         QList<QTableWidgetItem *> selectionTmp = argumentsTable_pri->selectedItems();
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("No argument rows were selected for removal", "Error", qobject_cast<QWidget*>(this->parent()));
+            errorQMessageBox_f(appConfig_ptr_ext->translate_f("No argument rows were selected for removal")
+                               , appConfig_ptr_ext->translate_f("Error")
+                               , static_cast<QWidget*>(this->parent()));
             break;
         }
 
@@ -499,8 +571,10 @@ void runProcessWidgets_c::removeArgument_f()
         std::reverse(rowsToRemoveTmp.begin(), rowsToRemoveTmp.end());
         for (const int item_ite_con : rowsToRemoveTmp)
         {
-            argumentsTable_pri->removeRow(item_ite_con);
+            removeArgumentRow_f(item_ite_con);
         }
+
+        refreshIndexColumn_f(rowsToRemoveTmp.back());
         break;
     }
 }
@@ -512,7 +586,10 @@ void runProcessWidgets_c::removeEnvironmentPair_f()
         QList<QTableWidgetItem *> selectionTmp = environmentToAddTable_pri->selectedItems();
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("No environment pair rows were selected for removal", "Error", qobject_cast<QWidget*>(this->parent()));
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No environment pair rows were selected for removal")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , static_cast<QWidget*>(this->parent()));
             break;
         }
 
@@ -537,15 +614,17 @@ void runProcessWidgets_c::removeEnvironmentPair_f()
 void runProcessWidgets_c::addUpdateArgumentRow_f(
         const argument_c& saveResult_par_con
         , const int index_par_con
+        , const bool update_par_con
 )
 {
-    if (index_par_con == argumentsTable_pri->rowCount())
+    if (update_par_con
+        and index_par_con < argumentsTable_pri->rowCount())
     {
-        insertArgumentRow_f(saveResult_par_con);
+        updateArgumentRow_f(saveResult_par_con, index_par_con);
     }
     else
     {
-        updateArgumentRow_f(saveResult_par_con, index_par_con);
+        insertArgumentRow_f(saveResult_par_con, index_par_con);
     }
 }
 
@@ -568,7 +647,7 @@ void runProcessWidgets_c::addUpdateEnvironmentPairRow_f(
 
 void runProcessWidgets_c::browseWorkingDirectory_f()
 {
-    selectWorkingDirectoryDialog_pri = new QFileDialog(qobject_cast<QWidget*>(this->parent()));
+    selectWorkingDirectoryDialog_pri = new QFileDialog(static_cast<QWidget*>(this->parent()));
     selectWorkingDirectoryDialog_pri->setObjectName("selectWorkingDirectoryDialog_");
     selectWorkingDirectoryDialog_pri->setFileMode(QFileDialog::Directory);
     selectWorkingDirectoryDialog_pri->setDirectory(QDir::currentPath());
@@ -622,7 +701,7 @@ void runProcessWidgets_c::fileDialogWorkingDirectoryFinished_f(const int result_
 
 void runProcessWidgets_c::showCurrentWorkingDirectoryWindow_f()
 {
-    workingDirectoryWindow_c* workingDirectoryWindowTmp = new workingDirectoryWindow_c(qobject_cast<QWidget*>(this->parent()));
+    workingDirectoryWindow_c* workingDirectoryWindowTmp = new workingDirectoryWindow_c(static_cast<QWidget*>(this->parent()));
     workingDirectoryWindowTmp->setWindowFlag(Qt::Window, true);
     workingDirectoryWindowTmp->setWindowModality(Qt::WindowModal);
     workingDirectoryWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
@@ -631,7 +710,7 @@ void runProcessWidgets_c::showCurrentWorkingDirectoryWindow_f()
 
 void runProcessWidgets_c::showCurrentEnvironmentWindow_f()
 {
-    environmentWindow_c* environmentWindowTmp = new environmentWindow_c(qobject_cast<QWidget*>(this->parent()));
+    environmentWindow_c* environmentWindowTmp = new environmentWindow_c(static_cast<QWidget*>(this->parent()));
     environmentWindowTmp->setWindowFlag(Qt::Window, true);
     environmentWindowTmp->setWindowModality(Qt::WindowModal);
     environmentWindowTmp->setAttribute(Qt::WA_DeleteOnClose);

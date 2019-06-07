@@ -25,6 +25,7 @@ class stringReplacerWidgets_c : public baseClassStringParserWidgets_c
 
     bool derivedSave_f(const QString& stringTrigger_par_con) override;
     void derivedParentClosing_f() override;
+    QString derivedExtraTips_f() const override;
 
     void loadActionSpecificData_f();
 public:
@@ -32,7 +33,7 @@ public:
             parserBase_c*& parserBasePtr_par
             , QVBoxLayout* const variableLayout_par_con);
 
-private Q_SLOTS:
+//private Q_SLOTS:
     //void dryRunButtonClicked_f();
 };
 

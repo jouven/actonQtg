@@ -7,11 +7,13 @@
 
 #include <QString>
 #include <QByteArray>
-#include <QJsonObject>
+
 #include <QHash>
 #include <QMap>
 
 #include <vector>
+
+class QJsonObject;
 
 //don't call this macro inside the appConfig_c class (like calling from the ctor and hanging the process... without errors...)
 //inside use MACRO_ADDMESSAGE
@@ -33,7 +35,7 @@ class appConfig_c
     //the set variables will confirm when a legit SET of these variables happens.
     //When not set the program will use default values but
     //still it won't SET the variables so they don't get saved with the default values
-    //because or the default path nature is dynamic
+    //because the default path nature is dynamic
     //or the default value is an absolute path (if the program gets moved it will use the old path still)
     //right now they only get SET if they come from the json config file
     QString translationConfigFile_pri;
@@ -68,8 +70,9 @@ public:
 
     QString translate_f(const QString& key_par_con);
     //FUTURE allow to change language using translationFromToPairs_f (the "to" part)
-    //when making a program like translationParserAvidcalm but to generate skeleton json language files
-    //from language will always be "hardcode" (because it is)
+    //Making a program like "translationParserAvidcalm" (which is another program made by me, that parses the source js/cpp files for translations)
+    //but to generate skeleton json language files
+    //(from language will always be hardcoded because the initial source-language is always harcoded)
 
     bool addLogMessage_f(
             const QString& message_par_con

@@ -1,8 +1,5 @@
 #include "appConfig.hpp"
 
-//for the config file location
-#include "essentialQtso/essentialQt.hpp"
-
 //#include <QApplication>
 #include <QFile>
 //#include <QFileInfo>
@@ -10,6 +7,7 @@
 #include <QJsonDocument>
 #include <QCryptographicHash>
 #include <QTimer>
+#include <QJsonObject>
 
 void appConfig_c::read_f(const QJsonObject& json_par_con)
 {

@@ -1,11 +1,13 @@
 #include "checkWindow.hpp"
 
 #include "appConfig.hpp"
+#include "checkWidgets/baseClassCheckWidgets.hpp"
 #include "checkWidgets/actionFinishedWidgets.hpp"
 #include "checkWidgets/sameFileWidgets.hpp"
 
 #include "actonQtso/checkMappings/checkStrMapping.hpp"
-#include "actonQtso/actionData.hpp"
+#include "actonQtso/checksDataHub.hpp"
+#include "actonQtso/checkData.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
 
@@ -13,7 +15,7 @@
 
 void checkWindow_c::closeEvent(QCloseEvent* event)
 {
-    Q_EMIT closeWindow_signal();
+    baseClassCheckWidgets_pri->parentClosing_f();
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName(), saveGeometry());
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
     event->accept();
@@ -28,18 +30,18 @@ void checkWindow_c::clearLayoutItems_f(QLayout* layout_par)
         {
             child = layout_par->takeAt(0);
             layout_par->removeItem(child);
-            if (child->layout() not_eq 0)
+            if (child->layout() not_eq nullptr)
             {
                 clearLayoutItems_f(child->layout());
                 child->layout()->deleteLater();
                 break;
             }
-            if (child->widget() not_eq 0)
+            if (child->widget() not_eq nullptr)
             {
                 child->widget()->deleteLater();
                 break;
             }
-            if (child->spacerItem() not_eq 0)
+            if (child->spacerItem() not_eq nullptr)
             {
                 //has no deleteLater
                 child->~QLayoutItem();
@@ -48,26 +50,6 @@ void checkWindow_c::clearLayoutItems_f(QLayout* layout_par)
             break;
         }
     }
-}
-
-//T*& because there is an assign operation, by value would make it useless
-template <typename T>
-void checkWindow_c::createCheckTypeWidgets_f(T*& checkTypeClassPtr_par)
-{
-#ifdef DEBUGJOUVEN
-//    if (checkData_ptr_pri->parentAction_f() not_eq nullptr)
-//    {
-//        qDebug() << "checkData_ptr_pri->parentAction_f()->id_f() " << QString::number(checkData_ptr_pri->parentAction_f()->id_f()) << endl;
-//    }
-#endif
-    checkTypeClassPtr_par = new T(checkData_ptr_pri, variableLayout_pri, this);
-
-    //make the saving of the window position/size, and its items, generic
-    connect(this, &checkWindow_c::closeWindow_signal, checkTypeClassPtr_par, &T::parentClosing_f);
-    //save the unique fields of the check type
-    connect(this, &checkWindow_c::saveJSON_signal, checkTypeClassPtr_par, &T::save_f);
-    //once the above is done, get the save result from the "check type"/parent and save *here*
-    connect(checkTypeClassPtr_par, &T::JSONSaved_signal, this, &checkWindow_c::save_f);
 }
 
 checkWindow_c::checkWindow_c(
@@ -171,8 +153,6 @@ checkWindow_c::checkWindow_c(
     //mainLayout_pri->addWidget(statusBarLabel_pri);
     this->setLayout(mainLayout_pri);
 
-    setWindowTitle(appConfig_ptr_ext->translate_f("Add/update Check"));
-
     if (appConfig_ptr_ext->configLoaded_f())
     {
          restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName()));
@@ -188,23 +168,23 @@ checkWindow_c::checkWindow_c(
     int_fast64_t checkIdTmp(checkDataHub_ptr_pri->rowToCheckDataId_f(row_par_con));
     if (checkIdTmp > 0)
     {
+        setWindowTitle(appConfig_ptr_ext->translate_f("Update Check"));
         isNew_pri = false;
-        checkData_ptr_pri = checkDataHub_ptr_pri->checkData_ptr_f(checkIdTmp);
+        check_ptr_pri = checkDataHub_ptr_pri->check_ptr_f(checkIdTmp);
 #ifdef DEBUGJOUVEN
         //qDebug() << "checkData_ptr_pri->parentAction_f() " << checkData_ptr_pri->parentAction_f() << endl;
 #endif
-        QString checkTypeStrTmp(checkTypeToStrUMap_glo_sta_con.at(checkData_ptr_pri->type_f()));
-        loadedCheckTypeIndexTmp = checkTypeCombo_pri->findData(checkTypeStrTmp.toLower());
+
+        loadedCheckTypeIndexTmp = checkTypeCombo_pri->findData(check_ptr_pri->typeStr_f().toLower());
         checkTypeCombo_pri->setCurrentIndex(loadedCheckTypeIndexTmp);
         checkTypeCombo_pri->setEnabled(false);
 
         //actionStringIdPTE_pri->setPlainText(itemTmp.stringId_f());
-        descriptionPTE_pri->setPlainText(checkData_ptr_pri->description_f());
+        descriptionPTE_pri->setPlainText(check_ptr_pri->description_f());
     }
     else
     {
-        //the empty "new" check needs the parent to be set
-        checkDataNew_pri.setParentAction_f(checkDataHub_ptr_par->parentAction_f());
+        setWindowTitle(appConfig_ptr_ext->translate_f("Add Check"));
     }
 
     checkComboChanged_f(loadedCheckTypeIndexTmp);
@@ -224,39 +204,16 @@ void checkWindow_c::createWidgetsPerCheck_f(
     {
         QString checkTypeStrTmp(checkTypeCombo_pri->itemData(index_par_con).toString());
 #ifdef DEBUGJOUVEN
-        //qDebug() << "createWidgetsPerCheck_f checknTypeStrTmp " << checkTypeStrTmp << endl;
+        qDebug() << "createWidgetsPerCheck_f checknTypeStrTmp " << checkTypeStrTmp << endl;
 #endif
         if (checkTypeStrTmp == checkTypeToStrUMap_glo_sta_con.at(checkType_ec::actionFinished).toLower())
         {
-            createCheckTypeWidgets_f(actionFinishedWidgets_pri);
+            baseClassCheckWidgets_pri = new actionFinishedWidgets_c(check_ptr_pri, variableLayout_pri, checkDataHub_ptr_pri->parentAction_f());
             break;
         }
         if (checkTypeStrTmp == checkTypeToStrUMap_glo_sta_con.at(checkType_ec::sameFile).toLower())
         {
-            createCheckTypeWidgets_f(sameFileWidgets_pri);
-            break;
-        }
-        break;
-    }
-}
-
-void checkWindow_c::removeWidgetClassPerCheck_f(
-        const int index_par_con
-)
-{
-    while (true)
-    {
-        QString checkTypeStrTmp(checkTypeCombo_pri->itemData(index_par_con).toString());
-        if (checkTypeStrTmp == checkTypeToStrUMap_glo_sta_con.at(checkType_ec::sameFile).toLower())
-        {
-            sameFileWidgets_pri->deleteLater();
-            sameFileWidgets_pri = nullptr;
-            break;
-        }
-        if (checkTypeStrTmp == checkTypeToStrUMap_glo_sta_con.at(checkType_ec::actionFinished).toLower())
-        {
-            actionFinishedWidgets_pri->deleteLater();
-            actionFinishedWidgets_pri = nullptr;
+            baseClassCheckWidgets_pri = new sameFileWidgets_c(check_ptr_pri, variableLayout_pri);
             break;
         }
         break;
@@ -267,7 +224,8 @@ void checkWindow_c::checkComboChanged_f(int index_par)
 {
     if (lastIndex_pri not_eq -1)
     {
-        removeWidgetClassPerCheck_f(lastIndex_pri);
+        baseClassCheckWidgets_pri->deleteLater();
+        baseClassCheckWidgets_pri = nullptr;
     }
 
     clearLayoutItems_f(variableLayout_pri);
@@ -277,17 +235,12 @@ void checkWindow_c::checkComboChanged_f(int index_par)
 
 void checkWindow_c::saveButtonClicked_f()
 {
-    Q_EMIT saveJSON_signal();
+    save_f();
 }
 
 void checkWindow_c::cancelButtonClicked_f()
 {
     close();
-}
-
-void checkWindow_c::manageChecksButtonClicked_f()
-{
-    //continuar
 }
 
 void checkWindow_c::tipsButtonClicked_f()
@@ -298,7 +251,7 @@ void checkWindow_c::tipsButtonClicked_f()
                     "<p>TODO</p>"
                     "<p>TODO</p>"
                     )
-            , "Tips"
+            , appConfig_ptr_ext->translate_f("Tips")
             , this
     );
 }
@@ -307,7 +260,6 @@ void checkWindow_c::save_f()
 {
     while (true)
     {
-        checkType_ec checkTypeTmp(strToCheckTypeMap_glo_sta_con.value(checkTypeCombo_pri->currentData().toString()));
         //QString actionStringIdTmp(actionStringIdPTE_pri->toPlainText());
         QString descriptionTmp(descriptionPTE_pri->toPlainText());
         if (descriptionTmp.isEmpty())
@@ -317,13 +269,18 @@ void checkWindow_c::save_f()
             //FUTURE if description is empty, create a descrition Gen for each chck, i.e. for *action finished* "action finished " + actionStringId (limit the length of this)
         }
 
-        checkData_ptr_pri->setType_f(checkTypeTmp);
-        checkData_ptr_pri->setDescription_f(descriptionTmp);
-        //it's set in each check type widget
-        //checkDataHub_ref_pri->setActionDataJSON_f(childSaveResult_par_con);
         if (isNew_pri)
         {
-            checkDataHub_ptr_pri->insertCheckData_f(*checkData_ptr_pri, row_pri_con);
+            //FUTURE implement the literal value arguments
+            checkData_c checkDataTmp(QString(), descriptionTmp, false, enabledCheckbox_pri->isChecked());
+            baseClassCheckWidgets_pri->saveNew_f(checkDataTmp);
+            checkDataHub_ptr_pri->insertCheck_f(check_ptr_pri, row_pri_con);
+        }
+        else
+        {
+            check_ptr_pri->setDescription_f(descriptionTmp);
+            check_ptr_pri->setEnabled_f(enabledCheckbox_pri->isChecked());
+            baseClassCheckWidgets_pri->saveUpdate_f();
         }
 
         Q_EMIT updateRow_Signal(row_pri_con);

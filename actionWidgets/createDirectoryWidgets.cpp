@@ -1,47 +1,90 @@
 #include "createDirectoryWidgets.hpp"
 
-#include "actonQtso/actions/createDirectory.hpp"
-
 #include "../appConfig.hpp"
 
-#include "actonQtso/actionData.hpp"
-#include "actonQtso/actonDataHub.hpp"
+#include "actonQtso/actions/createDirectory.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
 
 #include <QtWidgets>
-#include <QJsonObject>
 //#include <QSplitter>
 
 #include <QFileDialog>
 #include <QDir>
 
-#include <unordered_set>
-
-void createDirectoryWidgets_c::parentClosing_f()
+void createDirectoryWidgets_c::derivedParentClosing_f()
 {
-
+    //no widget geometry to save yet
 }
 
-void createDirectoryWidgets_c::save_f()
+QString createDirectoryWidgets_c::derivedExtraTips_f() const
 {
+    return appConfig_ptr_ext->translate_f("<p>create directory widget tips</p>");
+}
+
+bool createDirectoryWidgets_c::isFieldsDataValid_f() const
+{
+    bool resultTmp(false);
     while (true)
     {
         QString createDirectoryPathStr(createDirectoryPathPTE_pri->toPlainText());
-        if (createDirectoryPathStr.isEmpty())
+        if (createDirectoryPathStr.length() > 255)
         {
-            errorQMessageBox_f("Create directory path is empty", "Error", qobject_cast<QWidget*>(this->parent()));
+            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Directory path is too long (>255): ") + QString::number(createDirectoryPathStr.length())
+                               , appConfig_ptr_ext->translate_f("Error")
+                               , static_cast<QWidget*>(this->parent()));
             break;
         }
-        saveActionDataJSON_f();
-        Q_EMIT JSONSaved_signal();
+        if (createDirectoryPathStr.isEmpty())
+        {
+            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Directory path is empty")
+                               , appConfig_ptr_ext->translate_f("Error")
+                               , static_cast<QWidget*>(this->parent()));
+            break;
+        }
+
+        resultTmp = true;
         break;
     }
+    return resultTmp;
+}
+
+createDirectoryData_c createDirectoryWidgets_c::fieldsToCreateDirectoryDataObject_f() const
+{
+    return createDirectoryData_c(
+                createDirectoryPathPTE_pri->toPlainText()
+                , createParentsCheckbox_pri->isChecked()
+                , errorIfExistsCheckbox_pri->isChecked()
+    );
+}
+
+bool createDirectoryWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
+{
+    bool resultTmp(false);
+    if (isFieldsDataValid_f())
+    {
+        createDirectoryAction_ptr_pri = new createDirectoryAction_c(actionDataBlock_par_con, fieldsToCreateDirectoryDataObject_f());
+
+        actionPtr_pro = createDirectoryAction_ptr_pri;
+        resultTmp = true;
+    }
+    return resultTmp;
+}
+
+bool createDirectoryWidgets_c::derivedSaveUpdate_f()
+{
+    bool resultTmp(false);
+    if (isFieldsDataValid_f())
+    {
+        createDirectoryAction_ptr_pri->createDirectoryData_c::operator=(fieldsToCreateDirectoryDataObject_f());
+        resultTmp = true;
+    }
+    return resultTmp;
 }
 
 void createDirectoryWidgets_c::browseDirectory_f()
 {
-    browseDirectoryToCreateDialog_pri = new QFileDialog(qobject_cast<QWidget*>(this->parent()));
+    browseDirectoryToCreateDialog_pri = new QFileDialog(static_cast<QWidget*>(this->parent()));
     browseDirectoryToCreateDialog_pri->setObjectName("browseDirectoryToCreateDialog_");
     //AcceptOpen is the default
     //browseDirectoryToCreateDialog_pri->setAcceptMode(QFileDialog::AcceptOpen);
@@ -89,23 +132,20 @@ void createDirectoryWidgets_c::fileDialogBrowseDirectoryToCreateFinished_f(const
 
 void createDirectoryWidgets_c::loadActionSpecificData_f()
 {
-    if (not actionData_ptr_pri->actionDataJSON_f().isEmpty())
+    if (createDirectoryAction_ptr_pri not_eq nullptr)
     {
-        createDirectoryAction_c createDirectoryTmp;
-        createDirectoryTmp.read_f(actionData_ptr_pri->actionDataJSON_f());
-
-        createDirectoryPathPTE_pri->setPlainText(createDirectoryTmp.directoryPath_f());
-        createParentsCheckbox_pri->setChecked(createDirectoryTmp.createParents_f());
-        errorIfExistsCheckbox_pri->setChecked(createDirectoryTmp.errorIfExists_f());
+        createDirectoryPathPTE_pri->setPlainText(createDirectoryAction_ptr_pri->directoryPath_f());
+        createParentsCheckbox_pri->setChecked(createDirectoryAction_ptr_pri->createParents_f());
+        errorIfExistsCheckbox_pri->setChecked(createDirectoryAction_ptr_pri->errorIfExists_f());
     }
 }
 
 createDirectoryWidgets_c::createDirectoryWidgets_c(
-        actionData_c* const actionData_ptr_par
+        action_c*& actionData_ptr_par
         , QVBoxLayout* const variableLayout_par_con
-        , QObject *parent)
-    : QObject(parent)
-    , actionData_ptr_pri(actionData_ptr_par)
+        )
+    : baseClassActionWidgets_c(actionData_ptr_par, variableLayout_par_con->parentWidget())
+    , createDirectoryAction_ptr_pri(actionData_ptr_par == nullptr ? nullptr : static_cast<createDirectoryAction_c*>(actionData_ptr_par))
 {
     this->setObjectName("createDirectoryWidgets_");
 
@@ -148,16 +188,5 @@ createDirectoryWidgets_c::createDirectoryWidgets_c(
     variableLayout_par_con->addLayout(thirdRowLayoutTmp);
 
     loadActionSpecificData_f();
-}
-
-void createDirectoryWidgets_c::saveActionDataJSON_f() const
-{
-    QString createDirectoryPathTmp(createDirectoryPathPTE_pri->toPlainText());
-
-    createDirectoryAction_c createDirectoryTmp(createDirectoryPathTmp, createParentsCheckbox_pri->isChecked(), errorIfExistsCheckbox_pri->isChecked());
-
-    QJsonObject saveValuesJSONObjectTmp;
-    createDirectoryTmp.write_f(saveValuesJSONObjectTmp);
-    actionData_ptr_pri->setActionDataJSON_f(saveValuesJSONObjectTmp);
 }
 

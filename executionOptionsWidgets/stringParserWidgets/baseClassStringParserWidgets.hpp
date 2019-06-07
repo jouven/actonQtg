@@ -18,6 +18,7 @@ protected:
 
     virtual bool derivedSave_f(const QString& stringTrigger_par_con) = 0;
     virtual void derivedParentClosing_f() = 0;
+    virtual QString derivedExtraTips_f() const = 0;
 public:
     explicit baseClassStringParserWidgets_c(parserBase_c*& parserBasePtr_par, QObject* parent_par);
 

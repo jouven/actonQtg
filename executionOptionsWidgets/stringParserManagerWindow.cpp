@@ -181,14 +181,14 @@ void stringParserManagerWindow_c::updateActionRow_f(const int row_par_con)
 
     if (row_par_con == stringParserConfigsTable_pri->rowCount())
     {
-        //qInfo() << "insert action row " << endl;
+        //qDebug() << "insert action row, parserPtrTmp " << parserPtrTmp << endl;
         insertStringParserConfigRow_f(
                     parserPtrTmp
         );
     }
     else
     {
-        //qInfo() << "update row " << row_par_con << endl;
+        //qDebug() << "update row " << row_par_con << endl;
         updateExistingStringParserConfigRow_f(
                     parserPtrTmp
                     , row_par_con

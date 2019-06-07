@@ -1,8 +1,6 @@
 #ifndef ACTONQTG_ACTIONWINDOW_HPP
 #define ACTONQTG_ACTIONWINDOW_HPP
 
-#include "actonQtso/actionData.hpp"
-
 #include <QWidget>
 
 class QComboBox;
@@ -12,10 +10,10 @@ class QVBoxLayout;
 class QCheckBox;
 class QSplitter;
 class QMessageBox;
+class QPushButton;
 
-class runProcessWidgets_c;
-class createDirectoryWidgets_c;
-class copyFileWidgets_c;
+class action_c;
+class baseClassActionWidgets_c;
 
 class actionWindow_c : public QWidget
 {
@@ -35,6 +33,8 @@ class actionWindow_c : public QWidget
     QCheckBox* checksEnabledCheckbox_pri;
     QCheckBox* enabledCheckbox_pri;
 
+    QPushButton* manageChecks_pri;
+
     QMessageBox* askUpdateStringIdDepdenciesWindow_pri = nullptr;
     //halt after if this action fails
     //QCheckBox* haltOnFail_pri;
@@ -42,8 +42,8 @@ class actionWindow_c : public QWidget
     //starting reference to get the actionData
     const int row_pri_con = 0;
     bool isNew_pri = true;
-    actionData_c actionDataNew_pri;
-    actionData_c* actionData_ptr_pri = &actionDataNew_pri;
+
+    action_c* action_ptr_pri = nullptr;
 
     //old combo index to know if the initial one (which shouldn't trigger a clear)
     int lastIndex_pri = -1;
@@ -51,15 +51,10 @@ class actionWindow_c : public QWidget
     //since the save is already done this field is used before saving to save the old value
     //so it can be used, after, to replace dependencies if that option is selected
     QString oldStringId_pri;
-    //different action class pointers variables
-    runProcessWidgets_c* runProcessWidgets_pri = nullptr;
-    createDirectoryWidgets_c* createDirectoryWidgets_pri = nullptr;
-    copyFileWidgets_c* copyFileWidgets_pri = nullptr;
+
+    baseClassActionWidgets_c* baseClassActionWidgets_pri = nullptr;
 
     void clearLayoutItems_f(QLayout* layout_par);
-
-    template <typename T>
-    void createActionTypeWidgets_f(T*& actionTypeClassPtr_par);
 
     void createWidgetsPerAction_f(const int index_par_con);
     void removeWidgetClassPerAction_f(const int index_par_con);
@@ -74,7 +69,6 @@ public:
 
 Q_SIGNALS:
     void closeWindow_signal();
-    void saveJSON_signal();
     void updateRow_Signal(const int row_par_con);
     //void askUpdateStringIdDepdencies_signal();
 public Q_SLOTS:

@@ -21,7 +21,7 @@ class QStringList;
 class QScrollArea;
 #endif
 
-class actionData_c;
+class action_c;
 
 class mainWindow_c : public QWidget
 {
@@ -124,9 +124,9 @@ private Q_SLOTS:
     void inputDialogCopyActionIndexFinished_f(const int result_par);
 
     //functions dealing with action signal results
-    void updateActionOutput_f(actionData_c* actionData_par_ptr_con);
-    void updateActionError_f(actionData_c* actionData_par_ptr_con);
-    void updateActionExecutionState_f(actionData_c* actionData_par_ptr_con);
+    void updateActionOutput_f(action_c* action_par_ptr_con);
+    void updateActionError_f(action_c* action_par_ptr_con);
+    void updateActionExecutionState_f(action_c* action_par_ptr_con);
 
     void runFromStoppedActionsMessageBoxResult_f(const int result_par);
     void executeActionsButtonClicked_f();
@@ -136,7 +136,7 @@ private Q_SLOTS:
     void executionStarted_f();
     void stoppingExecution_f();
     void executionStopped_f();
-    void actionResultsCleared_f(actionData_c* const actionData_par_ptr_con);
+    void actionResultsCleared_f(action_c* const action_par_ptr_con);
     void stopExecutingActionsAndClose_f();
     void stopExecutingActionsElseKillAndClose_f();
     void killExecutingActionsAndClose_f();

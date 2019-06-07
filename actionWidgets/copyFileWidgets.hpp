@@ -1,9 +1,8 @@
 #ifndef ACTONQTG_COPYFILEWIDGETS_HPP
 #define ACTONQTG_COPYFILEWIDGETS_HPP
 
-#include "actonQtso/actions/copyFile.hpp"
+#include "baseClassActionWidgets.hpp"
 
-#include <QObject>
 
 class QComboBox;
 class QSplitter;
@@ -14,9 +13,12 @@ class QFileDialog;
 class QLineEdit;
 class QTableWidget;
 
+class copyFileData_c;
+class copyFileAction_c;
 class actionData_c;
+class action_c;
 
-class copyFileWidgets_c : public QObject
+class copyFileWidgets_c : public baseClassActionWidgets_c
 {
     Q_OBJECT
 
@@ -44,34 +46,31 @@ class copyFileWidgets_c : public QObject
     QFileDialog* browsePathFileDialog_pri = nullptr;
     QFileDialog* browseDestinationPathFileDialog_pri = nullptr;
 
-    actionData_c* const actionData_ptr_pri;
-
     bool browseSource_pri = false;
     bool browseDestination_pri = false;
 
+    copyFileAction_c* copyFileAction_ptr_pri = nullptr;
+
     void loadActionSpecificData_f();
-    bool fieldsAreOkToSave_f() const;
-    copyFileAction_c fieldsToCopyFileActionObject_f() const;
-    void saveActionDataJSON_f() const;
+    bool isFieldsDataValid_f() const;
+    copyFileData_c fieldsToCopyFileDataObject_f() const;
 
     void browsePath_f();
 
+    bool derivedSaveNew_f(const actionData_c& actionDataBlock_par_con) override;
+    bool derivedSaveUpdate_f() override;
+    void derivedParentClosing_f() override;
+    QString derivedExtraTips_f() const override;
     //void updateFullExtensionRow_f(const QString& fullExtrension_par_con, const int row_par_con);
 
 //    void updateRegexPatternRow_f(const QString& regexPattern_par_con, const int row_par_con);
 
 public:
     explicit copyFileWidgets_c(
-            actionData_c* const actionData_ptr_par
+            action_c*& action_ptr_par
             , QVBoxLayout* const variableLayout_par_con
-            , QObject *parent = nullptr);
+    );
 
-Q_SIGNALS:
-    //this signal needs to always have this name because of template usage in actionWindow.cpp
-    void JSONSaved_signal();
-public Q_SLOTS:
-    void parentClosing_f();
-    void save_f();
 private Q_SLOTS:
     void browseSourcePath_f();
     void browseDestinationPath_f();

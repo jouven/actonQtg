@@ -1,7 +1,7 @@
 #ifndef ACTONQTG_ACTIONFINISHEDWIDGETS_HPP
 #define ACTONQTG_ACTIONFINISHEDWIDGETS_HPP
 
-#include <QObject>
+#include "baseClassCheckWidgets.hpp"
 
 class QComboBox;
 class QVBoxLayout;
@@ -9,9 +9,13 @@ class QCheckBox;
 class QSplitter;
 class QTableWidget;
 
-class checkData_c;
+class actionFinishedData_c;
+class check_c;
+class actionFinishedCheck_c;
+class action_c;
 
-class actionFinishedWidgets_c : public QObject
+
+class actionFinishedWidgets_c : public baseClassCheckWidgets_c
 {
     Q_OBJECT
 
@@ -22,26 +26,27 @@ class actionFinishedWidgets_c : public QObject
 
     QTableWidget* actionResultTypeToStringParserTable_pri;
 
-    QSplitter* mainSplitter_pri;
+    //QSplitter* mainSplitter_pri;
 
-    checkData_c* const checkData_ptr_pri;
+    actionFinishedCheck_c* actionFinishedCheck_ptr_pri = nullptr;
 
     void loadCheckSpecificData_f();
-    void saveCheckDataJSON_f() const;
+    bool isFieldsDataValid_f() const;
+    actionFinishedData_c fieldsToActionFinishedDataObject_f() const;
+
+    bool derivedSaveNew_f(const checkData_c& checkData_par_con) override;
+    bool derivedSaveUpdate_f() override;
+    void derivedParentClosing_f() override;
+    QString derivedExtraTips_f() const override;
 public:
     actionFinishedWidgets_c() = delete;
     //canviar checkData_c per jsonObject
     explicit actionFinishedWidgets_c(
-            checkData_c* const checkData_ptr_par
+            check_c*& check_ptr_par
             , QVBoxLayout* const variableLayout_par
-            , QObject* parent_par = nullptr);
-
-Q_SIGNALS:
-    void JSONSaved_signal();
-public Q_SLOTS:
-    void parentClosing_f();
-    void save_f();
-private Q_SLOTS:
+            //special case since the check might not exists but this check action stringid
+            //is required so it's not on the actionStringIdCombo_pri
+            , const action_c* const parentAction_par_con);
 };
 
 #endif // ACTONQTG_ACTIONFINISHEDWIDGETS_HPP

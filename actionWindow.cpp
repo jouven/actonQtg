@@ -17,7 +17,7 @@
 
 void actionWindow_c::closeEvent(QCloseEvent* event)
 {
-    Q_EMIT closeWindow_signal();
+    baseClassActionWidgets_pri->parentClosing_f();
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName(), saveGeometry());
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
     event->accept();
@@ -58,7 +58,7 @@ void actionWindow_c::askUpdateStringIdDepdenciesWindowFinished_f(const int resul
 {
     if (result_par == QMessageBox::Yes)
     {
-        actonDataHub_ptr_ext->updateStringIdDependencies_f(actionData_ptr_pri->stringId_f(), oldStringId_pri);
+        actonDataHub_ptr_ext->updateStringIdDependencies_f(action_ptr_pri->stringId_f(), oldStringId_pri);
     }
     askUpdateStringIdDepdenciesWindow_pri->deleteLater();
     askUpdateStringIdDepdenciesWindow_pri = nullptr;
@@ -77,22 +77,6 @@ void actionWindow_c::openAskUpdateStringIdDepdenciesWindow_f()
     QObject::connect(askUpdateStringIdDepdenciesWindow_pri, &QMessageBox::finished, this, &actionWindow_c::askUpdateStringIdDepdenciesWindowFinished_f);
 
     askUpdateStringIdDepdenciesWindow_pri->show();
-}
-
-//T*& because there is an assign operation, by value would make it useless
-template <typename T>
-void actionWindow_c::createActionTypeWidgets_f(T*& actionTypeClassPtr_par)
-{
-    actionTypeClassPtr_par = new T(actionData_ptr_pri, variableLayout_pri, this);
-    //TODO make a return additional tooltip function (do it when I migrate this to virtuals)
-    //to add to the tooltip button for each type of extraWidgets
-
-    //make the saving of the window position/size, and its items, generic
-    connect(this, &actionWindow_c::closeWindow_signal, actionTypeClassPtr_par, &T::parentClosing_f);
-    //save the unique fields of the action type to the JSON object (which is a reference)
-    connect(this, &actionWindow_c::saveJSON_signal, actionTypeClassPtr_par, &T::save_f);
-    //once the above is done, save *here*
-    connect(actionTypeClassPtr_par, &T::JSONSaved_signal, this, &actionWindow_c::save_f);
 }
 
 actionWindow_c::actionWindow_c(
@@ -137,11 +121,11 @@ actionWindow_c::actionWindow_c(
 
     //firstRowLayoutTmp->addWidget(haltOnFail_pri);
 
-    QPushButton* manageChecksTmp = new QPushButton("&Manage Checks");
-    manageChecksTmp->setToolTip("Manage action checks, checks are \"actions\"-requisites that must be fullfilled for the action to run");
-    connect(manageChecksTmp, &QPushButton::clicked, this, &actionWindow_c::manageChecksButtonClicked_f);
+    manageChecks_pri = new QPushButton("&Manage Checks");
+    manageChecks_pri->setToolTip("Manage action checks, checks are \"actions\"-requisites that must be fullfilled for the action to run");
+    connect(manageChecks_pri, &QPushButton::clicked, this, &actionWindow_c::manageChecksButtonClicked_f);
 
-    firstRowLayoutTmp->addWidget(manageChecksTmp);
+    firstRowLayoutTmp->addWidget(manageChecks_pri);
 
     //enabled checks
     checksEnabledCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Checks enabled"));
@@ -230,7 +214,7 @@ actionWindow_c::actionWindow_c(
     //mainLayout_pri->addWidget(statusBarLabel_pri);
     this->setLayout(mainLayout_pri);
 
-    setWindowTitle(appConfig_ptr_ext->translate_f("Add/update action"));
+
 
     if (appConfig_ptr_ext->configLoaded_f())
     {
@@ -247,21 +231,27 @@ actionWindow_c::actionWindow_c(
     int_fast32_t actionIdTmp(actonDataHub_ptr_ext->rowToActionDataId_f(row_pri_con));
     if (actionIdTmp > 0)
     {
+        setWindowTitle(appConfig_ptr_ext->translate_f("Update Action"));
         isNew_pri = false;
-        actionData_ptr_pri = actonDataHub_ptr_ext->actionData_ptr_f(actionIdTmp);
+        action_ptr_pri = actonDataHub_ptr_ext->action_ptr_f(actionIdTmp);
 
-        QString actionTypeStrTmp(actionTypeToStrUMap_ext_con.at(actionData_ptr_pri->type_f()));
-        loadedActionTypeIndexTmp = actionTypeCombo_pri->findData(actionTypeStrTmp.toLower());
+        loadedActionTypeIndexTmp = actionTypeCombo_pri->findData(action_ptr_pri->typeStr_f().toLower());
         actionTypeCombo_pri->setCurrentIndex(loadedActionTypeIndexTmp);
         actionTypeCombo_pri->setEnabled(false);
 
-        actionStringIdPTE_pri->setPlainText(actionData_ptr_pri->stringId_f());
-        descriptionPTE_pri->setPlainText(actionData_ptr_pri->description_f());
+        actionStringIdPTE_pri->setPlainText(action_ptr_pri->stringId_f());
+        descriptionPTE_pri->setPlainText(action_ptr_pri->description_f());
 
-        enabledCheckbox_pri->setChecked(actionData_ptr_pri->enabled_f());
-        checksEnabledCheckbox_pri->setChecked(actionData_ptr_pri->checksEnabled_f());
+        enabledCheckbox_pri->setChecked(action_ptr_pri->enabled_f());
+        checksEnabledCheckbox_pri->setChecked(action_ptr_pri->checksEnabled_f());
 
         //haltOnFail_pri->setChecked(actionData_ptr_pri->haltOnFail_f());
+    }
+    else
+    {
+        setWindowTitle(appConfig_ptr_ext->translate_f("Add Action"));
+        //no checks until the object exists
+        manageChecks_pri->setEnabled(false);
     }
     actionComboChanged_f(loadedActionTypeIndexTmp);
 
@@ -278,53 +268,25 @@ void actionWindow_c::createWidgetsPerAction_f(
     //switch?
     while (true)
     {
+        //TODO this can be mapped too.. using static function in the base abstract class
+        //like action type to base class pointer mapping in the actonqtso, using an unordered_map<type, function returns base pointer>
         QString actionTypeStrTmp(actionTypeCombo_pri->itemData(index_par_con).toString());
 #ifdef DEBUGJOUVEN
         //qDebug() << "createWidgetsPerAction_f actionTypeStrTmp " << actionTypeStrTmp << endl;
 #endif
         if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::runProcess).toLower())
         {
-            createActionTypeWidgets_f(runProcessWidgets_pri);
+            baseClassActionWidgets_pri = new runProcessWidgets_c(action_ptr_pri, variableLayout_pri);
             break;
         }
         if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::createDirectory).toLower())
         {
-            createActionTypeWidgets_f(createDirectoryWidgets_pri);
+            baseClassActionWidgets_pri = new createDirectoryWidgets_c(action_ptr_pri, variableLayout_pri);
             break;
         }
         if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::copyFile).toLower())
         {
-            createActionTypeWidgets_f(copyFileWidgets_pri);
-            break;
-        }
-        break;
-    }
-}
-
-void actionWindow_c::removeWidgetClassPerAction_f(
-        const int index_par_con
-)
-{
-    //switch?
-    while (true)
-    {
-        QString actionTypeStrTmp(actionTypeCombo_pri->itemData(index_par_con).toString());
-        if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::runProcess).toLower())
-        {
-            runProcessWidgets_pri->deleteLater();
-            runProcessWidgets_pri = nullptr;
-            break;
-        }
-        if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::createDirectory).toLower())
-        {
-            createDirectoryWidgets_pri->deleteLater();
-            createDirectoryWidgets_pri = nullptr;
-            break;
-        }
-        if (actionTypeStrTmp == actionTypeToStrUMap_ext_con.at(actionType_ec::copyFile).toLower())
-        {
-            copyFileWidgets_pri->deleteLater();
-            copyFileWidgets_pri = nullptr;
+            baseClassActionWidgets_pri = new copyFileWidgets_c(action_ptr_pri, variableLayout_pri);
             break;
         }
         break;
@@ -335,7 +297,8 @@ void actionWindow_c::actionComboChanged_f(int index_par)
 {
     if (lastIndex_pri not_eq -1)
     {
-        removeWidgetClassPerAction_f(lastIndex_pri);
+        baseClassActionWidgets_pri->deleteLater();
+        baseClassActionWidgets_pri = nullptr;
     }
 
     clearLayoutItems_f(variableLayout_pri);
@@ -345,8 +308,7 @@ void actionWindow_c::actionComboChanged_f(int index_par)
 
 void actionWindow_c::saveButtonClicked_f()
 {
-    //first the json part is saved then from there it signals (back) to save the action
-    Q_EMIT saveJSON_signal();
+    save_f();
 }
 
 void actionWindow_c::cancelButtonClicked_f()
@@ -360,7 +322,7 @@ void actionWindow_c::manageChecksButtonClicked_f()
     //qDebug() << "actionWindow_c::manageChecksButtonClicked_f() actionData_ptr_pri->actionDataExecutionResult_ptr_f() " << actionData_ptr_pri->actionDataExecutionResult_ptr_f() << endl;
     //qDebug() << "actionWindow_c::manageChecksButtonClicked_f() actionData_ptr_pri->actionDataExecutionResult_ptr_f() == nullptr " << (actionData_ptr_pri->actionDataExecutionResult_ptr_f() == nullptr) << endl;
 #endif
-    actionChecksWindow_c* actionChecksWindowTmp(new actionChecksWindow_c(actionData_ptr_pri->checkDataHub_ptr_f(), this));
+    actionChecksWindow_c* actionChecksWindowTmp(new actionChecksWindow_c(action_ptr_pri->checkDataHub_ptr_f(), this));
     actionChecksWindowTmp->setWindowFlag(Qt::Window, true);
     actionChecksWindowTmp->setWindowModality(Qt::WindowModal);
     actionChecksWindowTmp->show();
@@ -384,7 +346,7 @@ void actionWindow_c::save_f()
 {
     while (true)
     {
-        actionType_ec actionTypeTmp(strToActionTypeMap_ext_con.value(actionTypeCombo_pri->currentData().toString()));
+        //actionType_ec actionTypeTmp(strToActionTypeMap_ext_con.value(actionTypeCombo_pri->currentData().toString()));
         QString actionStringIdTmp(actionStringIdPTE_pri->toPlainText());
         QString descriptionTmp(descriptionPTE_pri->toPlainText());
         if (descriptionTmp.isEmpty())
@@ -399,25 +361,34 @@ void actionWindow_c::save_f()
             break;
         }
         bool askUpdateStringIdDepdencies(false);
-        if (actionData_ptr_pri->stringId_f() not_eq actionStringIdTmp and actonDataHub_ptr_ext->hasStringIdAnyDependency_f(actionStringIdTmp))
-        {
-            askUpdateStringIdDepdencies = true;
-            oldStringId_pri = actionData_ptr_pri->stringId_f();
-        }
-
-        actionData_ptr_pri->setType_f(actionTypeTmp);
-        actionData_ptr_pri->setStringId_f(actionStringIdTmp);
-        actionData_ptr_pri->setDescription_f(descriptionTmp);
-        actionData_ptr_pri->setEnabled_f(enabledCheckbox_pri->isChecked());
-        actionData_ptr_pri->setChecksEnabled_f(checksEnabledCheckbox_pri->isChecked());
-        //it's set in the each action type widget
-        //actionData_ptr_pri->setActionDataJSON_f(childSaveResult_par_con);
         if (isNew_pri)
         {
-            actonDataHub_ptr_ext->insertActionData_f(*actionData_ptr_pri, row_pri_con);
+            //FUTURE implement the literal value arguments
+            actionData_c actionDataTmp(actionStringIdTmp, descriptionTmp, true, false, enabledCheckbox_pri->isChecked(), checksEnabledCheckbox_pri->isChecked(), true);
+            baseClassActionWidgets_pri->saveNew_f(actionDataTmp);
+            actonDataHub_ptr_ext->insertActionData_f(action_ptr_pri, row_pri_con);
+            //enable the checks button after saving the new action
+            manageChecks_pri->setEnabled(true);
+        }
+        else
+        {
+            if (action_ptr_pri->stringId_f() not_eq actionStringIdTmp
+                and actonDataHub_ptr_ext->hasStringIdAnyDependency_f(actionStringIdTmp))
+            {
+                askUpdateStringIdDepdencies = true;
+                oldStringId_pri = action_ptr_pri->stringId_f();
+            }
+
+            action_ptr_pri->setStringId_f(actionStringIdTmp);
+            action_ptr_pri->setDescription_f(descriptionTmp);
+            action_ptr_pri->setEnabled_f(enabledCheckbox_pri->isChecked());
+            action_ptr_pri->setChecksEnabled_f(checksEnabledCheckbox_pri->isChecked());
+            baseClassActionWidgets_pri->saveUpdate_f();
         }
 
+
         Q_EMIT updateRow_Signal(row_pri_con);
+        informationQMessageBox_f(appConfig_ptr_ext->translate_f("Action changes saved"));
         if (askUpdateStringIdDepdencies)
         {
             openAskUpdateStringIdDepdenciesWindow_f();
@@ -425,7 +396,8 @@ void actionWindow_c::save_f()
         }
         else
         {
-            close();
+            //saving shouldn't imply closing, since checks might be edited after
+            //close();
         }
         break;
     }

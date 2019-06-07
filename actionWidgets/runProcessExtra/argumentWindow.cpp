@@ -29,6 +29,7 @@ argumentEditWindow_c::argumentEditWindow_c(
         , QWidget* parent_par)
     : QWidget(parent_par)
     , rowCount_pri_con(rowCount_par_con)
+    , currentIndex_pri_con(currentIndex_par_con)
 {
     setObjectName("argumentWindow_");
     setAttribute(Qt::WA_DeleteOnClose);
@@ -56,6 +57,7 @@ argumentEditWindow_c::argumentEditWindow_c(
 
     argumentIndexField_pri = new QLineEdit(QString::number(currentIndex_par_con));
     argumentIndexField_pri->setToolTip("Index change won't replace other arguments, it will reorder them after or before");
+
     argumentIndexLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Index")));
     argumentIndexLayoutTmp->addWidget(argumentIndexField_pri);
 
@@ -97,7 +99,14 @@ argumentEditWindow_c::argumentEditWindow_c(
     mainLayout_pri->addLayout(buttonsLayoutTmp);
     this->setLayout(mainLayout_pri);
 
-    setWindowTitle(appConfig_ptr_ext->translate_f("Add/update argument"));
+    if (currentIndex_par_con == rowCount_pri_con)
+    {
+        setWindowTitle(appConfig_ptr_ext->translate_f("Add argument"));
+    }
+    else
+    {
+        setWindowTitle(appConfig_ptr_ext->translate_f("Update argument"));
+    }
 
     if (appConfig_ptr_ext->configLoaded_f())
     {
@@ -129,14 +138,43 @@ void argumentEditWindow_c::saveButtonPushed_f()
             break;
         }
 
-        //TODO if current index has changed, notify it, right now it will replace the value of the new index or add it the end if doesn't exist
-        //but if moving arguments is required, shift all the arguments from the new index to the end and the replace the index
         argument_c argumentTmp(argumentField_pri->toPlainText(), enabledCheckbox_pri->isChecked());
+        int newIndexTmp(argumentIndexField_pri->text().toInt());
+        const bool rowUpdateTmp_con(newIndexTmp == currentIndex_pri_con);
+
+        //case index changed, it's a "move"
+        //trivia this "move" is usless for index+1 changes, since it "pushes" the other indexes to +1
+        //i.e. moving the first row (0) to row (1) will leave it like before,
+        //since the new row (and all that follow) get +1 index wise
+        if (currentIndex_pri_con < rowCount_pri_con and not rowUpdateTmp_con)
+        {
+            //delete current index
+            Q_EMIT deleteArgument_signal(currentIndex_pri_con);
+            //if the new index is greater than the current
+            //substract one to the new index (because the current row just got removed)
+            if (newIndexTmp > currentIndex_pri_con)
+            {
+                newIndexTmp = newIndexTmp - 1;
+            }
+        }
 
         Q_EMIT saveArgumentResult_signal(
                     argumentTmp
-                    , argumentIndexField_pri->text().toLong()
-                    );
+                    , newIndexTmp
+                    //it's an update?
+                    , newIndexTmp < rowCount_pri_con and rowUpdateTmp_con
+        );
+
+        if (rowUpdateTmp_con)
+        {
+            //if an argument row is updated there is no index changes
+        }
+        else
+        {
+            int lowestIndexTmp(std::min(currentIndex_pri_con, newIndexTmp));
+            Q_EMIT refreshArgumentIndexColumn_signal(lowestIndexTmp);
+        }
+
         close();
         break;
     }

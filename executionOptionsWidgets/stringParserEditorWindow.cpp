@@ -192,8 +192,6 @@ stringParserEditorWindow_c::stringParserEditorWindow_c(
     //mainLayout_pri->addWidget(statusBarLabel_pri);
     this->setLayout(mainLayoutTmp);
 
-    setWindowTitle(appConfig_ptr_ext->translate_f("Add/update string parser config"));
-
     if (appConfig_ptr_ext->configLoaded_f())
     {
          restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName()));
@@ -208,6 +206,7 @@ stringParserEditorWindow_c::stringParserEditorWindow_c(
     parserObj_pri = stringParserMap_ptr_ext->orderToParserBaseMap_f().value(row_pri_con);
     if (parserObj_pri not_eq nullptr)
     {
+        setWindowTitle(appConfig_ptr_ext->translate_f("Update String Parser"));
         isNew_pri = false;
 
         QString actionTypeStrTmp(parserBase_c::typeToStrUMap_sta_con.at(parserObj_pri->type_f()));
@@ -220,6 +219,11 @@ stringParserEditorWindow_c::stringParserEditorWindow_c(
 
         enabledCheckbox_pri->setChecked(parserObj_pri->enabled_f());
     }
+    else
+    {
+        setWindowTitle(appConfig_ptr_ext->translate_f("Add String Parser"));
+    }
+
     actionComboChanged_f(loadedActionTypeIndexTmp);
 
     connect(parserTypeCombo_pri, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, &stringParserEditorWindow_c::actionComboChanged_f);
@@ -296,7 +300,9 @@ void stringParserEditorWindow_c::save_f()
         QString stringTriggerTmp(stringTriggerPTE_pri->toPlainText());
         if (stringTriggerTmp.isEmpty())
         {
-            errorQMessageBox_f("Empty string trigger", "Error", this);
+            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Empty string trigger")
+                               , "Error"
+                               , this);
             break;
         }
 
@@ -304,16 +310,19 @@ void stringParserEditorWindow_c::save_f()
         //when saving new parser since the string trigger can't be modified after
         if (isNew_pri)
         {
-            if (actonDataHub_ptr_ext->hasStringTriggerAnyDependency_f(stringTriggerTmp) > 0)
+            if (actonDataHub_ptr_ext->hasStringTriggerAnyDependency_f(stringTriggerTmp, nullptr) > 0)
             {
-                errorQMessageBox_f("String trigger already in use in an action-check", "Error", this);
+                errorQMessageBox_f(appConfig_ptr_ext->translate_f("String trigger already in use in an action-check")
+                                   , appConfig_ptr_ext->translate_f("Error")
+                                   , this);
                 break;
             }
 
             int_fast64_t existingStringParserIndexTmp(stringParserMap_ptr_ext->stringTriggerIndex_f(stringTriggerTmp));
             if (existingStringParserIndexTmp not_eq -1)
             {
-                errorQMessageBox_f("String trigger already in use in another string parser, index " + QString::number(existingStringParserIndexTmp), "Error", this);
+                errorQMessageBox_f(appConfig_ptr_ext->translate_f("String trigger already in use in another string parser, index " + QString::number(existingStringParserIndexTmp))
+                                   , appConfig_ptr_ext->translate_f("Error"), this);
                 break;
             }
         }
@@ -330,9 +339,6 @@ void stringParserEditorWindow_c::save_f()
         {
             break;
         }
-#ifdef DEBUGJOUVEN
-        //qDebug() << "3 parserObj_pri " << parserObj_pri << endl;
-#endif
 
         parserObj_pri->setEnabled_f(enabledCheckbox_pri->isChecked());
 
@@ -347,16 +353,7 @@ void stringParserEditorWindow_c::save_f()
         }
 
         Q_EMIT updateRow_Signal(row_pri_con);
-//        if (askUpdateStringTriggerDepdencies)
-//        {
-//            //this makes the close happen later because a child window is created
-//            openAskUpdateStringTriggerDepdenciesWindow_f();
-//            //Q_EMIT askUpdateStringTriggerDepdencies_signal();
-//        }
-//        else
-//        {
-            close();
-//        }
+        close();
         break;
     }
 }

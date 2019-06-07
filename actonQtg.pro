@@ -11,8 +11,10 @@ TEMPLATE = app
 android:QMAKE_CXXFLAGS += -std=c++14
 
 HEADERS       = \
+    actionWidgets/baseClassActionWidgets.hpp \
     appConfig.hpp \
     actionWindow.hpp \
+    checkWidgets/baseClassCheckWidgets.hpp \
     mainWindow.hpp \
     actionWidgets/runProcessExtra/argumentWindow.hpp \
     actionWidgets/createDirectoryWidgets.hpp \
@@ -41,8 +43,10 @@ HEADERS       = \
     executionOptionsWidgets/stringParserEditorWindow.hpp
 
 SOURCES       = main.cpp \
+    actionWidgets/baseClassActionWidgets.cpp \
     appConfig.cpp \
     actionWindow.cpp \
+    checkWidgets/baseClassCheckWidgets.cpp \
     mainWindow.cpp \
     actionWidgets/runProcessExtra/argumentWindow.cpp \
     actionWidgets/createDirectoryWidgets.cpp \
@@ -97,9 +101,9 @@ CONFIG(release, debug|release){
 }
 #debug
 CONFIG(debug, debug|release){
-LIBS += -L$${MYPATH}home/jouven/mylibs/debug -lbackwardSTso -ltimeso
+LIBS += -L$${MYPATH}home/jouven/mylibs/debug -ltimeso
 win32:LIBS += -lboost_date_time-mt
-!win32:LIBS += -lboost_date_time
+!win32:LIBS += -lbackwardSTso -lboost_date_time
     DEPENDPATH += $${MYPATH}home/jouven/mylibs/debug
     QMAKE_RPATHDIR += $${MYPATH}home/jouven/mylibs/debug
     #QMAKE_LFLAGS += -rdynamic

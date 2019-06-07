@@ -7,13 +7,11 @@
 #include "../optionsWidgets/workingDirectoryWindow.hpp"
 #include "../appConfig.hpp"
 
-#include "actonQtso/actionData.hpp"
-#include "actonQtso/actonDataHub.hpp"
+#include "actonQtso/actions/copyFile.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
 
 #include <QtWidgets>
-#include <QJsonObject>
 //#include <QSplitter>
 
 #include <QFileDialog>
@@ -25,7 +23,7 @@
 #include <vector>
 #include <set>
 
-void copyFileWidgets_c::parentClosing_f()
+void copyFileWidgets_c::derivedParentClosing_f()
 {
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + filenameFullExtensionsTable_pri->objectName() + filenameFullExtensionsTable_pri->horizontalHeader()->objectName(), filenameFullExtensionsTable_pri->horizontalHeader()->saveState());
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + filenameFullExtensionsTable_pri->objectName(), filenameFullExtensionsTable_pri->saveGeometry());
@@ -34,7 +32,12 @@ void copyFileWidgets_c::parentClosing_f()
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
 }
 
-bool copyFileWidgets_c::fieldsAreOkToSave_f() const
+QString copyFileWidgets_c::derivedExtraTips_f() const
+{
+    return appConfig_ptr_ext->translate_f("<p>copy file widget tips</p>");
+}
+
+bool copyFileWidgets_c::isFieldsDataValid_f() const
 {
     bool validTmp(false);
     while (true)
@@ -42,13 +45,13 @@ bool copyFileWidgets_c::fieldsAreOkToSave_f() const
         QString sourceDirPathTmp(sourcePathPTE_pri->toPlainText());
         if (sourceDirPathTmp.isEmpty())
         {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Source path is empty"), appConfig_ptr_ext->translate_f("Error"), qobject_cast<QWidget*>(this->parent()));
+            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Source path is empty"), appConfig_ptr_ext->translate_f("Error"), static_cast<QWidget*>(this->parent()));
             break;
         }
         QString destinationDirPathTmp(destinationPathPTE_pri->toPlainText());
         if (destinationDirPathTmp.isEmpty())
         {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Destination path is empty"), appConfig_ptr_ext->translate_f("Error"), qobject_cast<QWidget*>(this->parent()));
+            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Destination path is empty"), appConfig_ptr_ext->translate_f("Error"), static_cast<QWidget*>(this->parent()));
             break;
         }
 
@@ -56,7 +59,7 @@ bool copyFileWidgets_c::fieldsAreOkToSave_f() const
         if (bufferSizeLineEdit_pri->text().toLong(&goodNumberConversion) < 0
             or not goodNumberConversion)
         {
-            errorQMessageBox_f("Wrong buffer value, value must be between 1 and INT64MAX", "Error", qobject_cast<QWidget*>(this->parent()));
+            errorQMessageBox_f("Wrong buffer value, value must be between 1 and INT64MAX", "Error", static_cast<QWidget*>(this->parent()));
             break;
         }
 
@@ -66,19 +69,34 @@ bool copyFileWidgets_c::fieldsAreOkToSave_f() const
     return validTmp;
 }
 
-void copyFileWidgets_c::save_f()
+bool copyFileWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
 {
-    if (fieldsAreOkToSave_f())
+    bool resultTmp(false);
+    if (isFieldsDataValid_f())
     {
-        saveActionDataJSON_f();
-        Q_EMIT JSONSaved_signal();
+        MACRO_ADDACTONQTGLOG("Create copyFileAction from fields", logItem_c::type_ec::debug);
+        copyFileAction_ptr_pri = new copyFileAction_c(actionDataBlock_par_con, fieldsToCopyFileDataObject_f());
+
+        actionPtr_pro = copyFileAction_ptr_pri;
+        resultTmp = true;
     }
+    return resultTmp;
 }
 
+bool copyFileWidgets_c::derivedSaveUpdate_f()
+{
+   bool resultTmp(false);
+   if (isFieldsDataValid_f())
+   {
+       copyFileAction_ptr_pri->copyFileData_c::operator=(fieldsToCopyFileDataObject_f());
+       resultTmp = true;
+   }
+   return resultTmp;
+}
 
 void copyFileWidgets_c::browsePath_f()
 {
-    browsePathFileDialog_pri = new QFileDialog(qobject_cast<QWidget*>(this->parent()));
+    browsePathFileDialog_pri = new QFileDialog(static_cast<QWidget*>(this->parent()));
     if (browseSource_pri)
     {
         browsePathFileDialog_pri->setObjectName("browseSourcePathFileDialog_");
@@ -153,13 +171,13 @@ void copyFileWidgets_c::fileDialogBrowseSourceFinished_f(const int result_par)
     browsePathFileDialog_pri = nullptr;
 }
 
-copyFileAction_c copyFileWidgets_c::fieldsToCopyFileActionObject_f() const
+copyFileData_c copyFileWidgets_c::fieldsToCopyFileDataObject_f() const
 {
     QString sourcePathTmp(sourcePathPTE_pri->toPlainText());
     QString destinationPathTmp(destinationPathPTE_pri->toPlainText());
 
-    copyFileAction_c::transferType_ec transferTypeTmp(copyFileAction_c::strToTransferTypeMap_sta_con.value(transferTypeCombobox_pri->currentData().toString()));
-    copyFileAction_c::destinationTreatment_ec destinationTreatmentTmp(copyFileAction_c::strToDestinationTreatmentMap_sta_con.value(destinationTreatmentCombobox_pri->currentData().toString()));
+    copyFileData_c::transferType_ec transferTypeTmp(copyFileData_c::strToTransferTypeMap_sta_con.value(transferTypeCombobox_pri->currentData().toString()));
+    copyFileData_c::destinationTreatment_ec destinationTreatmentTmp(copyFileData_c::strToDestinationTreatmentMap_sta_con.value(destinationTreatmentCombobox_pri->currentData().toString()));
 
     QStringList sourceFilenameRegexStringListTmp;
     sourceFilenameRegexStringListTmp.reserve(filenameRegexTable_pri->rowCount());
@@ -190,7 +208,7 @@ copyFileAction_c copyFileWidgets_c::fieldsToCopyFileActionObject_f() const
         }
     }
 
-    copyFileAction_c copyFileActionTmp(
+    return copyFileData_c(
                 sourcePathTmp
                 , destinationPathTmp
                 , transferTypeTmp
@@ -206,17 +224,16 @@ copyFileAction_c copyFileWidgets_c::fieldsToCopyFileActionObject_f() const
                 , stopAllCopyOnFileCopyErrorCheckbox_pri->isChecked()
                 , bufferSizeLineEdit_pri->text().toLong()
     );
-    return copyFileActionTmp;
 }
 
 void copyFileWidgets_c::tryGenerateFileList_f() const
 {
-    if (fieldsAreOkToSave_f())
+    if (isFieldsDataValid_f())
     {
-        copyFileAction_c copyFileAcitonTmp(fieldsToCopyFileActionObject_f());
+        copyFileData_c copyFileAcitonTmp(fieldsToCopyFileDataObject_f());
         std::vector<QString> fileListTmp(copyFileAcitonTmp.testSourceFileList_f());
 
-        fileListWindow_c* fileListWindowTmp = new fileListWindow_c(fileListTmp, qobject_cast<QWidget*>(this->parent()));
+        fileListWindow_c* fileListWindowTmp = new fileListWindow_c(fileListTmp, static_cast<QWidget*>(this->parent()));
         fileListWindowTmp->setWindowFlag(Qt::Window, true);
         fileListWindowTmp->setWindowModality(Qt::WindowModal);
         fileListWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
@@ -287,51 +304,48 @@ void copyFileWidgets_c::removeSelectedRegexPatternRow_f()
 
 void copyFileWidgets_c::loadActionSpecificData_f()
 {
-    if (not actionData_ptr_pri->actionDataJSON_f().isEmpty())
+    if (copyFileAction_ptr_pri not_eq nullptr)
     {
-        copyFileAction_c copyFileActionTmp;
-        copyFileActionTmp.read_f(actionData_ptr_pri->actionDataJSON_f());
-
-        sourcePathPTE_pri->setPlainText(copyFileActionTmp.sourcePath_f());
-        destinationPathPTE_pri->setPlainText(copyFileActionTmp.destinationPath_f());
+        sourcePathPTE_pri->setPlainText(copyFileAction_ptr_pri->sourcePath_f());
+        destinationPathPTE_pri->setPlainText(copyFileAction_ptr_pri->destinationPath_f());
 
         {
-            QString transferTypeStrTmp(copyFileAction_c::transferTypeToStrUMap_sta_con.at(copyFileActionTmp.transferType_f()));
+            QString transferTypeStrTmp(copyFileAction_c::transferTypeToStrUMap_sta_con.at(copyFileAction_ptr_pri->transferType_f()));
             int loadedIndexTmp(transferTypeCombobox_pri->findData(transferTypeStrTmp.toLower()));
             transferTypeCombobox_pri->setCurrentIndex(loadedIndexTmp);
         }
 
         {
-            QString destinationTreatmentStrTmp(copyFileAction_c::destinationTreatmentToStrUMap_sta_con.at(copyFileActionTmp.destinationTreatment_f()));
+            QString destinationTreatmentStrTmp(copyFileAction_c::destinationTreatmentToStrUMap_sta_con.at(copyFileAction_ptr_pri->destinationTreatment_f()));
             int loadedIndexTmp(destinationTreatmentCombobox_pri->findData(destinationTreatmentStrTmp.toLower()));
             destinationTreatmentCombobox_pri->setCurrentIndex(loadedIndexTmp);
         }
 
 
-        for (const QString& filenameFullExtension_ite_con : copyFileActionTmp.sourceFilenameFullExtensions_f())
+        for (const QString& filenameFullExtension_ite_con : copyFileAction_ptr_pri->sourceFilenameFullExtensions_f())
         {
             insertFullExtensionRow_f(filenameFullExtension_ite_con);
         }
 
-        for (const QString& sourceFilenameRegexFilter_ite_con : copyFileActionTmp.sourceFilenameRegexFilters_f())
+        for (const QString& sourceFilenameRegexFilter_ite_con : copyFileAction_ptr_pri->sourceFilenameRegexFilters_f())
         {
             insertRegexPatternRow_f(sourceFilenameRegexFilter_ite_con);
         }
 
-        copyHiddenCheckbox_pri->setChecked(copyFileActionTmp.copyHidden_f());
-        navigateSubdirectoriesCheckbox_pri->setChecked(copyFileActionTmp.navigateSubdirectories_f());
-        navigateHiddenCheckbox_pri->setChecked(copyFileActionTmp.navigateHidden_f());
-        copyEmptyDirectoriesCheckbox_pri->setChecked(copyFileActionTmp.copyEmptyDirectories_f());
-        createDestinationAndParentsCheckbox_pri->setChecked(copyFileActionTmp.createDestinationAndParents_f());
-        noFilesCopiedIsErrorCheckbox_pri->setChecked(copyFileActionTmp.noFilesCopiedIsError_f());
+        copyHiddenCheckbox_pri->setChecked(copyFileAction_ptr_pri->copyHidden_f());
+        navigateSubdirectoriesCheckbox_pri->setChecked(copyFileAction_ptr_pri->navigateSubdirectories_f());
+        navigateHiddenCheckbox_pri->setChecked(copyFileAction_ptr_pri->navigateHidden_f());
+        copyEmptyDirectoriesCheckbox_pri->setChecked(copyFileAction_ptr_pri->copyEmptyDirectories_f());
+        createDestinationAndParentsCheckbox_pri->setChecked(copyFileAction_ptr_pri->createDestinationAndParents_f());
+        noFilesCopiedIsErrorCheckbox_pri->setChecked(copyFileAction_ptr_pri->noFilesCopiedIsError_f());
 
-        bufferSizeLineEdit_pri->setText(QString::number(copyFileActionTmp.bufferSize_f()));
+        bufferSizeLineEdit_pri->setText(QString::number(copyFileAction_ptr_pri->bufferSize_f()));
     }
 }
 
 void copyFileWidgets_c::showCurrentWorkingDirectoryWindow_f()
 {
-    workingDirectoryWindow_c* workingDirectoryWindowTmp = new workingDirectoryWindow_c(qobject_cast<QWidget*>(this->parent()));
+    workingDirectoryWindow_c* workingDirectoryWindowTmp = new workingDirectoryWindow_c(static_cast<QWidget*>(this->parent()));
     workingDirectoryWindowTmp->setWindowFlag(Qt::Window, true);
     workingDirectoryWindowTmp->setWindowModality(Qt::WindowModal);
     workingDirectoryWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
@@ -371,11 +385,11 @@ void copyFileWidgets_c::addFilenameRegexPatternRow_f()
 }
 
 copyFileWidgets_c::copyFileWidgets_c(
-        actionData_c* const actionData_ptr_par
+        action_c*& action_ptr_par
         , QVBoxLayout* const variableLayout_par_con
-        , QObject *parent)
-    : QObject(parent)
-    , actionData_ptr_pri(actionData_ptr_par)
+        )
+    : baseClassActionWidgets_c(action_ptr_par, variableLayout_par_con->parentWidget())
+    , copyFileAction_ptr_pri(action_ptr_par == nullptr ? nullptr : static_cast<copyFileAction_c*>(action_ptr_par))
 {
     this->setObjectName("copyFileWidgets_");
 
@@ -718,15 +732,4 @@ Filter is applied "or" wise)"
     loadActionSpecificData_f();
 }
 
-void copyFileWidgets_c::saveActionDataJSON_f() const
-{
-    MACRO_ADDACTONQTGLOG("Create copyFileAction from fields", logItem_c::type_ec::debug);
-    copyFileAction_c copyFileActionTmp(fieldsToCopyFileActionObject_f());
-
-    QJsonObject saveValuesJSONObjectTmp;
-    MACRO_ADDACTONQTGLOG("Write object to JSON", logItem_c::type_ec::debug);
-    copyFileActionTmp.write_f(saveValuesJSONObjectTmp);
-    MACRO_ADDACTONQTGLOG("Save JSON object into the action", logItem_c::type_ec::debug);
-    actionData_ptr_pri->setActionDataJSON_f(saveValuesJSONObjectTmp);
-}
 
