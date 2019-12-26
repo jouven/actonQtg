@@ -1,12 +1,14 @@
 #include "sameFileWidgets.hpp"
 
-#include "../appConfig.hpp"
 #include "../optionsWidgets/workingDirectoryWindow.hpp"
+#include "../commonWidgets.hpp"
+#include "../appConfig.hpp"
 
 #include "actonQtso/checkData.hpp"
 #include "actonQtso/checks/sameFile.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
+#include "textQtso/text.hpp"
 
 #include <QtWidgets>
 //#include <QSplitter>
@@ -59,45 +61,6 @@ void sameFileWidgets_c::browseFile_f()
     browseFileDialog_pri->show();
 }
 
-bool sameFileWidgets_c::isFieldsDataValid_f() const
-{
-    bool validTmp(false);
-    while (true)
-    {
-        if (fileAPTE_pri->toPlainText().isEmpty())
-        {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("File A path is empty")
-                               , appConfig_ptr_ext->translate_f("Error")
-                               , static_cast<QWidget*>(this->parent()));
-            break;
-        }
-        if (fileBPTE_pri->toPlainText().isEmpty())
-        {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("File B path is empty")
-                               , appConfig_ptr_ext->translate_f("Error")
-                               , static_cast<QWidget*>(this->parent()));
-            break;
-        }
-        if (fileAPTE_pri->toPlainText().length() > 255)
-        {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("File A path is too long (>255): ") + QString::number(fileAPTE_pri->toPlainText().length())
-                               , appConfig_ptr_ext->translate_f("Error")
-                               , static_cast<QWidget*>(this->parent()));
-            break;
-        }
-        if (fileBPTE_pri->toPlainText().length() > 255)
-        {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("File B path is too long (>255): ") + QString::number(fileBPTE_pri->toPlainText().length())
-                               , appConfig_ptr_ext->translate_f("Error")
-                               , static_cast<QWidget*>(this->parent()));
-            break;
-        }
-        validTmp = true;
-        break;
-    }
-    return validTmp;
-}
-
 void sameFileWidgets_c::fileDialogBrowseFinished_f(const int result_par)
 {
     if (result_par == QDialog::Accepted)
@@ -141,13 +104,18 @@ sameFileData_c sameFileWidgets_c::fieldsToSameFileDataObject_f() const
 bool sameFileWidgets_c::derivedSaveNew_f(const checkData_c& checkData_par_con)
 {
     bool resultTmp(false);
-    if (isFieldsDataValid_f())
+    sameFileData_c objTmp(fieldsToSameFileDataObject_f());
+    textCompilation_c errorsTmp;
+    if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        MACRO_ADDACTONQTGLOG("Create actionFinishedCheck_c from fields", logItem_c::type_ec::debug);
-        sameFileCheck_ptr_pri = new sameFileCheck_c(checkData_par_con, fieldsToSameFileDataObject_f());
+        sameFileCheck_ptr_pri = new sameFileCheck_c(checkData_par_con, objTmp);
 
         checkPtr_pro = sameFileCheck_ptr_pri;
         resultTmp = true;
+    }
+    if (errorsTmp.size_f() > 0)
+    {
+        messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
     }
     return resultTmp;
 }
@@ -155,10 +123,16 @@ bool sameFileWidgets_c::derivedSaveNew_f(const checkData_c& checkData_par_con)
 bool sameFileWidgets_c::derivedSaveUpdate_f()
 {
     bool resultTmp(false);
-    if (isFieldsDataValid_f())
+    sameFileData_c objTmp(fieldsToSameFileDataObject_f());
+    textCompilation_c errorsTmp;
+    if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        sameFileCheck_ptr_pri->sameFileData_c::operator=(fieldsToSameFileDataObject_f());
+        sameFileCheck_ptr_pri->updateSameFileData_f(objTmp);
         resultTmp = true;
+    }
+    if (errorsTmp.size_f() > 0)
+    {
+        messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
     }
     return resultTmp;
 }
@@ -170,11 +144,10 @@ QString sameFileWidgets_c::derivedExtraTips_f() const
 
 void sameFileWidgets_c::loadCheckSpecificData_f()
 {
-    if (sameFileCheck_ptr_pri not_eq nullptr)
-    {
-        fileAPTE_pri->setPlainText(sameFileCheck_ptr_pri->fileAPath_f());
-        fileBPTE_pri->setPlainText(sameFileCheck_ptr_pri->fileBPath_f());
-    }
+    sameFileData_c valuesToLoadTmp(sameFileCheck_ptr_pri not_eq nullptr ? *sameFileCheck_ptr_pri : sameFileData_c());
+
+    fileAPTE_pri->setPlainText(valuesToLoadTmp.fileAPath_f());
+    fileBPTE_pri->setPlainText(valuesToLoadTmp.fileBPath_f());
 }
 
 void sameFileWidgets_c::browseFileA_f()
@@ -191,10 +164,10 @@ void sameFileWidgets_c::browseFileB_f()
 
 
 sameFileWidgets_c::sameFileWidgets_c(
-        check_c*& checkData_ptr_par
+        check_c*& check_ptr_par
         , QVBoxLayout* const variableLayout_par_con)
-    : baseClassCheckWidgets_c(checkData_ptr_par, variableLayout_par_con->parentWidget())
-    , check_ptr_pri(checkData_ptr_par)
+    : baseClassCheckTypeWidgets_c(check_ptr_par, variableLayout_par_con->parentWidget())
+    , sameFileCheck_ptr_pri(check_ptr_par == nullptr ? nullptr : static_cast<sameFileCheck_c*>(check_ptr_par))
 {
     this->setObjectName("sameFileWidgets_");
 

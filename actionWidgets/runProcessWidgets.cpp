@@ -6,10 +6,12 @@
 #include "../optionsWidgets/environmentWindow.hpp"
 #include "../optionsWidgets/workingDirectoryWindow.hpp"
 
+#include "../commonWidgets.hpp"
 #include "../appConfig.hpp"
 
 #include "actonQtso/actions/runProcess.hpp"
 #include "essentialQtgso/messageBox.hpp"
+#include "textQtso/text.hpp"
 
 #include <QtWidgets>
 #include <QSplitter>
@@ -36,7 +38,7 @@ runProcessData_c runProcessWidgets_c::fieldsToRunProcessDataObject_f() const
 {
     //paths aren't checked/valitated on save,
     //but they are on execution
-    //otherwise all the paths must exist and if stuff is created dynamically
+    //otherwise all the paths would have to exist exist and if stuff is created dynamically (string parser)
     //it wouldn't work
     QString processPathTmp(processPathPTE_pri->toPlainText());
     std::vector<argument_c> argumentsTmp;
@@ -69,48 +71,53 @@ runProcessData_c runProcessWidgets_c::fieldsToRunProcessDataObject_f() const
 
 }
 
-bool runProcessWidgets_c::isFieldsDataValid_f() const
-{
-    bool resultTmp(false);
-    while (true)
-    {
-        QString processPathStr(processPathPTE_pri->toPlainText());
-        if (processPathStr.length() > 255)
-        {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Process path is too long (>255): ") + QString::number(processPathStr.length())
-                               , appConfig_ptr_ext->translate_f("Error")
-                               , static_cast<QWidget*>(this->parent()));
-            break;
-        }
-        if (processPathStr.isEmpty())
-        {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Process path is empty")
-                               , appConfig_ptr_ext->translate_f("Error")
-                               , static_cast<QWidget*>(this->parent()));
-            break;
-        }
-        resultTmp = true;
-        break;
-    }
-    return resultTmp;
-}
-
+//bool runProcessWidgets_c::isFieldsDataValid_f() const
+//{
+//    bool resultTmp(false);
+//    while (true)
+//    {
+//        QString processPathStr(processPathPTE_pri->toPlainText());
+//        if (processPathStr.length() > 255)
+//        {
+//            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Process path is too long (>255): ") + QString::number(processPathStr.length())
+//                               , appConfig_ptr_ext->translate_f("Error")
+//                               , static_cast<QWidget*>(this->parent()));
+//            break;
+//        }
+//        if (processPathStr.isEmpty())
+//        {
+//            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Process path is empty")
+//                               , appConfig_ptr_ext->translate_f("Error")
+//                               , static_cast<QWidget*>(this->parent()));
+//            break;
+//        }
+//        resultTmp = true;
+//        break;
+//    }
+//    return resultTmp;
+//}
 
 
 bool runProcessWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
 {
     bool resultTmp(false);
-    if (isFieldsDataValid_f())
+    textCompilation_c errorsTmp;
+    runProcessData_c objTmp(fieldsToRunProcessDataObject_f());
+    if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
         runProcessAction_ptr_pri =
                     new runProcessAction_c(
                         actionDataBlock_par_con
-                        , fieldsToRunProcessDataObject_f()
+                        , objTmp
                         )
                     ;
         actionPtr_pro = runProcessAction_ptr_pri;
 
         resultTmp = true;
+    }
+    if (errorsTmp.size_f() > 0)
+    {
+        messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
     }
     return resultTmp;
 }
@@ -118,10 +125,16 @@ bool runProcessWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_p
 bool runProcessWidgets_c::derivedSaveUpdate_f()
 {
     bool resultTmp(false);
-    if (isFieldsDataValid_f())
+    textCompilation_c errorsTmp;
+    runProcessData_c objTmp(fieldsToRunProcessDataObject_f());
+    if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        runProcessAction_ptr_pri->runProcessData_c::operator=(fieldsToRunProcessDataObject_f());
+        runProcessAction_ptr_pri->updateRunProcessData_f(objTmp);
         resultTmp = true;
+    }
+    if (errorsTmp.size_f() > 0)
+    {
+        messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
     }
     return resultTmp;
 }
@@ -160,11 +173,13 @@ void runProcessWidgets_c::insertArgumentRow_f(
     argumentsTable_pri->setItem(indexTmp_con, 1, argumentValueCellTmp);
     argumentsTable_pri->setItem(indexTmp_con, 2, argumentEnabledCellTmp);
 
+
     if (lastRowInsertTmp)
     {
     }
     else
     {
+        //if the row is inserted between other rows
         refreshIndexColumn_f(indexTmp_con + 1);
     }
 }
@@ -216,23 +231,22 @@ void runProcessWidgets_c::updateEnvironmentPairRow_f(
 
 void runProcessWidgets_c::loadActionSpecificData_f()
 {
-    if (runProcessAction_ptr_pri not_eq nullptr)
+    runProcessData_c valuesToLoadTmp(runProcessAction_ptr_pri not_eq nullptr ? *runProcessAction_ptr_pri : runProcessData_c());
+
+    processPathPTE_pri->setPlainText(valuesToLoadTmp.processPath_f());
+    workingDirectoryPTE_pri->setPlainText(valuesToLoadTmp.workingDirectory_f());
+    useActonEnviroment_pri->setChecked(valuesToLoadTmp.useActonEnvironment_f());
+
+    for (const argument_c& argument_ite_con : valuesToLoadTmp.arguments_f())
     {
-        processPathPTE_pri->setPlainText(runProcessAction_ptr_pri->processPath_f());
-        workingDirectoryPTE_pri->setPlainText(runProcessAction_ptr_pri->workingDirectory_f());
-        useActonEnviroment_pri->setChecked(runProcessAction_ptr_pri->useActonEnvironment_f());
+        insertArgumentRow_f(argument_ite_con);
+    }
 
-        for (const argument_c& argument_ite_con : runProcessAction_ptr_pri->arguments_f())
-        {
-            insertArgumentRow_f(argument_ite_con);
-        }
-
-        QHash<QString, environmentPairConfig_c>::const_iterator iteratorTmp = runProcessAction_ptr_pri->environmentToAdd_f().constBegin();
-        while (iteratorTmp not_eq runProcessAction_ptr_pri->environmentToAdd_f().constEnd())
-        {
-            insertEnvironmentPairRow_f(iteratorTmp.key(), iteratorTmp.value());
-            ++iteratorTmp;
-        }
+    QHash<QString, environmentPairConfig_c>::const_iterator iteratorTmp = valuesToLoadTmp.environmentToAdd_f().constBegin();
+    while (iteratorTmp not_eq valuesToLoadTmp.environmentToAdd_f().constEnd())
+    {
+        insertEnvironmentPairRow_f(iteratorTmp.key(), iteratorTmp.value());
+        ++iteratorTmp;
     }
 }
 
@@ -240,19 +254,10 @@ runProcessWidgets_c::runProcessWidgets_c(
         action_c*& actionData_ptr_par
         , QVBoxLayout* const variableLayout_par_con
         )
-    : baseClassActionWidgets_c(actionData_ptr_par, variableLayout_par_con->parentWidget())
+    : baseClassActionTypeWidgets_c(actionData_ptr_par, variableLayout_par_con->parentWidget())
     , runProcessAction_ptr_pri(actionData_ptr_par == nullptr ? nullptr : static_cast<runProcessAction_c*>(actionData_ptr_par))
 {
     this->setObjectName("runProcessWidgets_");
-
-    //order
-    //process location
-    //arguments
-    //working directory
-    //environment
-
-    //recycle the environment and working directory windows
-
 
     //process and browse process path
     QHBoxLayout* firstRowTmp = new QHBoxLayout;
@@ -262,7 +267,9 @@ runProcessWidgets_c::runProcessWidgets_c(
     auto minHeightTmp(processPathPTE_pri->fontMetrics().lineSpacing() + 14);
     processPathPTE_pri->setMinimumHeight(minHeightTmp);
     processPathPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-    processPathPTE_pri->setToolTip(appConfig_ptr_ext->translate_f("Path isn't validated/checked until execution"));
+    processPathPTE_pri->setToolTip(appConfig_ptr_ext->translate_f(
+"Path isn't validated/checked until execution, DO NOT put arguments here because this is a path and \"process path not found\" will happen"));
+
     firstRowTmp->addWidget(processPathPTE_pri);
     QPushButton* browseProcessPathButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Browse"));
     firstRowTmp->addWidget(browseProcessPathButtonTmp);
@@ -346,8 +353,6 @@ runProcessWidgets_c::runProcessWidgets_c(
     connect(showCurrentEnvironmentButtonTmp, &QPushButton::clicked, this, &runProcessWidgets_c::showCurrentEnvironmentWindow_f);
 
     useActonEnviroment_pri = new QCheckBox("Use Acton environment as base");
-    //this is modified after loadActionSpecificData_f (if something was loaded)
-    useActonEnviroment_pri->setChecked(true);
     useActonEnviroment_pri->setToolTip("When running the process use Acton environment, otherwise use an empty one");
     environmentButtonsRowTmp->addWidget(useActonEnviroment_pri);
 

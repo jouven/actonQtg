@@ -5,12 +5,14 @@
 #include "actonQtso/checkData.hpp"
 #include "actonQtso/checkDataExecutionResult.hpp"
 #include "actonQtso/checkMappings/checkExecutionStateStrMapping.hpp"
-#include "actonQtso/checksDataHub.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
 
 #include <QtWidgets>
 #include <QSplitter>
+#ifdef DEBUGJOUVEN
+#include <QDebug>
+#endif
 
 void checkExecutionDetailsWindow_c::closeEvent(QCloseEvent* event)
 {
@@ -59,7 +61,7 @@ checkExecutionDetailsWindow_c::checkExecutionDetailsWindow_c(
 //    firstRowLayoutTmp->addWidget(anyFinishCheckbox_pri);
 
     checkResultCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Result"));
-    checkResultCheckbox_pri->setMinimumHeight(minHeightTmp);
+    //checkResultCheckbox_pri->setMinimumHeight(minHeightTmp);
     checkResultCheckbox_pri->setTristate(true);
     checkResultCheckbox_pri->setCheckState(Qt::PartiallyChecked);
     firstRowLayoutTmp->addWidget(checkResultCheckbox_pri);
@@ -187,20 +189,17 @@ checkExecutionDetailsWindow_c::checkExecutionDetailsWindow_c(
     {
         //to prevent signal recursion
         checkResultCheckbox_pri->blockSignals(true);
-//        Qt::CheckState checkStateTmp;
-//        if (state_par == Qt::PartiallyChecked)
-//        {
-//            checkStateTmp = Qt::PartiallyChecked;
-//        }
-//        if (state_par == Qt::Checked)
-//        {
-//            checkStateTmp = Qt::Unchecked;
-//        }
-//        if (state_par == Qt::Unchecked)
-//        {
-//            checkStateTmp = Qt::Checked;
-//        }
-        checkResultCheckbox_pri->setCheckState(Qt::PartiallyChecked);
+#ifdef DEBUGJOUVEN
+        //qDebug() << "checkDataExecutionResultPtr_pri->finished_f()" << endl;
+#endif
+        if (checkDataExecutionResultPtr_pri->finished_f())
+        {
+            checkResultCheckbox_pri->setCheckState(checkDataExecutionResultPtr_pri->result_f() ? Qt::Checked : Qt::Unchecked);
+        }
+        else
+        {
+            checkResultCheckbox_pri->setCheckState(Qt::PartiallyChecked);
+        }
         checkResultCheckbox_pri->blockSignals(false);
     });
 
@@ -237,7 +236,7 @@ void checkExecutionDetailsWindow_c::tipsButtonClicked_f()
 
 void checkExecutionDetailsWindow_c::updateError_f()
 {
-    errorPTE_pri->setPlainText(checkDataExecutionResultPtr_pri->error_f());
+    errorPTE_pri->setPlainText(appConfig_ptr_ext->translateAndReplace_f(checkDataExecutionResultPtr_pri->errors_f()));
 }
 
 void checkExecutionDetailsWindow_c::updateState_f()

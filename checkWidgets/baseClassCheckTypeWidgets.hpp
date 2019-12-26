@@ -1,5 +1,5 @@
-#ifndef ACTONQTG_BASECLASSCHECKWIDGETS_HPP
-#define ACTONQTG_BASECLASSCHECKWIDGETS_HPP
+#ifndef ACTONQTG_BASECLASSCHECKTYPEWIDGETS_HPP
+#define ACTONQTG_BASECLASSCHECKTYPEWIDGETS_HPP
 
 #include <QObject>
 
@@ -7,8 +7,9 @@ class QString;
 
 class check_c;
 class checkData_c;
+//class textCompilation_c;
 
-class baseClassCheckWidgets_c : public QObject
+class baseClassCheckTypeWidgets_c : public QObject
 {
     Q_OBJECT
 
@@ -20,7 +21,8 @@ protected:
     virtual void derivedParentClosing_f() = 0;
     virtual QString derivedExtraTips_f() const = 0;
 
-    explicit baseClassCheckWidgets_c(check_c*& checkPtrRef_par, QObject* parent_par);
+    explicit baseClassCheckTypeWidgets_c(check_c*& checkPtrRef_par, QObject* parent_par);
+
 public:
 
     bool saveNew_f(const checkData_c& checkData_par_con);
@@ -30,4 +32,4 @@ public:
     QString extraTips_f() const;
 };
 
-#endif // ACTONQTG_BASECLASSCHECKWIDGETS_HPP
+#endif // ACTONQTG_BASECLASSCHECKTYPEWIDGETS_HPP

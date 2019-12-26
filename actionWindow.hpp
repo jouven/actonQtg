@@ -12,8 +12,9 @@ class QSplitter;
 class QMessageBox;
 class QPushButton;
 
+class actionData_c;
 class action_c;
-class baseClassActionWidgets_c;
+class baseClassActionTypeWidgets_c;
 
 class actionWindow_c : public QWidget
 {
@@ -32,6 +33,9 @@ class actionWindow_c : public QWidget
 
     QCheckBox* checksEnabledCheckbox_pri;
     QCheckBox* enabledCheckbox_pri;
+    QCheckBox* checksResultLogicAndCheckbox_pri;
+    QCheckBox* stopAllExecutionOnErrorCheckbox_pri;
+    QCheckBox* repeatExecutionCheckbox_pri;
 
     QPushButton* manageChecks_pri;
 
@@ -52,7 +56,7 @@ class actionWindow_c : public QWidget
     //so it can be used, after, to replace dependencies if that option is selected
     QString oldStringId_pri;
 
-    baseClassActionWidgets_c* baseClassActionWidgets_pri = nullptr;
+    baseClassActionTypeWidgets_c* baseClassActionTypeWidgets_pri = nullptr;
 
     void clearLayoutItems_f(QLayout* layout_par);
 
@@ -61,6 +65,8 @@ class actionWindow_c : public QWidget
 
     void closeEvent(QCloseEvent* event) override;
 
+    void loadActionData_f();
+    actionData_c fieldsToActionDataObject_f() const;
 public:
     explicit actionWindow_c(
             const int row_par_con
@@ -73,12 +79,12 @@ Q_SIGNALS:
     //void askUpdateStringIdDepdencies_signal();
 public Q_SLOTS:
 private Q_SLOTS:
-    void actionComboChanged_f(int index_par);
+    void actionTypeComboChanged_f(int index_par);
     void saveButtonClicked_f();
-    void cancelButtonClicked_f();
+    void closeButtonClicked_f();
     void manageChecksButtonClicked_f();
     //void tipsButtonClicked_f();
-    void save_f();
+    bool save_f();
     void openAskUpdateStringIdDepdenciesWindow_f();
     void askUpdateStringIdDepdenciesWindowFinished_f(const int result_par);
 };

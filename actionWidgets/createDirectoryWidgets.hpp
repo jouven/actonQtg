@@ -1,7 +1,7 @@
 #ifndef ACTONQTG_CREATEDIRECTORYWIDGETS_HPP
 #define ACTONQTG_CREATEDIRECTORYWIDGETS_HPP
 
-#include "baseClassActionWidgets.hpp"
+#include "baseClassActionTypeWidgets.hpp"
 
 class QPlainTextEdit;
 class QVBoxLayout;
@@ -12,7 +12,7 @@ class createDirectoryData_c;
 class createDirectoryAction_c;
 class actionData_c;
 
-class createDirectoryWidgets_c : public baseClassActionWidgets_c
+class createDirectoryWidgets_c : public baseClassActionTypeWidgets_c
 {
     Q_OBJECT
 
@@ -29,7 +29,6 @@ class createDirectoryWidgets_c : public baseClassActionWidgets_c
     bool derivedSaveUpdate_f() override;
     void derivedParentClosing_f() override;
     QString derivedExtraTips_f() const override;
-    bool isFieldsDataValid_f() const;
     createDirectoryData_c fieldsToCreateDirectoryDataObject_f() const;
 public:
     explicit createDirectoryWidgets_c(

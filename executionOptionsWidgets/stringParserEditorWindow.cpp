@@ -107,8 +107,8 @@ stringParserEditorWindow_c::stringParserEditorWindow_c(
     //enabled
     enabledCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Enabled"));
     enabledCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("Disabled string parser configs will not be executed"));
-    enabledCheckbox_pri->setMinimumHeight(minHeightTmp);
-    enabledCheckbox_pri->setChecked(true);
+    //enabledCheckbox_pri->setMinimumHeight(minHeightTmp);
+    //enabledCheckbox_pri->setChecked(true);
     firstRowLayoutTmp->addWidget(enabledCheckbox_pri);
 
     parserTypeCombo_pri = new QComboBox();
@@ -209,10 +209,13 @@ stringParserEditorWindow_c::stringParserEditorWindow_c(
         setWindowTitle(appConfig_ptr_ext->translate_f("Update String Parser"));
         isNew_pri = false;
 
-        QString actionTypeStrTmp(parserBase_c::typeToStrUMap_sta_con.at(parserObj_pri->type_f()));
-        loadedActionTypeIndexTmp = parserTypeCombo_pri->findData(actionTypeStrTmp.toLower());
-        parserTypeCombo_pri->setCurrentIndex(loadedActionTypeIndexTmp);
-        parserTypeCombo_pri->setEnabled(false);
+        if (parserObj_pri->type_f() not_eq parserBase_c::type_ec::empty)
+        {
+            QString actionTypeStrTmp(parserBase_c::typeToStrUMap_sta_con.at(parserObj_pri->type_f()));
+            loadedActionTypeIndexTmp = parserTypeCombo_pri->findData(actionTypeStrTmp.toLower());
+            parserTypeCombo_pri->setCurrentIndex(loadedActionTypeIndexTmp);
+            parserTypeCombo_pri->setEnabled(false);
+        }
 
         stringTriggerPTE_pri->setPlainText(parserObj_pri->stringTrigger_f());
         stringTriggerPTE_pri->setReadOnly(true);
@@ -347,7 +350,8 @@ void stringParserEditorWindow_c::save_f()
             actonDataHub_ptr_ext->executionOptions_f().stringParserMap_f()->addParser_f(parserObj_pri);
             if (actonDataHub_ptr_ext->executionOptions_f().stringParserMap_f()->anyError_f())
             {
-                errorQMessageBox_f(actonDataHub_ptr_ext->executionOptions_f().stringParserMap_f()->getError_f(), "Error", this);
+                QString translateAndReplaceTmp(appConfig_ptr_ext->translateAndReplace_f(actonDataHub_ptr_ext->executionOptions_f().stringParserMap_f()->getErrors_f()));
+                errorQMessageBox_f(translateAndReplaceTmp, appConfig_ptr_ext->translate_f("Error"), this);
                 break;
             }
         }

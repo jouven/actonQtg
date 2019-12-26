@@ -11,8 +11,9 @@ class QCheckBox;
 class QSplitter;
 
 class checksDataHub_c;
+class checkData_c;
 class check_c;
-class baseClassCheckWidgets_c;
+class baseClassCheckTypeWidgets_c;
 
 class checkWindow_c : public QWidget
 {
@@ -28,8 +29,10 @@ class checkWindow_c : public QWidget
 
     //to choose the check type ("check same file", "check if action finished"...)
     QComboBox* checkTypeCombo_pri;
+    QComboBox* resultLogicCombo_pri;
 
     QCheckBox* enabledCheckbox_pri;
+    QCheckBox* threadedCheckbox_pri;
 
     const int row_pri_con = 0;
     checksDataHub_c* checkDataHub_ptr_pri;
@@ -40,7 +43,7 @@ class checkWindow_c : public QWidget
     //old combo index to know if the initial one (which shouldn't trigger a clear)
     int lastIndex_pri = -1;
 
-    baseClassCheckWidgets_c* baseClassCheckWidgets_pri = nullptr;
+    baseClassCheckTypeWidgets_c* baseClassCheckWidgets_pri = nullptr;
 
     void clearLayoutItems_f(QLayout* layout_par);
 
@@ -49,6 +52,8 @@ class checkWindow_c : public QWidget
 
     void closeEvent(QCloseEvent* event) override;
 
+    checkData_c fieldsToCheckDataObject_f() const;
+    void loadCheckData_f();
 public:
     explicit checkWindow_c(
             const int row_par_con
@@ -60,11 +65,11 @@ Q_SIGNALS:
     void updateRow_Signal(const int row_par_con);
 public Q_SLOTS:
 private Q_SLOTS:
-    void checkComboChanged_f(int index_par);
+    void checkTypeComboChanged_f(int index_par);
     void saveButtonClicked_f();
     void cancelButtonClicked_f();
     void tipsButtonClicked_f();
-    void save_f();
+    bool save_f();
 };
 
 #endif // ACTONQTG_CHECKWINDOW_HPP

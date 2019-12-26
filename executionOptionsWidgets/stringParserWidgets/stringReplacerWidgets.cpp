@@ -77,10 +77,13 @@ void stringReplacerWidgets_c::loadActionSpecificData_f()
 {
     if (stringReplacer_pri not_eq nullptr)
     {
-        QString replaceTypeStrTmp(stringReplacer_c::replaceTypeToStrUMap_sta_con.at(stringReplacer_pri->replaceType_f()));
-        int loadedReplaceTypeIndexTmp(replaceTypeCombo_pri->findData(replaceTypeStrTmp.toLower()));
-        replaceTypeCombo_pri->setCurrentIndex(loadedReplaceTypeIndexTmp);
-        replaceTypeCombo_pri->setEnabled(false);
+        if (stringReplacer_pri->replaceType_f() not_eq stringReplacer_c::replaceType_ec::empty)
+        {
+            QString replaceTypeStrTmp(stringReplacer_c::replaceTypeToStrUMap_sta_con.at(stringReplacer_pri->replaceType_f()));
+            int loadedReplaceTypeIndexTmp(replaceTypeCombo_pri->findData(replaceTypeStrTmp.toLower()));
+            replaceTypeCombo_pri->setCurrentIndex(loadedReplaceTypeIndexTmp);
+            replaceTypeCombo_pri->setEnabled(false);
+        }
 
         replaceValueOrFormatPTE_pri->setPlainText(stringReplacer_pri->valueFormat_f());
 
@@ -125,8 +128,8 @@ stringReplacerWidgets_c::stringReplacerWidgets_c(
     //useUTC checkbox
     useUTCCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Use UTC"));
     useUTCCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("True = Use UTC, False = use localtime"));
-    useUTCCheckbox_pri->setMinimumHeight(minHeightTmp);
-    useUTCCheckbox_pri->setChecked(false);
+    //useUTCCheckbox_pri->setMinimumHeight(minHeightTmp);
+    //useUTCCheckbox_pri->setChecked(false);
     secondRowLayoutTmp->addWidget(useUTCCheckbox_pri);
 
     QWidget* row1Tmp = new QWidget;

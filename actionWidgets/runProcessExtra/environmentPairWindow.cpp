@@ -36,23 +36,23 @@ environmentPairToAddEditWindow_c::environmentPairToAddEditWindow_c(const QString
     //first row, environment key field
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;
 
-    keyField_pri = new QPlainTextEdit(key_par_con);
-    auto minHeightTmp(keyField_pri->fontMetrics().lineSpacing() + 14);
-    keyField_pri->setMinimumHeight(minHeightTmp);
-    keyField_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+    keyFieldPTE_pri = new QPlainTextEdit(key_par_con);
+    auto minHeightTmp(keyFieldPTE_pri->fontMetrics().lineSpacing() + 14);
+    keyFieldPTE_pri->setMinimumHeight(minHeightTmp);
+    keyFieldPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 
     firstRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Key")));
-    firstRowLayoutTmp->addWidget(keyField_pri);
+    firstRowLayoutTmp->addWidget(keyFieldPTE_pri);
 
     //second row, environment key field
     QHBoxLayout* secondRowLayoutTmp = new QHBoxLayout;
 
-    valueField_pri = new QPlainTextEdit(value_par_con);
-    valueField_pri->setMinimumHeight(minHeightTmp);
-    valueField_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+    valueFieldPTE_pri = new QPlainTextEdit(value_par_con);
+    valueFieldPTE_pri->setMinimumHeight(minHeightTmp);
+    valueFieldPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
 
     secondRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Value")));
-    secondRowLayoutTmp->addWidget(valueField_pri);
+    secondRowLayoutTmp->addWidget(valueFieldPTE_pri);
 
     //third row, enabled checbkox
     QHBoxLayout* thirdRowLayoutTmp = new QHBoxLayout;
@@ -115,17 +115,17 @@ void environmentPairToAddEditWindow_c::saveButtonPushed_f()
     while (true)
     {
         //if the key is empty
-        if (keyField_pri->toPlainText().isEmpty())
+        if (keyFieldPTE_pri->toPlainText().isEmpty())
         {
             errorQMessageBox_f("Empty key", "Error", this);
             break;
         }
 
-        environmentPairConfig_c environmentPairTmp(valueField_pri->toPlainText(), enabledCheckbox_pri->isChecked());
+        environmentPairConfig_c environmentPairTmp(valueFieldPTE_pri->toPlainText(), enabledCheckbox_pri->isChecked());
 
         Q_EMIT saveEnvironmentPairResult_signal
         (
-                    keyField_pri->toPlainText()
+                    keyFieldPTE_pri->toPlainText()
                     , environmentPairTmp
                     , editedRowIndex_pri_con
         );

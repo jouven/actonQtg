@@ -13,6 +13,7 @@ class optionsWindow_c : public QWidget
     Q_OBJECT
 
     QVBoxLayout* mainLayout_pri;
+    //FUTURE add which type of time use by default (local or UTC)
 
     void closeEvent(QCloseEvent* event) override;
 

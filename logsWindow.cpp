@@ -5,7 +5,7 @@
 #include "logsWindowWidgets/QDatetimeEditDelegate.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
-#include "logsinJSONQtso/logItemStrMapping.hpp"
+#include "logsinJSONQtso/logItem.hpp"
 
 #include <QtWidgets>
 #include <QTableWidget>
@@ -107,7 +107,7 @@ void logsWindow_c::addLogEntry_f(const int index_par_con, const logItem_c* const
     dateTimeCellTmp->setFlags(dateTimeCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     QTableWidgetItem *typeCellTmp(new QTableWidgetItem);
-    typeCellTmp->setData(Qt::DisplayRole, logTypeToStrUMap_glo_sta_con.at(logItem_par_con->type_f()));
+    typeCellTmp->setData(Qt::DisplayRole, logItem_c:: logTypeToStrUMap_pub_sta_con.at(logItem_par_con->type_f()));
     typeCellTmp->setFlags(typeCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     QTableWidgetItem *fileCellTmp(new QTableWidgetItem);
@@ -122,9 +122,9 @@ void logsWindow_c::addLogEntry_f(const int index_par_con, const logItem_c* const
     lineNumberCellTmp->setFlags(lineNumberCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     QTableWidgetItem *messageCellTmp(new QTableWidgetItem);
-    messageCellTmp->setData(Qt::DisplayRole, logItem_par_con->message_f());
+    messageCellTmp->setData(Qt::DisplayRole, appConfig_ptr_ext->translateAndReplace_f(logItem_par_con->message_f()));
     messageCellTmp->setFlags(messageCellTmp->flags() bitand compl Qt::ItemIsEditable);
-    messageCellTmp->setToolTip(logItem_par_con->message_f());
+    messageCellTmp->setToolTip(appConfig_ptr_ext->translateAndReplace_f(logItem_par_con->message_f()));
 
     logsTable_pri->setItem(newRowIndexTmp, 0, indexCellTmp);
     logsTable_pri->setItem(newRowIndexTmp, 1, threadIdCellTmp);

@@ -5,11 +5,13 @@
 #include "copyFileExtra/regexQLineEditForDelegate.hpp"
 
 #include "../optionsWidgets/workingDirectoryWindow.hpp"
+#include "../commonWidgets.hpp"
 #include "../appConfig.hpp"
 
 #include "actonQtso/actions/copyFile.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
+#include "essentialQtso/macros.hpp"
 
 #include <QtWidgets>
 //#include <QSplitter>
@@ -37,29 +39,21 @@ QString copyFileWidgets_c::derivedExtraTips_f() const
     return appConfig_ptr_ext->translate_f("<p>copy file widget tips</p>");
 }
 
-bool copyFileWidgets_c::isFieldsDataValid_f() const
+bool copyFileWidgets_c::isFieldsDataValid_f(textCompilation_c* errors_par) const
 {
     bool validTmp(false);
     while (true)
     {
-        QString sourceDirPathTmp(sourcePathPTE_pri->toPlainText());
-        if (sourceDirPathTmp.isEmpty())
-        {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Source path is empty"), appConfig_ptr_ext->translate_f("Error"), static_cast<QWidget*>(this->parent()));
-            break;
-        }
-        QString destinationDirPathTmp(destinationPathPTE_pri->toPlainText());
-        if (destinationDirPathTmp.isEmpty())
-        {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Destination path is empty"), appConfig_ptr_ext->translate_f("Error"), static_cast<QWidget*>(this->parent()));
-            break;
-        }
-
         bool goodNumberConversion(false);
-        if (bufferSizeLineEdit_pri->text().toLong(&goodNumberConversion) < 0
-            or not goodNumberConversion)
+        bufferSizeLineEdit_pri->text().toLong(&goodNumberConversion);
+        if (goodNumberConversion)
         {
-            errorQMessageBox_f("Wrong buffer value, value must be between 1 and INT64MAX", "Error", static_cast<QWidget*>(this->parent()));
+            //good
+        }
+        else
+        {
+            text_c errorTextTmp("Wrong buffer numeric value: {0}", bufferSizeLineEdit_pri->text());
+            APPENDTEXTPTR(errors_par, errorTextTmp)
             break;
         }
 
@@ -72,13 +66,22 @@ bool copyFileWidgets_c::isFieldsDataValid_f() const
 bool copyFileWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
 {
     bool resultTmp(false);
-    if (isFieldsDataValid_f())
+    textCompilation_c errorsTmp;
+    if (isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        MACRO_ADDACTONQTGLOG("Create copyFileAction from fields", logItem_c::type_ec::debug);
-        copyFileAction_ptr_pri = new copyFileAction_c(actionDataBlock_par_con, fieldsToCopyFileDataObject_f());
+        copyFileData_c objTmp(fieldsToCopyFileDataObject_f());
 
-        actionPtr_pro = copyFileAction_ptr_pri;
-        resultTmp = true;
+        if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
+        {
+            copyFileAction_ptr_pri = new copyFileAction_c(actionDataBlock_par_con, objTmp);
+
+            actionPtr_pro = copyFileAction_ptr_pri;
+            resultTmp = true;
+        }
+    }
+    if (errorsTmp.size_f() > 0)
+    {
+        messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
     }
     return resultTmp;
 }
@@ -86,10 +89,19 @@ bool copyFileWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par
 bool copyFileWidgets_c::derivedSaveUpdate_f()
 {
    bool resultTmp(false);
-   if (isFieldsDataValid_f())
+   textCompilation_c errorsTmp;
+   if (isFieldsDataValid_f(std::addressof(errorsTmp)))
    {
-       copyFileAction_ptr_pri->copyFileData_c::operator=(fieldsToCopyFileDataObject_f());
-       resultTmp = true;
+       copyFileData_c objTmp(fieldsToCopyFileDataObject_f());
+       if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
+       {
+           copyFileAction_ptr_pri->updateCopyFileData_f(fieldsToCopyFileDataObject_f());
+           resultTmp = true;
+       }
+   }
+   if (errorsTmp.size_f() > 0)
+   {
+       messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
    }
    return resultTmp;
 }
@@ -177,6 +189,7 @@ copyFileData_c copyFileWidgets_c::fieldsToCopyFileDataObject_f() const
     QString destinationPathTmp(destinationPathPTE_pri->toPlainText());
 
     copyFileData_c::transferType_ec transferTypeTmp(copyFileData_c::strToTransferTypeMap_sta_con.value(transferTypeCombobox_pri->currentData().toString()));
+    copyFileData_c::resumeType_ec resumeTypeTmp(copyFileData_c::strToResumeTypeMap_sta_con.value(resumeTypeCombobox_pri->currentData().toString()));
     copyFileData_c::destinationTreatment_ec destinationTreatmentTmp(copyFileData_c::strToDestinationTreatmentMap_sta_con.value(destinationTreatmentCombobox_pri->currentData().toString()));
 
     QStringList sourceFilenameRegexStringListTmp;
@@ -208,11 +221,13 @@ copyFileData_c copyFileWidgets_c::fieldsToCopyFileDataObject_f() const
         }
     }
 
+    MACRO_ADDACTONQTGLOG("Create copyFileAction obj from fields", logItem_c::type_ec::debug);
     return copyFileData_c(
                 sourcePathTmp
                 , destinationPathTmp
                 , transferTypeTmp
                 , destinationTreatmentTmp
+                , resumeTypeTmp
                 , copyHiddenCheckbox_pri->isChecked()
                 , sourceFilenameRegexStringListTmp
                 , sourceFileFullExtensionStringListTmp
@@ -228,16 +243,36 @@ copyFileData_c copyFileWidgets_c::fieldsToCopyFileDataObject_f() const
 
 void copyFileWidgets_c::tryGenerateFileList_f() const
 {
-    if (isFieldsDataValid_f())
+    copyFileData_c copyFileAcitonTmp(fieldsToCopyFileDataObject_f());
+    textCompilation_c errorsTmp;
+    while (copyFileAcitonTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        copyFileData_c copyFileAcitonTmp(fieldsToCopyFileDataObject_f());
-        std::vector<QString> fileListTmp(copyFileAcitonTmp.testSourceFileList_f());
+        directoryFilter_c* notinuse;
+        //TODO change so it can be stopped from the action editor, remember to add the mutex
+        std::vector<QString> fileListTmp(copyFileData_c::testSourceFileList_f(
+                                             std::addressof(copyFileAcitonTmp)
+                                             , notinuse
+                                             , std::addressof(errorsTmp))
+                                         );
+
+        if (errorsTmp.size_f() > 0)
+        {
+             messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
+             break;
+        }
+
+#ifdef DEBUGJOUVEN
+        //qDebug() << "errorStr " << errorStr;
+        //qDebug() << "fileListTmp.size() " << QString::number(fileListTmp.size());
+#endif
 
         fileListWindow_c* fileListWindowTmp = new fileListWindow_c(fileListTmp, static_cast<QWidget*>(this->parent()));
         fileListWindowTmp->setWindowFlag(Qt::Window, true);
         fileListWindowTmp->setWindowModality(Qt::WindowModal);
         fileListWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
         fileListWindowTmp->show();
+
+        break;
     }
 }
 
@@ -304,43 +339,52 @@ void copyFileWidgets_c::removeSelectedRegexPatternRow_f()
 
 void copyFileWidgets_c::loadActionSpecificData_f()
 {
-    if (copyFileAction_ptr_pri not_eq nullptr)
+    copyFileData_c valuesToLoadTmp(copyFileAction_ptr_pri not_eq nullptr ? *copyFileAction_ptr_pri : copyFileData_c());
+
+    sourcePathPTE_pri->setPlainText(valuesToLoadTmp.sourcePath_f());
+    destinationPathPTE_pri->setPlainText(valuesToLoadTmp.destinationPath_f());
+
+    if (valuesToLoadTmp.transferType_f() not_eq copyFileData_c::transferType_ec::empty)
     {
-        sourcePathPTE_pri->setPlainText(copyFileAction_ptr_pri->sourcePath_f());
-        destinationPathPTE_pri->setPlainText(copyFileAction_ptr_pri->destinationPath_f());
-
-        {
-            QString transferTypeStrTmp(copyFileAction_c::transferTypeToStrUMap_sta_con.at(copyFileAction_ptr_pri->transferType_f()));
-            int loadedIndexTmp(transferTypeCombobox_pri->findData(transferTypeStrTmp.toLower()));
-            transferTypeCombobox_pri->setCurrentIndex(loadedIndexTmp);
-        }
-
-        {
-            QString destinationTreatmentStrTmp(copyFileAction_c::destinationTreatmentToStrUMap_sta_con.at(copyFileAction_ptr_pri->destinationTreatment_f()));
-            int loadedIndexTmp(destinationTreatmentCombobox_pri->findData(destinationTreatmentStrTmp.toLower()));
-            destinationTreatmentCombobox_pri->setCurrentIndex(loadedIndexTmp);
-        }
-
-
-        for (const QString& filenameFullExtension_ite_con : copyFileAction_ptr_pri->sourceFilenameFullExtensions_f())
-        {
-            insertFullExtensionRow_f(filenameFullExtension_ite_con);
-        }
-
-        for (const QString& sourceFilenameRegexFilter_ite_con : copyFileAction_ptr_pri->sourceFilenameRegexFilters_f())
-        {
-            insertRegexPatternRow_f(sourceFilenameRegexFilter_ite_con);
-        }
-
-        copyHiddenCheckbox_pri->setChecked(copyFileAction_ptr_pri->copyHidden_f());
-        navigateSubdirectoriesCheckbox_pri->setChecked(copyFileAction_ptr_pri->navigateSubdirectories_f());
-        navigateHiddenCheckbox_pri->setChecked(copyFileAction_ptr_pri->navigateHidden_f());
-        copyEmptyDirectoriesCheckbox_pri->setChecked(copyFileAction_ptr_pri->copyEmptyDirectories_f());
-        createDestinationAndParentsCheckbox_pri->setChecked(copyFileAction_ptr_pri->createDestinationAndParents_f());
-        noFilesCopiedIsErrorCheckbox_pri->setChecked(copyFileAction_ptr_pri->noFilesCopiedIsError_f());
-
-        bufferSizeLineEdit_pri->setText(QString::number(copyFileAction_ptr_pri->bufferSize_f()));
+        QString transferTypeStrTmp(copyFileAction_c::transferTypeToStrUMap_sta_con.at(valuesToLoadTmp.transferType_f()));
+        int loadedIndexTmp(transferTypeCombobox_pri->findData(transferTypeStrTmp.toLower()));
+        transferTypeCombobox_pri->setCurrentIndex(loadedIndexTmp);
     }
+
+    if (valuesToLoadTmp.resumeType_f() not_eq copyFileData_c::resumeType_ec::empty)
+    {
+        QString resumeTypeStrTmp(copyFileAction_c::resumeTypeToStrUMap_sta_con.at(valuesToLoadTmp.resumeType_f()));
+        int loadedIndexTmp(resumeTypeCombobox_pri->findData(resumeTypeStrTmp.toLower()));
+        resumeTypeCombobox_pri->setCurrentIndex(loadedIndexTmp);
+    }
+
+    if (valuesToLoadTmp.destinationTreatment_f() not_eq copyFileData_c::destinationTreatment_ec::empty)
+    {
+        QString destinationTreatmentStrTmp(copyFileAction_c::destinationTreatmentToStrUMap_sta_con.at(valuesToLoadTmp.destinationTreatment_f()));
+        int loadedIndexTmp(destinationTreatmentCombobox_pri->findData(destinationTreatmentStrTmp.toLower()));
+        destinationTreatmentCombobox_pri->setCurrentIndex(loadedIndexTmp);
+    }
+
+
+    for (const QString& filenameFullExtension_ite_con : valuesToLoadTmp.sourceFilenameFullExtensions_f())
+    {
+        insertFullExtensionRow_f(filenameFullExtension_ite_con);
+    }
+
+    for (const QString& sourceFilenameRegexFilter_ite_con : valuesToLoadTmp.sourceFilenameRegexFilters_f())
+    {
+        insertRegexPatternRow_f(sourceFilenameRegexFilter_ite_con);
+    }
+
+    copyHiddenCheckbox_pri->setChecked(valuesToLoadTmp.copyHidden_f());
+    navigateSubdirectoriesCheckbox_pri->setChecked(valuesToLoadTmp.navigateSubdirectories_f());
+    navigateHiddenCheckbox_pri->setChecked(valuesToLoadTmp.navigateHidden_f());
+    copyEmptyDirectoriesCheckbox_pri->setChecked(valuesToLoadTmp.copyEmptyDirectories_f());
+    createDestinationAndParentsCheckbox_pri->setChecked(valuesToLoadTmp.createDestinationAndParents_f());
+    noFilesCopiedIsErrorCheckbox_pri->setChecked(valuesToLoadTmp.noFilesCopiedIsError_f());
+    stopAllCopyOnFileCopyErrorCheckbox_pri->setChecked(valuesToLoadTmp.stopAllCopyOnFileCopyError_f());
+
+    bufferSizeLineEdit_pri->setText(QString::number(valuesToLoadTmp.bufferSize_f()));
 }
 
 void copyFileWidgets_c::showCurrentWorkingDirectoryWindow_f()
@@ -388,7 +432,7 @@ copyFileWidgets_c::copyFileWidgets_c(
         action_c*& action_ptr_par
         , QVBoxLayout* const variableLayout_par_con
         )
-    : baseClassActionWidgets_c(action_ptr_par, variableLayout_par_con->parentWidget())
+    : baseClassActionTypeWidgets_c(action_ptr_par, variableLayout_par_con->parentWidget())
     , copyFileAction_ptr_pri(action_ptr_par == nullptr ? nullptr : static_cast<copyFileAction_c*>(action_ptr_par))
 {
     this->setObjectName("copyFileWidgets_");
@@ -420,7 +464,7 @@ copyFileWidgets_c::copyFileWidgets_c(
     secondRowLayoutTmp->addWidget(browseDestinationPathButtonTmp);
     connect(browseDestinationPathButtonTmp, &QPushButton::clicked, this, &copyFileWidgets_c::browseDestinationPath_f);
 
-    //transfer type combo
+    //transfer type combo, resume type combo, destination treatment type combo
     QHBoxLayout* thirdRowLayoutTmp = new QHBoxLayout;
 
     transferTypeCombobox_pri = new QComboBox();
@@ -446,10 +490,30 @@ Also resumes by default, it will prepend the source to the destination if the de
         transferTypeCombobox_pri->insertItem(transferTypeCombobox_pri->count(), appConfig_ptr_ext->translate_f(transferTypeStr_ite_con), transferTypeStr_ite_con);
     }
 
-    //destination treatment
-    //QHBoxLayout* fourthRowLayoutTmp = new QHBoxLayout;
+    resumeTypeCombobox_pri = new QComboBox;
+    resumeTypeCombobox_pri->setEditable(true);
+    resumeTypeCombobox_pri->setInsertPolicy(QComboBox::NoInsert);
+    resumeTypeCombobox_pri->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    resumeTypeCombobox_pri->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    resumeTypeCombobox_pri->setToolTip(appConfig_ptr_ext->translate_f(
+    R"(Transfer type implementation: when the transfer type forces a resume type ("true move" transfer types)
+stupid: If the destination is smaller it will resume writing at the end of the destination,
+if destination is bigger it will be ignored, this can have some adverse consequences if source or destination changed after the initial transfer interruption,
+will only check if the source@size > destination@size and use the destination size as the starting index for the source to resume the transfer
+lazy: like the above but compares source and destination and only writes when a difference is detected (the first one),
+i.e. destination already exists so a comparison is done between source and destination, in blocks, and as long as they are equal no writing will happen
+once a difference is found writting will start, and no more comparison is done,
+in the rare? case where the destination file is the same but larger, it will be truncated from the end)"
+));
+    thirdRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Resume type")));
+    thirdRowLayoutTmp->addWidget(resumeTypeCombobox_pri);
 
-    destinationTreatmentCombobox_pri = new QComboBox();
+    for (const QString& resumeTypeStr_ite_con : copyFileAction_c::strToResumeTypeMap_sta_con.keys())
+    {
+        resumeTypeCombobox_pri->insertItem(resumeTypeCombobox_pri->count(), appConfig_ptr_ext->translate_f(resumeTypeStr_ite_con), resumeTypeStr_ite_con);
+    }
+
+    destinationTreatmentCombobox_pri = new QComboBox;
     destinationTreatmentCombobox_pri->setEditable(true);
     destinationTreatmentCombobox_pri->setInsertPolicy(QComboBox::NoInsert);
     destinationTreatmentCombobox_pri->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -514,12 +578,12 @@ Filter is applied "or" wise)"
         QVBoxLayout* fullExtensionsButtonsVLayoutTmp = new QVBoxLayout;
 
         QPushButton* addFilenameFullExtensionRowButtonTmp(new QPushButton(appConfig_ptr_ext->translate_f("Add")));
-        addFilenameFullExtensionRowButtonTmp->setToolTip("Add a row, empty rows will be ignored when saving");
+        addFilenameFullExtensionRowButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Add a row, empty rows will be ignored when saving"));
         connect(addFilenameFullExtensionRowButtonTmp, &QPushButton::clicked, this, &copyFileWidgets_c::addFilenameFullExtensionRow_f);
         fullExtensionsButtonsVLayoutTmp->addWidget(addFilenameFullExtensionRowButtonTmp);
 
         QPushButton* removeFlenameFullExtensionRowButtonTmp(new QPushButton(appConfig_ptr_ext->translate_f("Remove")));
-        removeFlenameFullExtensionRowButtonTmp->setToolTip("Remove selected rows");
+        removeFlenameFullExtensionRowButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Remove selected rows"));
         connect(removeFlenameFullExtensionRowButtonTmp, &QPushButton::clicked, this, &copyFileWidgets_c::removeSelectedFilenameFullExtensionRow_f);
         fullExtensionsButtonsVLayoutTmp->addWidget(removeFlenameFullExtensionRowButtonTmp);
 
@@ -569,12 +633,12 @@ Filter is applied "or" wise)"
         QVBoxLayout* regexButtonsVLayoutTmp = new QVBoxLayout;
 
         QPushButton* addFilenameRegexRowButtonTmp(new QPushButton(appConfig_ptr_ext->translate_f("Add")));
-        addFilenameRegexRowButtonTmp->setToolTip("Add a row, empty rows will be ignored when saving");
+        addFilenameRegexRowButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Add a row, empty rows will be ignored when saving"));
         connect(addFilenameRegexRowButtonTmp, &QPushButton::clicked, this, &copyFileWidgets_c::addFilenameRegexPatternRow_f);
         regexButtonsVLayoutTmp->addWidget(addFilenameRegexRowButtonTmp);
 
         QPushButton* removeFlenameFullExtensionRowButtonTmp(new QPushButton(appConfig_ptr_ext->translate_f("Remove")));
-        removeFlenameFullExtensionRowButtonTmp->setToolTip("Remove selected rows");
+        removeFlenameFullExtensionRowButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Remove selected rows"));
         connect(removeFlenameFullExtensionRowButtonTmp, &QPushButton::clicked, this, &copyFileWidgets_c::removeSelectedRegexPatternRow_f);
         regexButtonsVLayoutTmp->addWidget(removeFlenameFullExtensionRowButtonTmp);
 
@@ -587,47 +651,40 @@ Filter is applied "or" wise)"
 
     navigateSubdirectoriesCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Navigate subdirectories"));
     navigateSubdirectoriesCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("Navigate or ignore directories in the source"));
-    navigateSubdirectoriesCheckbox_pri->setMinimumHeight(minHeightTmp);
-    navigateSubdirectoriesCheckbox_pri->setChecked(true);
+    //navigateSubdirectoriesCheckbox_pri->setMinimumHeight(minHeightTmp);
     firstChecksColumnTmp->addWidget(navigateSubdirectoriesCheckbox_pri);
 
     navigateHiddenCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Navigate hidden directories"));
     navigateHiddenCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("When copying subdirectories of the source path, navigate or ignore hidden directories"));
-    navigateHiddenCheckbox_pri->setMinimumHeight(minHeightTmp);
-    navigateHiddenCheckbox_pri->setChecked(true);
+    //navigateHiddenCheckbox_pri->setMinimumHeight(minHeightTmp);
     firstChecksColumnTmp->addWidget(navigateHiddenCheckbox_pri);
 
     copyHiddenCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Copy hidden files"));
     copyHiddenCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("Copy hidden files, directories are not factored"));
-    copyHiddenCheckbox_pri->setMinimumHeight(minHeightTmp);
-    copyHiddenCheckbox_pri->setChecked(true);
+    //copyHiddenCheckbox_pri->setMinimumHeight(minHeightTmp);
     firstChecksColumnTmp->addWidget(copyHiddenCheckbox_pri);
 
     copyEmptyDirectoriesCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Copy empty directories"));
     copyEmptyDirectoriesCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("Copy directories with no files, will still copy directories that have directories even if they are empty"));
-    copyEmptyDirectoriesCheckbox_pri->setMinimumHeight(minHeightTmp);
-    copyEmptyDirectoriesCheckbox_pri->setChecked(true);
+    //copyEmptyDirectoriesCheckbox_pri->setMinimumHeight(minHeightTmp);
     firstChecksColumnTmp->addWidget(copyEmptyDirectoriesCheckbox_pri);
 
     QVBoxLayout* secondChecksColumnTmp = new QVBoxLayout;
 
     createDestinationAndParentsCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Create destination parents"));
     createDestinationAndParentsCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("Create destination and all the parent directories, otherwise, if destination doesn't exist, an error will happen"));
-    createDestinationAndParentsCheckbox_pri->setMinimumHeight(minHeightTmp);
-    createDestinationAndParentsCheckbox_pri->setChecked(true);
+    //createDestinationAndParentsCheckbox_pri->setMinimumHeight(minHeightTmp);
     secondChecksColumnTmp->addWidget(createDestinationAndParentsCheckbox_pri);
 
     noFilesCopiedIsErrorCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("No files copied is error"));
     noFilesCopiedIsErrorCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("If no files are coppied throw an error"));
-    noFilesCopiedIsErrorCheckbox_pri->setMinimumHeight(minHeightTmp);
-    noFilesCopiedIsErrorCheckbox_pri->setChecked(true);
+    //noFilesCopiedIsErrorCheckbox_pri->setMinimumHeight(minHeightTmp);
     secondChecksColumnTmp->addWidget(noFilesCopiedIsErrorCheckbox_pri);
 
     stopAllCopyOnFileCopyErrorCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Stop copy on error"));
     stopAllCopyOnFileCopyErrorCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f(R"(Stop the copy operation on the first error, or when unchecked,
-    continue copying, saving the errors, and showing them at the end)"));
-    stopAllCopyOnFileCopyErrorCheckbox_pri->setMinimumHeight(minHeightTmp);
-    stopAllCopyOnFileCopyErrorCheckbox_pri->setChecked(true);
+continue copying, saving the errors, and showing them at the end)"));
+    //stopAllCopyOnFileCopyErrorCheckbox_pri->setMinimumHeight(minHeightTmp);
     secondChecksColumnTmp->addWidget(stopAllCopyOnFileCopyErrorCheckbox_pri);
 
     QVBoxLayout* thirdColumnTmp = new QVBoxLayout;
@@ -635,22 +692,21 @@ Filter is applied "or" wise)"
     QHBoxLayout* bufferRowTmp = new QHBoxLayout;
 
     QLabel* bufferLabelTmp = new QLabel(appConfig_ptr_ext->translate_f("Buffer size"));
-    bufferLabelTmp->setToolTip(
+    bufferLabelTmp->setToolTip(appConfig_ptr_ext->translate_f(
 "<p>Minimum 1 byte, maximum INT64MAX</p>"
 "<p>Mind the free available ram size, when using trueMove it can be \"tweaked\" to transfer a file faster, but using more extra space/p>"
-    );
+    ));
     bufferRowTmp->addWidget(bufferLabelTmp);
 
     bufferSizeLineEdit_pri = new QLineEdit;
 
-    QRegExp reIntegersTmp(R"(^[0-9]*$)");
-    QValidator *validatorTmp = new QRegExpValidator(reIntegersTmp, this);
+    //that's the "string" length of max 64bit signed number
+    /////////////////////////////////////"9223372036854775808 (length 19)
+    QValidator *validatorTmp = new QRegExpValidator(QRegExp("[0-9]{19}"), this);
     bufferSizeLineEdit_pri->setValidator(validatorTmp);
-    //enough for 64bit
-    bufferSizeLineEdit_pri->setMaxLength(20);
-    bufferSizeLineEdit_pri->setToolTip(
-                "<p>Mind the free available ram size, when using trueMove this can be \"abused\" to read a file in one-shot, and if nothing goes wrong electric power wise, write it in one-shot using 0 extra space</p>"
-    );
+    bufferSizeLineEdit_pri->setToolTip(appConfig_ptr_ext->translate_f(
+                "<p>Mind the free available ram size, when using trueMove this can be \"abused\" to read a file in one-shot and, if nothing goes wrong, write it in one-shot using 0 extra space</p>"
+    ));
     bufferRowTmp->addWidget(bufferSizeLineEdit_pri);
 
     thirdColumnTmp->addLayout(bufferRowTmp);

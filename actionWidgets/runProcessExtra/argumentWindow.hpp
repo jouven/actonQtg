@@ -17,7 +17,7 @@ class argumentEditWindow_c : public QWidget
 
     QVBoxLayout* mainLayout_pri;
 
-    QPlainTextEdit* argumentField_pri;
+    QPlainTextEdit* argumentFieldPTE_pri;
 
     QLineEdit* argumentIndexField_pri;
     QCheckBox* enabledCheckbox_pri;

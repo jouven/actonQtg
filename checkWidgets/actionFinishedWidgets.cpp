@@ -1,5 +1,6 @@
 #include "actionFinishedWidgets.hpp"
 
+#include "../commonWidgets.hpp"
 #include "../appConfig.hpp"
 
 #include "actonQtso/checks/actionFinished.hpp"
@@ -8,7 +9,10 @@
 
 #include "stringParserMapQtso/stringParserMap.hpp"
 
+#include "textQtso/text.hpp"
 #include "essentialQtgso/messageBox.hpp"
+#include "essentialQtso/macros.hpp"
+
 
 #include <QtWidgets>
 //#include <QSplitter>
@@ -22,48 +26,66 @@ void actionFinishedWidgets_c::derivedParentClosing_f()
 
 void actionFinishedWidgets_c::loadCheckSpecificData_f()
 {
-    if (actionFinishedCheck_ptr_pri not_eq nullptr)
-    {
-        actionStringIdCombo_pri->setCurrentText(actionFinishedCheck_ptr_pri->actionStringId_f());
-        actionStringIdCombo_pri->setEnabled(false);
-        failCheckOnNotSuccessfulCheckbox_pri->setChecked(actionFinishedCheck_ptr_pri->failCheckOnNotSuccessfulActionFinish_f());
+    actionFinishedData_c valuesToLoadTmp(actionFinishedCheck_ptr_pri not_eq nullptr ? *actionFinishedCheck_ptr_pri : actionFinishedData_c());
 
-        for (const std::pair<const actionFinishedCheck_c::actionExecutionResultFields_ec, QString>& ite_con : actionFinishedCheck_ptr_pri->actionExecutionResultFieldToStringTrigger_f())
+    actionStringIdCombo_pri->setCurrentText(valuesToLoadTmp.actionStringId_f());
+    //actionStringIdCombo_pri->setEnabled(false);
+
+    successOnActionSuccessCheckBox_pri->setChecked(valuesToLoadTmp.successOnActionSuccess_f());
+    finishedCountLineEdit_pri->setText(QString::number(valuesToLoadTmp.finishedCount_f()));
+
+    for (const std::pair<const actionFinishedCheck_c::actionExecutionResultFields_ec, QString>& ite_con : valuesToLoadTmp.actionExecutionResultFieldToStringTrigger_f())
+    {
+        for (auto rowIndex_ite = 0, l = actionResultTypeToStringParserTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
         {
-            for (auto rowIndex_ite = 0, l = actionResultTypeToStringParserTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
+            if (actionResultTypeToStringParserTable_pri->item(rowIndex_ite, 0)->data(Qt::UserRole).toString()
+                == actionFinishedCheck_c::actionExecutionResultFieldsToStrUMap_sta_con.at(ite_con.first).toLower())
             {
-                if (actionResultTypeToStringParserTable_pri->item(rowIndex_ite, 0)->data(Qt::UserRole).toString()
-                    == actionFinishedCheck_c::actionExecutionResultFieldsToStrUMap_sta_con.at(ite_con.first).toLower())
-                {
-                    actionResultTypeToStringParserTable_pri->item(rowIndex_ite, 1)->setText(ite_con.second);
-                    break;
-                }
-                else
-                {
-                    //keep going
-                }
+                actionResultTypeToStringParserTable_pri->item(rowIndex_ite, 1)->setText(ite_con.second);
+                break;
             }
-//            //get the cell of the result-type
-//             QTableWidgetItem* cellTmp(
-//                         actionResultTypeToStringParserTable_pri->findItems(
-//                             actionFinishedCheck_c::actionExecutionResultFieldsToStrUMap_sta_con.at(ite_con.first).toLower()
-//                             , Qt::MatchFlag::MatchFixedString)
-//                         .first());
+            else
+            {
+                //keep going
+            }
+        }
+        //            //get the cell of the result-type
+        //             QTableWidgetItem* cellTmp(
+        //                         actionResultTypeToStringParserTable_pri->findItems(
+        //                             actionFinishedCheck_c::actionExecutionResultFieldsToStrUMap_sta_con.at(ite_con.first).toLower()
+        //                             , Qt::MatchFlag::MatchFixedString)
+        //                         .first());
 
 #ifdef DEBUGJOUVEN
-             //qDebug() << "actionFinishedCheck_c::actionExecutionResultFieldsToStrUMap_sta_con.at(ite_con.first) " << actionFinishedCheck_c::actionExecutionResultFieldsToStrUMap_sta_con.at(ite_con.first);
-             //qDebug() << "cellTmp->row() " << QString::number(cellTmp->row());
-             //qDebug() << "cellTmp->text() " << cellTmp->text();
+        //qDebug() << "actionFinishedCheck_c::actionExecutionResultFieldsToStrUMap_sta_con.at(ite_con.first) " << actionFinishedCheck_c::actionExecutionResultFieldsToStrUMap_sta_con.at(ite_con.first);
+        //qDebug() << "cellTmp->row() " << QString::number(cellTmp->row());
+        //qDebug() << "cellTmp->text() " << cellTmp->text();
 #endif
-        }
     }
+
 }
 
-bool actionFinishedWidgets_c::isFieldsDataValid_f() const
+bool actionFinishedWidgets_c::isFieldsDataValid_f(textCompilation_c* errors_par) const
 {
     bool validTmp(false);
     while (true)
     {
+        //finished count
+        {
+            bool goodNumberConversion(false);
+            finishedCountLineEdit_pri->text().toLong(&goodNumberConversion);
+            if (goodNumberConversion)
+            {
+                //good
+            }
+            else
+            {
+                text_c errorTextTmp("Wrong finished count value: {0}", finishedCountLineEdit_pri->text());
+                APPENDTEXTPTR(errors_par, errorTextTmp)
+                break;
+            }
+        }
+
         bool errorTmp(false);
         QStringList stringTriggersTmp;
         for (auto rowIndex_ite = 0, l = actionResultTypeToStringParserTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
@@ -77,10 +99,7 @@ bool actionFinishedWidgets_c::isFieldsDataValid_f() const
             {
                 if (actonDataHub_ptr_ext->hasStringTriggerAnyDependency_f(stringTriggerTmp, actionFinishedCheck_ptr_pri))
                 {
-                    errorQMessageBox_f(
-                                appConfig_ptr_ext->translate_f("String trigger already in use, in an action-check")
-                                , appConfig_ptr_ext->translate_f("Error")
-                                , static_cast<QWidget*>(this->parent()));
+                    APPENDTEXTPTR(errors_par, "String trigger already in use, in an action-check")
                     errorTmp = true;
                     break;
                 }
@@ -88,17 +107,15 @@ bool actionFinishedWidgets_c::isFieldsDataValid_f() const
                 int_fast64_t existingStringParserIndexTmp(stringParserMap_ptr_ext->stringTriggerIndex_f(stringTriggerTmp));
                 if (existingStringParserIndexTmp not_eq -1)
                 {
-                    errorQMessageBox_f(appConfig_ptr_ext->translate_f("String trigger already in use, in another string parser, index ") + QString::number(existingStringParserIndexTmp)
-                                       , appConfig_ptr_ext->translate_f("Error")
-                                       , static_cast<QWidget*>(this->parent()));
+                    text_c errorTextTmp("String trigger already in use, in another string parser, index: {0}", existingStringParserIndexTmp);
+                    APPENDTEXTPTR(errors_par, errorTextTmp)
                     errorTmp = true;
                     break;
                 }
                 if (stringTriggersTmp.contains(stringTriggerTmp))
                 {
-                    errorQMessageBox_f(appConfig_ptr_ext->translate_f("String trigger already in use, in this parser, index ") + QString::number(rowIndex_ite)
-                                       , appConfig_ptr_ext->translate_f("Error")
-                                       , static_cast<QWidget*>(this->parent()));
+                    text_c errorTextTmp("String trigger already in use, in this parser, index: {0}", rowIndex_ite);
+                    APPENDTEXTPTR(errors_par, errorTextTmp)
                     errorTmp = true;
                     break;
                 }
@@ -122,13 +139,22 @@ bool actionFinishedWidgets_c::isFieldsDataValid_f() const
 bool actionFinishedWidgets_c::derivedSaveNew_f(const checkData_c& checkData_par_con)
 {
     bool resultTmp(false);
-    if (isFieldsDataValid_f())
+    textCompilation_c errorsTmp;
+    if (isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        MACRO_ADDACTONQTGLOG("Create actionFinishedCheck_c from fields", logItem_c::type_ec::debug);
-        actionFinishedCheck_ptr_pri = new actionFinishedCheck_c(checkData_par_con, fieldsToActionFinishedDataObject_f());
+        actionFinishedData_c objTmp(fieldsToActionFinishedDataObject_f());
 
-        checkPtr_pro = actionFinishedCheck_ptr_pri;
-        resultTmp = true;
+        if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
+        {
+            actionFinishedCheck_ptr_pri = new actionFinishedCheck_c(checkData_par_con, objTmp);
+
+            checkPtr_pro = actionFinishedCheck_ptr_pri;
+            resultTmp = true;
+        }
+    }
+    if (errorsTmp.size_f() > 0)
+    {
+        messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
     }
     return resultTmp;
 }
@@ -136,10 +162,20 @@ bool actionFinishedWidgets_c::derivedSaveNew_f(const checkData_c& checkData_par_
 bool actionFinishedWidgets_c::derivedSaveUpdate_f()
 {
     bool resultTmp(false);
-    if (isFieldsDataValid_f())
+    textCompilation_c errorsTmp;
+    if (isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        actionFinishedCheck_ptr_pri->actionFinishedData_c::operator=(fieldsToActionFinishedDataObject_f());
-        resultTmp = true;
+        actionFinishedData_c objTmp(fieldsToActionFinishedDataObject_f());
+
+        if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
+        {
+            actionFinishedCheck_ptr_pri->updateActionFinishedData_f(objTmp);
+            resultTmp = true;
+        }
+    }
+    if (errorsTmp.size_f() > 0)
+    {
+        messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
     }
     return resultTmp;
 }
@@ -175,7 +211,8 @@ actionFinishedData_c actionFinishedWidgets_c::fieldsToActionFinishedDataObject_f
 
     return actionFinishedData_c(
                 actionStringIdTmp
-                , failCheckOnNotSuccessfulCheckbox_pri->isChecked()
+                , finishedCountLineEdit_pri->text().toLongLong()
+                , successOnActionSuccessCheckBox_pri->isChecked()
                 , actionExecutionResultFieldToStringTriggerTmp
     );
 }
@@ -184,24 +221,28 @@ actionFinishedWidgets_c::actionFinishedWidgets_c(
         check_c*& check_ptr_par
         , QVBoxLayout* const variableLayout_par
         , const action_c* const parentAction_par_con)
-    : baseClassCheckWidgets_c(check_ptr_par, variableLayout_par->parentWidget())
+    : baseClassCheckTypeWidgets_c(check_ptr_par, variableLayout_par->parentWidget())
     , actionFinishedCheck_ptr_pri(check_ptr_par == nullptr ? nullptr : static_cast<actionFinishedCheck_c*>(check_ptr_par))
 {
     this->setObjectName("actionFinishedWidgets_");
+
 #ifdef DEBUGJOUVEN
     //qDebug() << "-1 actionFinishedWidgets_c" << endl;
 #endif
     //combo to select an actionStringId to check if it has finished
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;
 
-    actionStringIdCombo_pri = new QComboBox();
+    actionStringIdCombo_pri = new QComboBox;
     //this allows autocomplete
     actionStringIdCombo_pri->setEditable(true);
     actionStringIdCombo_pri->setInsertPolicy(QComboBox::NoInsert);
     actionStringIdCombo_pri->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     actionStringIdCombo_pri->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 
-    firstRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Action String Id")));
+    QLabel* actionStringIdLabel(new QLabel(appConfig_ptr_ext->translate_f("Action String Id")));
+    //auto minHeightTmp(actionStringIdLabel->fontMetrics().lineSpacing() + 14);
+
+    firstRowLayoutTmp->addWidget(actionStringIdLabel);
     firstRowLayoutTmp->addWidget(actionStringIdCombo_pri);
 #ifdef DEBUGJOUVEN
     //qDebug() << "0 actionFinishedWidgets_c" << endl;
@@ -217,20 +258,49 @@ actionFinishedWidgets_c::actionFinishedWidgets_c(
         }
     }
 
-    //Fail check on no action success checkbox
+    //finished count, success on success check
     QHBoxLayout* secondRowLayoutTmp = new QHBoxLayout;
 
-    failCheckOnNotSuccessfulCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Fail this check on no action success"));
-    failCheckOnNotSuccessfulCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("Unchecked: no matter how the action ends, error or success, the checks return true. Checked: the check will only return true if the action ended in success"));
+    QLabel* finishedCountLabelTmp = new QLabel(appConfig_ptr_ext->translate_f("Finished count"));
+    finishedCountLabelTmp->setToolTip(appConfig_ptr_ext->translate_f(
+                "<p>How many times the action must finish to trigger this check success</p>"
+                "<p>Minimum 1, maximum INT64MAX</p>"
+    ));
+    secondRowLayoutTmp->addWidget(finishedCountLabelTmp);
 
-    secondRowLayoutTmp->addWidget(failCheckOnNotSuccessfulCheckbox_pri);
+    finishedCountLineEdit_pri = new QLineEdit;
+    //that's the "string" length of max 64bit signed number
+    ////////////////////////////////////////"9223372036854775808
+    QRegExpValidator *a64bitValidatorTmp = new QRegExpValidator(QRegExp("[1-9][0-9]{18}"), this);
+    finishedCountLineEdit_pri->setValidator(a64bitValidatorTmp);
+    //20191115 validator reviews:
+    //1 QIntValidator(0, INT32_MAX, this)
+    //  it's 32 bit only, doesn't allow negative sign, requires an active function call in the code, allows 0 even when the minimum is 1
+    //2 setInputMask("000000000000000000D")
+    //  doesn't allow negative sign, doesn't check numeric range only the "text length"
+    //3 QRegExpValidator(QRegExp("[0-9]{19}"), this) plus QRegExp("^-?[0-9]{19}") for negative numbers
+    //  doesn't check numeric range only the "text length"
+
+    //20191115 best option, right now, is 3
+
+    //QValidator *validatorTmp = new QIntValidator(0, INT32_MAX, this);
+    //finishedCountLineEdit_pri->setValidator(validatorTmp);
+    secondRowLayoutTmp->addWidget(finishedCountLineEdit_pri);
+
+    successOnActionSuccessCheckBox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Success on action success"));
+    successOnActionSuccessCheckBox_pri->setToolTip(
+                appConfig_ptr_ext->translate_f("Controls if this checks success depends on the action succcess or otherwise ANY action finished state")
+    );
+    //successOnActionSuccessCheckBox_pri->setMinimumHeight(minHeightTmp);
+    secondRowLayoutTmp->addWidget(successOnActionSuccessCheckBox_pri);
 
     QHBoxLayout* thirdRowLayoutTmp = new QHBoxLayout;
 
     QLabel* labelActionResultTypeToStringParserTableTitle(
                 new QLabel(appConfig_ptr_ext->translate_f("Create string replacer parser (see tooltip)")));
-    labelActionResultTypeToStringParserTableTitle->setToolTip("Create string replacer parser with the results of the action referenced by the String Id,"
-                                                              " this parser is removed when the execution finishes");
+    labelActionResultTypeToStringParserTableTitle->setToolTip(appConfig_ptr_ext->translate_f(
+                "Create string replacer parser with the results of the action referenced by the String Id,"
+                " this parser is removed when the execution finishes"));
     thirdRowLayoutTmp->addWidget(labelActionResultTypeToStringParserTableTitle);
 
     QHBoxLayout* fourthRowLayoutTmp = new QHBoxLayout;

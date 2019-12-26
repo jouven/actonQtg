@@ -3,6 +3,7 @@
 #include "checkWindow.hpp"
 #include "appConfig.hpp"
 #include "checkExecutionDetailsWindow.hpp"
+#include "../stringFormatting.hpp"
 
 #include "actonQtso/actonDataHub.hpp"
 #include "actonQtso/checkData.hpp"
@@ -29,7 +30,8 @@ void actionChecksWindow_c::closeEvent(QCloseEvent* event)
     {
         if (checkDataHub_ptr_pri->executingChecks_f())
         {
-            MACRO_ADDACTONQTGLOG(R"(Action, stringId)" + checkDataHub_ptr_pri->parentAction_f()->stringId_f() + R"(, "checks window" close while executing checks)", logItem_c::type_ec::info);
+            text_c logMessageTmp(R"(Action, stringId {0}, "checks window" close while executing checks)", static_cast<action_c*>(checkDataHub_ptr_pri->parent())->stringId_f());
+            MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::info);
             createMessageBoxAskAboutExecutingChecksOnClose_f();
             break;
         }
@@ -84,7 +86,7 @@ actionChecksWindow_c::actionChecksWindow_c(
 
     //execute/stop checks
     executeChecksButton_pri = new QPushButton(appConfig_ptr_ext->translate_f("&Execute Checks"));
-    executeChecksButton_pri->setToolTip("No selection executes all checks, selection executes selected checks");
+    executeChecksButton_pri->setToolTip(appConfig_ptr_ext->translate_f("No selection executes all checks, selection executes selected checks"));
     secondRowLayoutTmp->addWidget(executeChecksButton_pri);
     QObject::connect(executeChecksButton_pri, &QPushButton::clicked, this, &actionChecksWindow_c::executeChecksButtonClicked_f);
 
@@ -127,19 +129,19 @@ actionChecksWindow_c::actionChecksWindow_c(
 
     //move checks up button
     QPushButton* moveCheckUpButtonTmp = new QPushButton(QIcon(":/images/upArrow.png"), "");
-    moveCheckUpButtonTmp->setToolTip("Move the selected checks up one index");
+    moveCheckUpButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Move the selected checks up one index"));
     indexChangingLayoutTmp->addWidget(moveCheckUpButtonTmp);
     QObject::connect(moveCheckUpButtonTmp, &QPushButton::clicked, this, &actionChecksWindow_c::moveSelectedChecksUpByOneButtonClicked_f);
 
     //change the index of the selected check button
-    QPushButton* changeIndexButtonTmp = new QPushButton("Change\ncheck\nindex");
-    changeIndexButtonTmp->setToolTip("Changes the first selected check index to a new one moving the destination and all the checks below one index down (except if it's the last index)");
+    QPushButton* changeIndexButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Change\ncheck\nindex"));
+    changeIndexButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Changes the first selected check index to a new one moving the destination and all the checks below one index down (except if it's the last index)"));
     indexChangingLayoutTmp->addWidget(changeIndexButtonTmp);
     QObject::connect(changeIndexButtonTmp, &QPushButton::clicked, this, &actionChecksWindow_c::openChangeCheckIndexWindowButtonClicked_f);
 
     //move checks down button
     QPushButton* moveCheckDownButtonTmp = new QPushButton(QIcon(":/images/downArrow.png"), "");
-    moveCheckDownButtonTmp->setToolTip("Move the selected checks down one index");
+    moveCheckDownButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Move the selected checks down one index"));
     indexChangingLayoutTmp->addWidget(moveCheckDownButtonTmp);
     QObject::connect(moveCheckDownButtonTmp, &QPushButton::clicked, this, &actionChecksWindow_c::moveSelectedChecksDownByOneButtonClicked_f);
 
@@ -148,12 +150,12 @@ actionChecksWindow_c::actionChecksWindow_c(
     //for the bottom buttons
     QHBoxLayout* lastRowLayoutTmp = new QHBoxLayout;
 
-    QPushButton* okButtonTmp = new QPushButton("&Ok");
+    QPushButton* okButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("&Ok"));
     lastRowLayoutTmp->addWidget(okButtonTmp);
     connect(okButtonTmp, &QPushButton::clicked, this, &actionChecksWindow_c::okButtonClicked_f);
 
     //tips button
-    QPushButton* tipsButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Tips"));
+    QPushButton* tipsButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f(appConfig_ptr_ext->translate_f("Tips")));
     lastRowLayoutTmp->addWidget(tipsButtonTmp);
     QObject::connect(tipsButtonTmp, &QPushButton::clicked, this, &actionChecksWindow_c::tipsButtonClicked_f);
 
@@ -207,9 +209,9 @@ actionChecksWindow_c::actionChecksWindow_c(
         executionStarted_f();
     }
 
-    QObject::connect(checkDataHub_ptr_pri->proxyQObj_f(), &checksDataHubProxyQObj_c::checksExecutionStarted_signal, this, &actionChecksWindow_c::executionStarted_f);
-    QObject::connect(checkDataHub_ptr_pri->proxyQObj_f(), &checksDataHubProxyQObj_c::checksExecutionFinished_signal, this, &actionChecksWindow_c::executionFinished_f);
-    QObject::connect(checkDataHub_ptr_pri->proxyQObj_f(), &checksDataHubProxyQObj_c::stoppingChecksExecution_signal, this, &actionChecksWindow_c::stoppingExecution_f);
+    QObject::connect(checkDataHub_ptr_pri, &checksDataHub_c::checksExecutionStarted_signal, this, &actionChecksWindow_c::executionStarted_f);
+    QObject::connect(checkDataHub_ptr_pri, &checksDataHub_c::checksExecutionFinished_signal, this, &actionChecksWindow_c::executionFinished_f);
+    QObject::connect(checkDataHub_ptr_pri, &checksDataHub_c::stoppingChecksExecution_signal, this, &actionChecksWindow_c::stoppingExecution_f);
 }
 
 
@@ -224,7 +226,10 @@ void actionChecksWindow_c::addEditActionCheckButtonClicked_f()
     {
         if (checkDataHub_ptr_pri->executingChecks_f())
         {
-            errorQMessageBox_f("Add/edit check disallowed while executing checks", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Add/edit check disallowed while executing checks")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
         int rowTmp(-1);
@@ -254,7 +259,7 @@ void actionChecksWindow_c::insertCheckRow_f(
         , const QString& description_par_con
         , const int row_par_con)
 {
-    const QString& checkTypeStr(checkTypeToStrUMap_glo_sta_con.at(checkType_par_con));
+    const QString& checkTypeStr(checkTypeToStrUMap_ext_con.at(checkType_par_con));
 
     QTableWidgetItem *checkValueCellTmp(new QTableWidgetItem(checkTypeStr));
     checkValueCellTmp->setFlags(checkValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
@@ -282,7 +287,7 @@ void actionChecksWindow_c::updateExistingCheckRow_f(
         , const QString& description_par_con
         , const int row_par_con)
 {
-    const QString& checkTypeStr(checkTypeToStrUMap_glo_sta_con.at(checkType_par_con));
+    const QString& checkTypeStr(checkTypeToStrUMap_ext_con.at(checkType_par_con));
 
     actionChecksTable_pri->item(row_par_con, 0)->setText(checkTypeStr);
     actionChecksTable_pri->item(row_par_con, 1)->setText(description_par_con);
@@ -304,6 +309,9 @@ void actionChecksWindow_c::updateCheckRow_f(const int row_par_con)
     int_fast32_t checkDataIdTmp(checkDataHub_ptr_pri->rowToCheckDataId_f(row_par_con));
     check_c* checkPtrTmp(checkDataHub_ptr_pri->check_ptr_f(checkDataIdTmp));
     //qInfo() << "3 actionDataTmp.id_f() " << actionDataTmp.id_f() << endl;
+#ifdef DEBUGJOUVEN
+    //qDebug() << "checkDataIdTmp " << checkDataIdTmp << endl;
+#endif
     if (row_par_con == actionChecksTable_pri->rowCount())
     {
         insertCheckRow_f(checkPtrTmp->type_f(), checkPtrTmp->description_f());
@@ -335,7 +343,7 @@ void actionChecksWindow_c::tipsButtonClicked_f()
                 appConfig_ptr_ext->translate_f(
                     "<p>TODO</p>"
                     )
-            , "Tips"
+            , appConfig_ptr_ext->translate_f("Tips")
             , this
     );
 }
@@ -346,13 +354,18 @@ void actionChecksWindow_c::removeChecksButtonClicked_f()
     {
         if (checkDataHub_ptr_pri->executingChecks_f())
         {
-            errorQMessageBox_f("Check removal disallowed while executing checks", "Error", this);
+            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Check removal disallowed while executing checks")
+                               , appConfig_ptr_ext->translate_f("Error")
+                               , this);
             break;
         }
         QList<QTableWidgetItem *> selectionTmp = actionChecksTable_pri->selectedItems();
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("No check rows selected for removal", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No check rows selected for removal")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -391,7 +404,9 @@ void actionChecksWindow_c::inputDialogCopyCheckIndexFinished_f(const int result_
         }
         else
         {
-            errorQMessageBox_f("Wrong index to copy the row: " + QString::number(newIndexTmp), "Error", this);
+            errorQMessageBox_f(appConfig_ptr_ext->translateAndReplace_f({"Wrong index to copy the row: {0}", newIndexTmp})
+                               , appConfig_ptr_ext->translate_f("Error")
+                               , this);
         }
     }
     copyCheckIndexInputDialog_pri->deleteLater();
@@ -404,13 +419,19 @@ void actionChecksWindow_c::copyCheckButtonClicked_f()
     {
         if (checkDataHub_ptr_pri->executingChecks_f())
         {
-            errorQMessageBox_f("Copy Check disallowed while checks are executing", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Copy Check disallowed while checks are executing")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
         QList<QTableWidgetItem *> selectionTmp = actionChecksTable_pri->selectedItems();
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("No check row selected to copy", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No check row selected to copy")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -422,7 +443,10 @@ void actionChecksWindow_c::copyCheckButtonClicked_f()
 
         if (rowIndexesTmp.size() > 1)
         {
-            errorQMessageBox_f("Check row copy can only be applied to a single row", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Check row copy can only be applied to a single row")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -431,13 +455,16 @@ void actionChecksWindow_c::copyCheckButtonClicked_f()
         check_c* checkSourcePtrTmp(checkDataHub_ptr_pri->check_ptr_f(checkDataHub_ptr_pri->rowToCheckDataId_f(selectedRowTmp)));
 
         copyCheckIndexInputDialog_pri = new QInputDialog(this);
-        copyCheckIndexInputDialog_pri->setWindowTitle("Copy Check");
-        copyCheckIndexInputDialog_pri->setLabelText(
-                    "Input a new index to copy the check to.\nCheck source:"
-                    "\nType: " + checkTypeToStrUMap_glo_sta_con.at(checkSourcePtrTmp->type_f()) +
-                    "\nDescription: " + checkSourcePtrTmp->description_f().left(80) +
-                    "\nRow index: " + QString::number(selectedRowTmp)
-                    );
+        copyCheckIndexInputDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Copy Check"));
+        copyCheckIndexInputDialog_pri->setLabelText(appConfig_ptr_ext->translateAndReplace_f({
+                    "Input a new index to copy the check to.\nCheck source: "
+                    "\nType: {0}"
+                    "\nDescription: {1}"
+                    "\nRow index: {2}"
+                    , checkTypeToStrUMap_ext_con.at(checkSourcePtrTmp->type_f())
+                    , truncateString_f(checkSourcePtrTmp->description_f(), 255)
+                    , selectedRowTmp
+        }));
         copyCheckIndexInputDialog_pri->setInputMode(QInputDialog::IntInput);
         copyCheckIndexInputDialog_pri->setIntValue(selectedRowTmp);
         copyCheckIndexInputDialog_pri->setWindowModality(Qt::WindowModal);
@@ -453,15 +480,19 @@ void actionChecksWindow_c::updateCheckError_f(check_c* const check_par_ptr_con)
 {
     int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(check_par_ptr_con->id_f()));
     //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
-    actionChecksTable_pri->item(rowTmp, 3)->setText(check_par_ptr_con->checkDataExecutionResult_ptr_f()->error_f().left(32));
+    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(check_par_ptr_con->checkDataExecutionResult_ptr_f()->errors_f()));
+    actionChecksTable_pri->item(rowTmp, 3)->setText(truncateString_f(translationTmp, 32));
+    actionChecksTable_pri->item(rowTmp, 3)->setToolTip(translationTmp);
 }
 
 void actionChecksWindow_c::updateCheckExecutionState_f(check_c* const check_par_ptr_con)
 {
     int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(check_par_ptr_con->id_f()));
     QString checkExecutionStateStrTmp(checkExecutionStateToStrUMap_ext_con.at(check_par_ptr_con->checkDataExecutionResult_ptr_f()->lastState_f()));
+    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(checkExecutionStateStrTmp));
     //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
-    actionChecksTable_pri->item(rowTmp, 2)->setText(checkExecutionStateStrTmp.left(32));
+    actionChecksTable_pri->item(rowTmp, 2)->setText(truncateString_f(translationTmp, 32));
+    actionChecksTable_pri->item(rowTmp, 2)->setToolTip(translationTmp);
 }
 
 void actionChecksWindow_c::updateCheckResult_f(check_c* const check_par_ptr_con)
@@ -481,24 +512,30 @@ void actionChecksWindow_c::updateCheckResult_f(check_c* const check_par_ptr_con)
 
 void actionChecksWindow_c::executionFinished_f()
 {
+#ifdef DEBUGJOUVEN
+    //qDebug() << "actionChecksWindow_c::executionFinished_f()";
+#endif
     //FUTURE this might need more details like duration, if errors or not, x/y successfull
-    statusBarLabel_pri->setText("Check/s execution finished");
+    statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Check/s execution finished"));
     //restore execute button text values
-    executeChecksButton_pri->setText("&Execute Checks");
-    executeChecksButton_pri->setToolTip("No selection executes all actions, selection executes selected actions");
+    executeChecksButton_pri->setText(appConfig_ptr_ext->translate_f("&Execute Checks"));
+    executeChecksButton_pri->setToolTip(appConfig_ptr_ext->translate_f("No selection executes all actions, selection executes selected actions"));
 }
 
 void actionChecksWindow_c::executionStarted_f()
 {
-    statusBarLabel_pri->setText("Action/s execution started");
+#ifdef DEBUGJOUVEN
+    //qDebug() << "actionChecksWindow_c::executionStarted_f()";
+#endif
+    statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Action/s execution started"));
 
-    executeChecksButton_pri->setText("Executing... Press again to Stop");
-    executeChecksButton_pri->setToolTip("Will stop after finishing already executing check/s");
+    executeChecksButton_pri->setText(appConfig_ptr_ext->translate_f("Executing... Press again to Stop"));
+    executeChecksButton_pri->setToolTip(appConfig_ptr_ext->translate_f("Will stop after finishing already executing check/s"));
 }
 
 void actionChecksWindow_c::stoppingExecution_f()
 {
-    statusBarLabel_pri->setText("Trying to stop execution...");
+    statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Trying to stop execution..."));
 }
 
 void actionChecksWindow_c::checkResultsCleared_f(check_c* const check_par_ptr_con)
@@ -511,7 +548,7 @@ void actionChecksWindow_c::checkResultsCleared_f(check_c* const check_par_ptr_co
 void actionChecksWindow_c::createMessageBoxAskAboutExecutingChecksOnClose_f()
 {
     askAboutExecutingChecksOnCloseMessageBox_pri = new QMessageBox(this);
-    askAboutExecutingChecksOnCloseMessageBox_pri->setText(R"(Check/s are executing. What to do?)");
+    askAboutExecutingChecksOnCloseMessageBox_pri->setText(appConfig_ptr_ext->translate_f(R"(Check/s are executing. What to do?)"));
     askAboutExecutingChecksOnCloseMessageBox_pri->setTextFormat(Qt::RichText);
     askAboutExecutingChecksOnCloseMessageBox_pri->setWindowModality(Qt::WindowModal);
     askAboutExecutingChecksOnCloseMessageBox_pri->setAttribute(Qt::WA_DeleteOnClose);
@@ -533,7 +570,7 @@ void actionChecksWindow_c::stopExecutingChecksAndClose_f()
 {
     if (checkDataHub_ptr_pri->executingChecks_f())
     {
-        connect(checkDataHub_ptr_pri->proxyQObj_f(), &checksDataHubProxyQObj_c::checksExecutionFinished_signal, this, &actionChecksWindow_c::close);
+        connect(checkDataHub_ptr_pri, &checksDataHub_c::checksExecutionFinished_signal, this, &actionChecksWindow_c::close);
         checkDataHub_ptr_pri->stopExecutingChecks_f();
         executeChecksButton_pri->setText(appConfig_ptr_ext->translate_f("Stopping..."));
         statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping execution... (exiting after)"));
@@ -622,10 +659,9 @@ void actionChecksWindow_c::executeChecksButtonClicked_f()
         //if already running, the button is changed to stop execution
         if (checkDataHub_ptr_pri->executingChecks_f())
         {
-            executeChecksButton_pri->setText("Stopping...");
+            executeChecksButton_pri->setText(appConfig_ptr_ext->translate_f("Stopping..."));
             checkDataHub_ptr_pri->stopExecutingChecks_f();
             break;
-
         }
 
         executeChecks_f();
@@ -641,7 +677,10 @@ void actionChecksWindow_c::showExecutionDetailsButtonClicked_f()
         checkDataExecutionResult_c* checkDataExecutionResultTmp_ptr(nullptr);
         if (actionChecksTable_pri->selectedItems().isEmpty())
         {
-            errorQMessageBox_f("No check row selected", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No check row selected")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -652,7 +691,10 @@ void actionChecksWindow_c::showExecutionDetailsButtonClicked_f()
         {
             if (checkPtrTmp->checkDataExecutionResult_ptr_f() == nullptr)
             {
-                errorQMessageBox_f("Check has no execution results", "Error", this);
+                errorQMessageBox_f(
+                            appConfig_ptr_ext->translate_f("Check has no execution results")
+                            , appConfig_ptr_ext->translate_f("Error")
+                            , this);
                 break;
             }
             else
@@ -680,13 +722,19 @@ void actionChecksWindow_c::moveSelectedChecks_f(const int moveOffSet_par_con)
     {
         if (checkDataHub_ptr_pri->executingChecks_f())
         {
-            errorQMessageBox_f("Check moving disallowed while executing checks", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Check moving disallowed while executing checks")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
         QList<QTableWidgetItem *> selectionTmp = actionChecksTable_pri->selectedItems();
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("Empty selection to move", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Empty selection to move")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -757,7 +805,10 @@ void actionChecksWindow_c::inputDialogChangeCheckIndexFinished_f(const int resul
         }
         else
         {
-            errorQMessageBox_f("Same or wrong index to move the row: " + QString::number(newIndexTmp), "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translateAndReplace_f({"Same or wrong index to move the row: {0}", newIndexTmp})
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
         }
     }
     changeCheckIndexInputDialog_pri->deleteLater();
@@ -770,13 +821,19 @@ void actionChecksWindow_c::openChangeCheckIndexWindowButtonClicked_f()
     {
         if (checkDataHub_ptr_pri->executingChecks_f())
         {
-            errorQMessageBox_f("Check index change disallowed while executing actions", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Check index change disallowed while executing actions")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
         QList<QTableWidgetItem *> selectionTmp(actionChecksTable_pri->selectedItems());
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("No check row selected to change row index", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No check row selected to change row index")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -788,15 +845,19 @@ void actionChecksWindow_c::openChangeCheckIndexWindowButtonClicked_f()
 
         if (rowIndexesTmp.size() > 1)
         {
-            errorQMessageBox_f("Check row index change can only be applied to a single row", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Check row index change can only be applied to a single row")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
         int currentIndexTmp(selectionTmp.first()->row());
 
         changeCheckIndexInputDialog_pri = new QInputDialog(this);
-        changeCheckIndexInputDialog_pri->setWindowTitle("Change Check index");
-        changeCheckIndexInputDialog_pri->setLabelText("Input a new index to move the check to (current index: " + QString::number(currentIndexTmp) + ")");
+        changeCheckIndexInputDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Change Check index"));
+        changeCheckIndexInputDialog_pri->setLabelText(
+                    appConfig_ptr_ext->translateAndReplace_f({"Input a new index to move the check to (current index: {0})", currentIndexTmp}));
         changeCheckIndexInputDialog_pri->setInputMode(QInputDialog::IntInput);
         changeCheckIndexInputDialog_pri->setIntValue(currentIndexTmp);
         changeCheckIndexInputDialog_pri->setWindowModality(Qt::WindowModal);

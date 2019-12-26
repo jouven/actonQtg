@@ -38,13 +38,15 @@ class mainWindow_c : public QWidget
 
     //depends on the mainloop interval (it might not be a second)
     int finalCounterSeconds_pri = 2;
-    int killCountdown_pri = 0;
+    uint_fast64_t killCountdown_pri = 0;
 
     QString lastLoadedFilePath_pri;
+    bool triedToSaveOnExit_pri = false;
 
     QFileDialog* selectActionFilesToLoadDialog_pri = nullptr;
     QFileDialog* saveActionFileDialog_pri = nullptr;
     QMessageBox* overwriteLastActionLoadedMessageBox_pri = nullptr;
+    QMessageBox* onExitAskSaveIfLastLoadedFileChangedMessageBox_pri = nullptr;
     QInputDialog* copyActionIndexInputDialog_pri = nullptr;
     QInputDialog* changeActionIndexInputDialog_pri = nullptr;
     QMessageBox* runFromStoppedActionMessageBox_pri = nullptr;
@@ -59,8 +61,8 @@ class mainWindow_c : public QWidget
     void clearActions_f();
 
     void loadFileList_f(const QStringList& fileList_par_con);
-    void updateExistingActionRow_f(const actionType_ec& actionType_par_con, const QString& description_par_con, const int row_par_con);
-    void insertActionRow_f(const actionType_ec& actionType_par_con, const QString& description_par_con, const int row_par_con = -1);
+    void updateExistingActionRow_f(const actionType_ec& actionType_par_con, const QString& description_par_con, const bool enabled_par_con, const int row_par_con);
+    void insertActionRow_f(const actionType_ec& actionType_par_con, const QString& description_par_con, const bool enabled_par_con, const int row_par_con = -1);
     void moveSelectedActions_f(const int moveOffSet_par_con);
 
     void saveActionFile_f(const QString& savePath_par_con);
@@ -71,7 +73,7 @@ class mainWindow_c : public QWidget
     void createMessageBoxAskAboutExecutingChecksOnClose_f();
     void createMessageBoxAskAboutStoppingExecutionOnClose_f();
 public:
-    mainWindow_c();
+    explicit mainWindow_c();
 
 Q_SIGNALS:
     //NOT IN USE, QString is the text to set
@@ -141,6 +143,7 @@ private Q_SLOTS:
     void stopExecutingActionsElseKillAndClose_f();
     void killExecutingActionsAndClose_f();
     //public Q_SLOTS:
+    void messageBoxSaveActionsToFileOnExitFinished_f(const int result_par);
 };
 
 extern mainWindow_c* mainWindow_ptr_ext;

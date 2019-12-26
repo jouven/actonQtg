@@ -9,6 +9,9 @@
 #include "appConfig.hpp"
 #include "optionsWindow.hpp"
 #include "executionOptionsWindow.hpp"
+#include "commonWidgets.hpp"
+
+#include "stringFormatting.hpp"
 
 #include "actonQtso/actionData.hpp"
 #include "actonQtso/actionDataExecutionResult.hpp"
@@ -24,6 +27,8 @@
 #include "threadedFunctionQtso/threadedFunctionQt.hpp"
 #include "signalso/signal.hpp"
 //#include "sizeConversionso/byte.hpp"
+
+#include "comuso/practicalTemplates.hpp"
 
 #include <QStringList>
 #include <QtWidgets>
@@ -68,6 +73,90 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
             break;
         }
 
+        if (triedToSaveOnExit_pri)
+        {
+            //don't try again to save
+        }
+        else
+        {
+            //if a file was loaded previously check if it's different from what could be saved
+            //and ask the user to save or not
+            if (not lastLoadedFilePath_pri.isEmpty())
+            {
+                bool loadedDataIsDifferentFromLastSaveTmp(false);
+                QFile savedFileToLoadTmp(lastLoadedFilePath_pri);
+                if (not savedFileToLoadTmp.exists())
+                {
+                    break;
+                }
+
+                QByteArray jsonByteArrayTmp;
+                if (savedFileToLoadTmp.open(QIODevice::ReadOnly))
+                {
+                    jsonByteArrayTmp = savedFileToLoadTmp.readAll();
+                }
+                else
+                {
+                    break;
+                }
+
+                auto jsonDocObjTmp(QJsonDocument::fromJson(jsonByteArrayTmp));
+                if (jsonDocObjTmp.isNull())
+                {
+                    break;
+                }
+                else
+                {
+                    QJsonObject currentActonDataHubSerializationTmp(serializeActonDataHub_f(actonDataHub_ptr_ext));
+                    loadedDataIsDifferentFromLastSaveTmp = currentActonDataHubSerializationTmp not_eq jsonDocObjTmp.object();
+                }
+
+                if (loadedDataIsDifferentFromLastSaveTmp)
+                {
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri = new QMessageBox(this);
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->setText(
+                                appConfig_ptr_ext->translate_f(
+                                R"(Loaded content differs from the last saved, do you want to save-overwrite the last loaded file?<br>)"
+                                R"(Choosing "yes" will overwrite the last loaded file<br>)"
+                                R"(Choosing "no" will save open a dialog to save a new file<br>)"
+                                R"(Choosing "Cancel" will exit without saving)"));
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->setTextFormat(Qt::RichText);
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->setStandardButtons(QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->setDefaultButton(QMessageBox::Yes);
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->setWindowModality(Qt::WindowModal);
+
+                    QObject::connect(onExitAskSaveIfLastLoadedFileChangedMessageBox_pri, &QMessageBox::finished, this, &mainWindow_c::messageBoxOverwriteLastActionLoadedFileFinished_f);
+
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->show();
+                    break;
+                }
+            }
+            else
+            {
+                //if there are actions to save
+                if (actonDataHub_ptr_ext->size_f() > 0)
+                {
+                    //ask to save before exit
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri = new QMessageBox(this);
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->setText(
+                                appConfig_ptr_ext->translate_f(
+                                R"(There are unsaved actions, do you want to save?<br>)"
+                                R"(Choosing "yes" will open a save file dialog<br>)"
+                                R"(Choosing "no" will exit without saving)"
+                                ));
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->setTextFormat(Qt::RichText);
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->setDefaultButton(QMessageBox::Yes);
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->setWindowModality(Qt::WindowModal);
+
+                    QObject::connect(onExitAskSaveIfLastLoadedFileChangedMessageBox_pri, &QMessageBox::finished, this, &mainWindow_c::messageBoxSaveActionsToFileOnExitFinished_f);
+
+                    onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->show();
+                    break;
+                }
+            }
+        }
+
         if (signalso::isRunning_f())
         {
             signalso::stopRunning_f();
@@ -83,17 +172,19 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
             MACRO_ADDACTONQTGLOG("Geometry saved", logItem_c::type_ec::debug);
             appConfig_ptr_ext->saveConfigFile_f();
             MACRO_ADDACTONQTGLOG("Config file/s saved", logItem_c::type_ec::debug);
-            //IMPORTANT because otherwise the dtor of the actions in the datahub happens when the qtapp instance has already been dtored
+            //IMPORTANT¿ because otherwise the dtor of the actions in the datahub happens when the qtapp instance has already been dtored
             //because qtapp is a variable in the "main" but actonDataHub_f() has a static variable behind which gets dtored later
-            actonDataHub_ptr_ext->clearAllActionData_f();
-            MACRO_ADDACTONQTGLOG("clearAllActionData_f", logItem_c::type_ec::debug);
+            //20191204 not needed anymore, since it's a qobject and everything else is a child
+            //actonDataHub_ptr_ext->clearAllActionData_f();
+            //MACRO_ADDACTONQTGLOG("clearAllActionData_f", logItem_c::type_ec::debug);
             evenAcceptedTmp = true;
         }
         else
         {
             if (threadedFunction_c::qThreadCount_f() > 0)
             {
-                MACRO_ADDACTONQTGLOG("Nothing running but qThreads exist, count: " + QString::number(threadedFunction_c::qThreadCount_f()), logItem_c::type_ec::info);
+                text_c logMessageTmp(R"(Nothing running but qThreads exist, count: {0})", threadedFunction_c::qThreadCount_f());
+                MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::info);
             }
         }
         break;
@@ -129,6 +220,14 @@ mainWindow_c::mainWindow_c()
 
     const QRect screenGeometry = QApplication::desktop()->availableGeometry(this);
 
+    QShortcut* quitShortCut(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q), this));
+    //Qt::WidgetWithChildrenShortcut works when the main window is focused (with other modals windows open)
+    //20191103 except Qt::WidgetWithChildrenShortcut
+    //all the other Qt::ShortcutContext fail to work with other modal window opened
+    //focusing or not focusing the main window
+    quitShortCut->setContext(Qt::WidgetWithChildrenShortcut);
+    QObject::connect(quitShortCut, &QShortcut::activated, this, &mainWindow_c::close);
+
     statusBarLabel_pri = new QLabel;
 
     //new, load and save buttons
@@ -138,21 +237,21 @@ mainWindow_c::mainWindow_c()
     //new config file
     QIcon newIcon(QIcon::fromTheme("document-new", QIcon(":/images/new.png")));
     QPushButton* newConfigFileButtonTmp = new QPushButton(newIcon, appConfig_ptr_ext->translate_f("New"));
-    newConfigFileButtonTmp->setToolTip("Clears all loaded actions and resets action execution settings");
+    newConfigFileButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Clears all loaded actions and resets action execution settings"));
     firstRowLayoutTmp->addWidget(newConfigFileButtonTmp);
     QObject::connect(newConfigFileButtonTmp, &QPushButton::clicked, this, &mainWindow_c::clearAllActions_f);
 
     //load config file
     QIcon loadIcon = QIcon::fromTheme("document-open", QIcon(":/images/browse.png"));
     QPushButton* loadConfigFileButtonTmp = new QPushButton(loadIcon, appConfig_ptr_ext->translate_f("Load"));
-    loadConfigFileButtonTmp->setToolTip("Load actions and execution options from a JSON file");
+    loadConfigFileButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Load actions and execution options from a JSON file"));
     firstRowLayoutTmp->addWidget(loadConfigFileButtonTmp);
     QObject::connect(loadConfigFileButtonTmp, &QPushButton::clicked, this, &mainWindow_c::loadActionsFileButtonPushed_f);
 
     //save config file
     QIcon saveIcon = QIcon::fromTheme("document-save", QIcon(":/images/save.png"));
     QPushButton* saveConfigFileButtonTmp = new QPushButton(saveIcon, appConfig_ptr_ext->translate_f("Save"));
-    saveConfigFileButtonTmp->setToolTip("Saves actions and execution options in a JSON file");
+    saveConfigFileButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Saves actions and execution options in a JSON file"));
     firstRowLayoutTmp->addWidget(saveConfigFileButtonTmp);
     QObject::connect(saveConfigFileButtonTmp, &QPushButton::clicked, this, &mainWindow_c::saveActionFileButtonPushed_f);
 
@@ -185,7 +284,7 @@ mainWindow_c::mainWindow_c()
 
     //execute/stop actions
     executeActionsButton_pri = new QPushButton(appConfig_ptr_ext->translate_f("&Execute Actions"));
-    executeActionsButton_pri->setToolTip("No selection executes all actions, selection executes selected actions");
+    executeActionsButton_pri->setToolTip(appConfig_ptr_ext->translate_f("No selection executes all actions, selection executes selected actions"));
     thirdRowLayoutTmp->addWidget(executeActionsButton_pri);
     QObject::connect(executeActionsButton_pri, &QPushButton::clicked, this, &mainWindow_c::executeActionsButtonClicked_f);
 
@@ -212,14 +311,20 @@ mainWindow_c::mainWindow_c()
     fourthRowLayoutTmp->addWidget(aboutButtonTmp);
     QObject::connect(aboutButtonTmp, &QPushButton::clicked, this, &mainWindow_c::showAboutMessage_f);
 
-    actionsTable_pri = new QTableWidget(0, 5);
+    actionsTable_pri = new QTableWidget(0, 6);
     actionsTable_pri->setObjectName("QTableWidget_");
     actionsTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     QStringList labels;
     //WARNING if this ever changes, in this file there are several places where this kind of comment that should be changed
-    //action (type) 0 | description 1 |  Execution state 2 | Last output 3 | Last error 4
-    labels << appConfig_ptr_ext->translate_f("Action") << appConfig_ptr_ext->translate_f("Description") << appConfig_ptr_ext->translate_f("Execution state") << appConfig_ptr_ext->translate_f("Last output") << appConfig_ptr_ext->translate_f("Last error");
+    //action (type) 0 | description 1 | enabled 2 | Execution state 3 | Last output 4 | Last error 5
+    labels
+            << appConfig_ptr_ext->translate_f("Action")
+            << appConfig_ptr_ext->translate_f("Description")
+            << appConfig_ptr_ext->translate_f("Enabled")
+            << appConfig_ptr_ext->translate_f("Execution state")
+            << appConfig_ptr_ext->translate_f("Last output")
+            << appConfig_ptr_ext->translate_f("Last error");
     actionsTable_pri->setHorizontalHeaderLabels(labels);
     actionsTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     actionsTable_pri->setShowGrid(true);
@@ -247,19 +352,20 @@ mainWindow_c::mainWindow_c()
 
     //move action up button
     QPushButton* moveActionUpButtonTmp = new QPushButton(QIcon(":/images/upArrow.png"), "");
-    moveActionUpButtonTmp->setToolTip("Move the selected actions up one index");
+    moveActionUpButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Move the selected actions up one index"));
     indexChangingLayoutTmp->addWidget(moveActionUpButtonTmp);
     QObject::connect(moveActionUpButtonTmp, &QPushButton::clicked, this, &mainWindow_c::moveSelectedActionsUpByOne_f);
 
     //change the index of the selected action button
-    QPushButton* changeIndexButtonTmp = new QPushButton("Change\naction\nindex");
-    changeIndexButtonTmp->setToolTip("Changes the first selected action index to a new one moving the destination and all the actions below one index down (except if it's the last index)");
+    QPushButton* changeIndexButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Change\naction\nindex"));
+    changeIndexButtonTmp->setToolTip(
+                appConfig_ptr_ext->translate_f("Changes the first selected action index to a new one moving the destination and all the actions below one index down (except if it's the last index)"));
     indexChangingLayoutTmp->addWidget(changeIndexButtonTmp);
     QObject::connect(changeIndexButtonTmp, &QPushButton::clicked, this, &mainWindow_c::openChangeActionIndexWindow_f);
 
     //move action down button
     QPushButton* moveActionDownButtonTmp = new QPushButton(QIcon(":/images/downArrow.png"), "");
-    moveActionDownButtonTmp->setToolTip("Move the selected actions down one index");
+    moveActionDownButtonTmp->setToolTip(appConfig_ptr_ext->translate_f("Move the selected actions down one index"));
     indexChangingLayoutTmp->addWidget(moveActionDownButtonTmp);
     QObject::connect(moveActionDownButtonTmp, &QPushButton::clicked, this, &mainWindow_c::moveSelectedActionsDownByOne_f);
 
@@ -314,7 +420,7 @@ mainWindow_c::mainWindow_c()
         actionsTable_pri->horizontalHeader()->restoreState(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + actionsTable_pri->objectName() + actionsTable_pri->horizontalHeader()->objectName()));
     }
 
-    //TODO some of these aren't in use
+    //TODO some of these aren't in use, see .hpp
     //QObject::connect(this, &mainWindow_c::setStatusBarText_signal, statusBarLabel_pri, &QLabel::setText);
     QObject::connect(this, &mainWindow_c::scrollToItem_signal, this, &mainWindow_c::scrollToItem_f);
     QObject::connect(this, &mainWindow_c::setRowCellField_signal, this, &mainWindow_c::setRowCellField_f);
@@ -322,10 +428,10 @@ mainWindow_c::mainWindow_c()
     //QObject::connect(this, &Window_c::saveAfterHash_signal_f, this, &Window_c::dialogSaveFileList_f);
     //QObject::connect(this, &mainWindow_c::resizeFileTable_signal, this, &mainWindow_c::resizeFileTable_f);
 
-    QObject::connect(actonDataHub_ptr_ext->proxyQObj_f(), &actonDataHubProxyQObj_c::actionsExecutionStarted_signal, this, &mainWindow_c::executionStarted_f);
-    QObject::connect(actonDataHub_ptr_ext->proxyQObj_f(), &actonDataHubProxyQObj_c::stoppingActionsExecution_signal, this, &mainWindow_c::stoppingExecution_f);
-    QObject::connect(actonDataHub_ptr_ext->proxyQObj_f(), &actonDataHubProxyQObj_c::actionsExecutionStopped_signal, this, &mainWindow_c::executionStopped_f);
-    QObject::connect(actonDataHub_ptr_ext->proxyQObj_f(), &actonDataHubProxyQObj_c::actionsExecutionFinished_signal, this, &mainWindow_c::executionFinished_f);
+    QObject::connect(actonDataHub_ptr_ext, &actonDataHub_c::actionsExecutionStarted_signal, this, &mainWindow_c::executionStarted_f);
+    QObject::connect(actonDataHub_ptr_ext, &actonDataHub_c::stoppingActionsExecution_signal, this, &mainWindow_c::stoppingExecution_f);
+    QObject::connect(actonDataHub_ptr_ext, &actonDataHub_c::actionsExecutionStopped_signal, this, &mainWindow_c::executionStopped_f);
+    QObject::connect(actonDataHub_ptr_ext, &actonDataHub_c::actionsExecutionFinished_signal, this, &mainWindow_c::executionFinished_f);
 
     //FUTURE create a meta library with the log file data reads the actual source file and shows the code around the log add line
     //would require the program to be shipped with the source, but it would make debugging easier
@@ -429,7 +535,10 @@ void mainWindow_c::showTips_f()
                 appConfig_ptr_ext->translate_f(
                     "<p>1 Action saved file/s can be dropped on the ActionQtg executable file and will be loaded at the start</p>"
                     "<p>2 Action saved file/s can be dropped on the ActionQtg windows and will be loaded</p>"
-                    R"(<p>3 Quitting ActonQtg "normally" during an operation won't instantly exit, during execution, it will have to finish executing the current action, during saving, it will have to finish saving</p>)")
+                    R"(<p>3 Quitting ActonQtg "normally" during an operation won't instantly exit, during execution, it will have to finish executing the current action, during saving, it will have to finish saving</p>)"
+                    R"(<p>4 There are tooltips, hover on the fields/labels/buttons/widgets to view them</p>)"
+                    R"(<p>5 Control+q with the main window focused, even if others are opened, to quit</p>)"
+                    )
             , "Tips"
             , this
     );
@@ -441,7 +550,10 @@ void mainWindow_c::clearAllActions_f()
     {
         if (actonDataHub_ptr_ext->executingActions_f())
         {
-            errorQMessageBox_f("Clear actions disallowed while actions are executing", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Clear actions disallowed while actions are executing")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
         lastLoadedFilePath_pri.clear();
@@ -454,47 +566,56 @@ void mainWindow_c::clearAllActions_f()
 void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
 {
     MACRO_ADDACTONQTGLOG("Load file list (for acton files with actions)", logItem_c::type_ec::debug);
+    textCompilation_c errorsTmp;
     if (not fileList_par_con.isEmpty())
     {
-        bool errorTmp(false);
-        bool somethingLoaded(false);
+        int_fast32_t loadedFileCountTmp(0);
+        const int_fast32_t actionCountBeforeLoad(actonDataHub_ptr_ext->size_f());
         for (const QString& fileStr_ite_con : fileList_par_con)
         {
-            QFile savedFile(fileStr_ite_con);
-            if (not savedFile.exists())
+            QFile savedFileToLoadTmp(fileStr_ite_con);
+            if (not savedFileToLoadTmp.exists())
             {
-                statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Save file does not exist"));
-                errorTmp = true;
-                break;
+                errorsTmp.append_f({"Save file {0} does not exist", fileStr_ite_con});
+                //statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Save file does not exist"));
+                continue;
             }
 
-            QByteArray jsonByteArray;
-            if (savedFile.open(QIODevice::ReadOnly))
+            QByteArray jsonByteArrayTmp;
+            if (savedFileToLoadTmp.open(QIODevice::ReadOnly))
             {
-                jsonByteArray = savedFile.readAll();
+                jsonByteArrayTmp = savedFileToLoadTmp.readAll();
             }
             else
             {
-                statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Could not open config file ") + savedFile.fileName());
-                errorTmp = true;
-                break;
+                errorsTmp.append_f({"Could not open config file {0}", fileStr_ite_con});
+                //statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Could not open config file ") + savedFile.fileName());
+                continue;
             }
 
-            auto jsonDocObj(QJsonDocument::fromJson(jsonByteArray));
-            bool thisFileLoadedSomething(false);
-            if (jsonDocObj.isNull())
+            auto jsonDocObjTmp(QJsonDocument::fromJson(jsonByteArrayTmp));
+            bool thisFileLoadedSomethingTmp(false);
+            if (jsonDocObjTmp.isNull())
             {
-                statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Could not parse json from the save file"));
-                errorTmp = true;
-                break;
+                errorsTmp.append_f({"Could not parse json from the save file {0}", fileStr_ite_con});
+                //statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Could not parse json from the save file"));
+                continue;
             }
             else
             {
-                MACRO_ADDACTONQTGLOG("Deserializing file " + fileStr_ite_con + " JSON", logItem_c::type_ec::debug);
-                deserializeAndCopyToActonDataHub_f(jsonDocObj.object());
-                MACRO_ADDACTONQTGLOG("Found " + QString::number(actonDataHub_ptr_ext->size_f()) + " actions", logItem_c::type_ec::debug);
+                const int_fast32_t sizeBeforeLoad(actonDataHub_ptr_ext->size_f());
+                {
+                    text_c logMessageTmp(R"(Deserializing file {0} JSON)", fileStr_ite_con);
+                    MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::debug);
+                }
+                deserializeActonDataHub_f(jsonDocObjTmp.object(), actonDataHub_ptr_ext , true, std::addressof(errorsTmp));
+                {
+                    text_c logMessageTmp(R"(Found {0} actions)", actonDataHub_ptr_ext->size_f());
+                    MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::debug);
+                }
                 for (int rowIndex_ite = 0, l = actonDataHub_ptr_ext->size_f(); rowIndex_ite < l; ++rowIndex_ite)
                 {
+
 //#ifdef DEBUGJOUVEN
 //                    int_fast64_t actionIdTmp(actonDataHub_ptr_ext->rowToActionDataId_f(rowIndex_ite));
 //                    qDebug() << "actionIdTmp " << actionIdTmp << endl;
@@ -508,14 +629,13 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
                         break;
                     }
                 }
-                thisFileLoadedSomething = actonDataHub_ptr_ext->size_f() > 0;
+                thisFileLoadedSomethingTmp = actonDataHub_ptr_ext->size_f() > sizeBeforeLoad;
             }
-            if (thisFileLoadedSomething)
+            if (thisFileLoadedSomethingTmp)
             {
-                MACRO_ADDACTONQTGLOG("Save file loaded " + fileStr_ite_con, logItem_c::type_ec::info);
-                //20181121 was fileStr_ite_con.toUtf8(), why?
-                statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Save file loaded " + fileStr_ite_con));
-                somethingLoaded = true;
+                text_c logMessageTmp(R"(Save file loaded {0})", fileStr_ite_con);
+                MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::info);
+                loadedFileCountTmp += 1;
                 if (fileList_par_con.size() == 1)
                 {
                     lastLoadedFilePath_pri = fileList_par_con.at(0);
@@ -523,22 +643,35 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
             }
             else
             {
-                statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("JSON file " + fileStr_ite_con + " has no actions"));
+                //statusBar message is done at the end
+                //statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("JSON file " + fileStr_ite_con + " has no actions"));
             }
             if (not signalso::isRunning_f())
             {
                 break;
             }
         }
-        if (not errorTmp and somethingLoaded)
+        if (loadedFileCountTmp > 0)
         {
             //resizeFileTable_f();
-            //statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("All save files loaded"));
+            int_fast32_t actionLoadCountTmp(actonDataHub_ptr_ext->size_f() - actionCountBeforeLoad);
+            text_c loadedMessageTmp("Loaded {0} actions from {1} files", actionLoadCountTmp, loadedFileCountTmp);
+#ifdef DEBUGJOUVEN
+//            qDebug() << "loadedMessageTmp.rawText_f() " << loadedMessageTmp.rawText_f() << endl;
+//            qDebug() << "loadedMessageTmp.rawReplace_f() " << loadedMessageTmp.rawReplace_f() << endl;
+//            qDebug() << "appConfig_ptr_ext->translateAndReplace_f(loadedMessageTmp) " << appConfig_ptr_ext->translateAndReplace_f(loadedMessageTmp) << endl;
+#endif
+            statusBarLabel_pri->setText(appConfig_ptr_ext->translateAndReplace_f(loadedMessageTmp));
         }
     }
     else
     {
-        statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("No save files selected"));
+        errorsTmp.append_f({"No save files selected"});
+        //statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("No save files selected"));
+    }
+    if (not errorsTmp.empty_f())
+    {
+        messageBoxTheErrors_f(errorsTmp, this);
     }
 }
 
@@ -548,7 +681,10 @@ void mainWindow_c::loadActionsFileButtonPushed_f()
     {
         if (actonDataHub_ptr_ext->executingActions_f())
         {
-            errorQMessageBox_f("Load disallowed while executing actions", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Load disallowed while executing actions")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -566,7 +702,7 @@ void mainWindow_c::loadActionsFileButtonPushed_f()
         selectActionFilesToLoad_pri->setGeometry(QApplication::desktop()->availableGeometry(this));
 #endif
 
-        std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f(this->objectName() + "_" + selectActionFilesToLoadDialog_pri->objectName()));
+        std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f(this->objectName() + selectActionFilesToLoadDialog_pri->objectName()));
         if (not directoryHistoryTmp.empty())
         {
             QList<QUrl> directoriesTmp;
@@ -592,6 +728,9 @@ void mainWindow_c::fileDialogActionFilesToLoadFinished_f(const int result_par)
         if (not selectActionFilesToLoadDialog_pri->selectedFiles().isEmpty())
         {
             loadFileList_f(selectActionFilesToLoadDialog_pri->selectedFiles());
+#ifdef DEBUGJOUVEN
+            qDebug() << "selectActionFilesToLoadDialog_pri->directory().path() " << selectActionFilesToLoadDialog_pri->directory().path() << endl;
+#endif
             appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + selectActionFilesToLoadDialog_pri->objectName(), selectActionFilesToLoadDialog_pri->directory().path());
         }
     }
@@ -609,7 +748,7 @@ void mainWindow_c::saveActionFileButtonPushed_f()
     if (not lastLoadedFilePath_pri.isEmpty())
     {
         overwriteLastActionLoadedMessageBox_pri = new QMessageBox(this);
-        overwriteLastActionLoadedMessageBox_pri->setText(R"(Overwrite loaded file?<br>Choosing "no" will save open a dialog to save a new file)");
+        overwriteLastActionLoadedMessageBox_pri->setText(appConfig_ptr_ext->translate_f(R"(Overwrite loaded file?<br>Choosing "no" will save open a dialog to save a new file)"));
         overwriteLastActionLoadedMessageBox_pri->setTextFormat(Qt::RichText);
         overwriteLastActionLoadedMessageBox_pri->setStandardButtons(QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         overwriteLastActionLoadedMessageBox_pri->setDefaultButton(QMessageBox::Yes);
@@ -622,6 +761,57 @@ void mainWindow_c::saveActionFileButtonPushed_f()
     else
     {
         messageBoxOverwriteLastActionLoadedFileFinished_f(QMessageBox::No);
+    }
+}
+
+void mainWindow_c::messageBoxSaveActionsToFileOnExitFinished_f(const int result_par)
+{
+    //browse a file to save
+    if (result_par == QMessageBox::Yes)
+    {
+        saveActionFileDialog_pri = new QFileDialog(this);
+        saveActionFileDialog_pri->setObjectName("saveActionFileDialog_");
+        saveActionFileDialog_pri->setAcceptMode(QFileDialog::AcceptSave);
+        saveActionFileDialog_pri->setFileMode(QFileDialog::AnyFile);
+        saveActionFileDialog_pri->setDirectory(QDir::currentPath());
+        //TODO add datetime string i.e. actions_YYYYMMdd_hhmmss.json
+        saveActionFileDialog_pri->selectFile("actions.json");
+        saveActionFileDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Save action file..."));
+        saveActionFileDialog_pri->setViewMode(QFileDialog::Detail);
+        saveActionFileDialog_pri->setFilter(QDir::Hidden | QDir::NoDotAndDotDot | QDir::Files | QDir::AllDirs | QDir::Drives);
+        saveActionFileDialog_pri->setDefaultSuffix("json");
+        saveActionFileDialog_pri->setOption(QFileDialog::DontUseNativeDialog, true);
+        saveActionFileDialog_pri->setWindowModality(Qt::WindowModal);
+#ifdef __ANDROID__
+        saveDialogTmp.setGeometry(QApplication::desktop()->availableGeometry(this));
+#endif
+
+        std::vector<QString> directoryHistoryTmp(appConfig_ptr_ext->directoryHistory_f(this->objectName() + saveActionFileDialog_pri->objectName()));
+        if (not directoryHistoryTmp.empty())
+        {
+            QList<QUrl> directoriesTmp;
+            directoriesTmp.reserve(directoryHistoryTmp.size());
+            for (const QString& directory_par_con : directoryHistoryTmp)
+            {
+                directoriesTmp.append(QUrl::fromLocalFile(directory_par_con));
+            }
+            saveActionFileDialog_pri->setSidebarUrls(directoriesTmp);
+        }
+
+        QObject::connect(saveActionFileDialog_pri, &QFileDialog::finished, this, &mainWindow_c::fileDialogSelectSaveActionFileFinished_f);
+
+        saveActionFileDialog_pri->show();
+    }
+    if (result_par == QMessageBox::No)
+    {
+        if (onExitAskSaveIfLastLoadedFileChangedMessageBox_pri not_eq nullptr)
+        {
+            //main dtor will do dtor this
+            //onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->deleteLater();
+            //onExitAskSaveIfLastLoadedFileChangedMessageBox_pri = nullptr;
+            triedToSaveOnExit_pri = true;
+            close();
+        }
     }
 }
 
@@ -666,10 +856,26 @@ void mainWindow_c::messageBoxOverwriteLastActionLoadedFileFinished_f(const int r
     {
         saveActionFile_f(lastLoadedFilePath_pri);
     }
+
     if (overwriteLastActionLoadedMessageBox_pri not_eq nullptr)
     {
         overwriteLastActionLoadedMessageBox_pri->deleteLater();
         overwriteLastActionLoadedMessageBox_pri = nullptr;
+    }
+    if (onExitAskSaveIfLastLoadedFileChangedMessageBox_pri not_eq nullptr)
+    {
+        //no need for this, main window getting dtored will dtor this anyway
+//        if (equalOnce_ft(result_par, QMessageBox::Yes, QMessageBox::Cancel))
+//        {
+//            onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->deleteLater();
+//            onExitAskSaveIfLastLoadedFileChangedMessageBox_pri = nullptr;
+//        }
+
+        if (result_par == QMessageBox::Cancel)
+        {
+            triedToSaveOnExit_pri = true;
+            close();
+        }
     }
 }
 
@@ -680,38 +886,63 @@ void mainWindow_c::fileDialogSelectSaveActionFileFinished_f(const int result_par
         QString savePathTmp;
         if (not saveActionFileDialog_pri->selectedFiles().isEmpty())
         {
-            savePathTmp = saveActionFileDialog_pri->selectedFiles().first();
+            savePathTmp = saveActionFileDialog_pri->selectedFiles().constFirst();
             saveActionFile_f(savePathTmp);
             appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + saveActionFileDialog_pri->objectName(), saveActionFileDialog_pri->directory().path());
         }
         else
         {
             //I don't think it will ever enter here...
-            errorQMessageBox_f("Empty save filename", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Empty save filename")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
         }
+    }
+    else
+    {
+        //nothing to do if the user cancels the save file dialog
     }
 
     saveActionFileDialog_pri->deleteLater();
     saveActionFileDialog_pri = nullptr;
+
+    if (onExitAskSaveIfLastLoadedFileChangedMessageBox_pri not_eq nullptr)
+    {
+        //if it enters here it means functions call hierarchy comes from
+        //the close event
+        //onExitAskSaveIfLastLoadedFileChangedMessageBox_pri->deleteLater();
+        //onExitAskSaveIfLastLoadedFileChangedMessageBox_pri = nullptr;
+        triedToSaveOnExit_pri = true;
+        close();
+    }
 }
 
 void mainWindow_c::saveActionFile_f(const QString& savePath_par_con)
 {
-    //save using lastLoadedFilePath_pri
     QFile saveFile(savePath_par_con);
     if (saveFile.open(QIODevice::WriteOnly))
     {
         statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Creating JSON save file..."));
 
-        QJsonDocument somethingJsonD(copyFromActonDataHubAndSerialize_f());
+        QJsonDocument somethingJsonD(serializeActonDataHub_f(actonDataHub_ptr_ext));
         saveFile.write(somethingJsonD.toJson(QJsonDocument::Indented));
-
+        //replace lastLoadedFilePath_pri when saving
         lastLoadedFilePath_pri = savePath_par_con;
         statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("File saved successfully"));
+
+        if (onExitAskSaveIfLastLoadedFileChangedMessageBox_pri not_eq nullptr)
+        {
+            triedToSaveOnExit_pri = true;
+            close();
+        }
     }
     else
     {
-        errorQMessageBox_f("Failed to save file: " + saveFile.errorString(), "Error", this);
+        errorQMessageBox_f(
+                    appConfig_ptr_ext->translateAndReplace_f({"Failed to save file: {0}", saveFile.errorString()})
+                    , appConfig_ptr_ext->translate_f("Error")
+                    , this);
     }
 }
 
@@ -721,7 +952,10 @@ void mainWindow_c::addUpdateAction_f()
     {
         if (actonDataHub_ptr_ext->executingActions_f())
         {
-            errorQMessageBox_f("Add/edit action disallowed while executing actions", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Add/edit action disallowed while executing actions")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
         int rowTmp(-1);
@@ -754,14 +988,20 @@ void mainWindow_c::copyAction_f()
     {
         if (actonDataHub_ptr_ext->executingActions_f())
         {
-            errorQMessageBox_f("Copy Action disallowed while actions are executing", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Copy Action disallowed while actions are executing")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
         QList<QTableWidgetItem *> selectionTmp = actionsTable_pri->selectedItems();
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("No action row selected to copy", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No action row selected to copy"),
+                        appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -773,7 +1013,10 @@ void mainWindow_c::copyAction_f()
 
         if (rowIndexesTmp.size() > 1)
         {
-            errorQMessageBox_f("Action row copy can only be applied to a single row", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Action row copy can only be applied to a single row")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -782,13 +1025,18 @@ void mainWindow_c::copyAction_f()
         action_c* actionDataSourcePtrTmp(actonDataHub_ptr_ext->action_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(selectedRowTmp)));
 
         copyActionIndexInputDialog_pri = new QInputDialog(this);
-        copyActionIndexInputDialog_pri->setWindowTitle("Copy Action");
+        copyActionIndexInputDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Copy Action"));
         copyActionIndexInputDialog_pri->setLabelText(
+                    appConfig_ptr_ext->translateAndReplace_f({
                     "Input a new index to copy the action to.\nAction source:"
-                    "\nType: " + actionTypeToStrUMap_ext_con.at(actionDataSourcePtrTmp->type_f()) +
-                    "\nDescription: " + actionDataSourcePtrTmp->description_f().left(80) +
-                    "\nRow index: " + QString::number(selectedRowTmp)
-                    );
+                    "\nType: {0}"
+                    "\nDescription: {1}"
+                    "\nRow index: {2}"
+                    , actionTypeToStrUMap_ext_con.at(actionDataSourcePtrTmp->type_f())
+                    , truncateString_f(actionDataSourcePtrTmp->description_f(), 255)
+                    , selectedRowTmp
+                    })
+        );
         copyActionIndexInputDialog_pri->setInputMode(QInputDialog::IntInput);
         copyActionIndexInputDialog_pri->setIntValue(selectedRowTmp);
         copyActionIndexInputDialog_pri->setWindowModality(Qt::WindowModal);
@@ -817,14 +1065,17 @@ void mainWindow_c::inputDialogCopyActionIndexFinished_f(const int result_par)
             insertActionRow_f(
                         actionCopyTmp->type_f()
                         , actionCopyTmp->description_f()
-                        //, copyTmp.haltOnFail_f()
+                        , actionCopyTmp->enabled_f()
                         , newIndexTmp
             );
             //actionsTable_pri->selectRow(newIndexTmp);
         }
         else
         {
-            errorQMessageBox_f("Wrong index to copy the row: " + QString::number(newIndexTmp), "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translateAndReplace_f({"Wrong index to copy the row: {0}", newIndexTmp})
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
         }
     }
     copyActionIndexInputDialog_pri->deleteLater();
@@ -834,7 +1085,7 @@ void mainWindow_c::inputDialogCopyActionIndexFinished_f(const int result_par)
 void mainWindow_c::insertActionRow_f(
         const actionType_ec& actionType_par_con
         , const QString& description_par_con
-        //, const bool haltOnFail_par_con
+        , const bool enabled_par_con
         , const int row_par_con)
 {
     QString actionTypeStr(actionTypeToStrUMap_ext_con.at(actionType_par_con));
@@ -846,27 +1097,32 @@ void mainWindow_c::insertActionRow_f(
     descriptionCellTmp->setToolTip(description_par_con);
     descriptionCellTmp->setFlags(descriptionCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
+    QTableWidgetItem *enabledCellTmp(new QTableWidgetItem);
+    Qt::CheckState checkValueTmp(enabled_par_con ? Qt::Checked : Qt::Unchecked);
+    enabledCellTmp->setCheckState(checkValueTmp);
+    enabledCellTmp->setFlags(enabledCellTmp->flags() bitand compl Qt::ItemIsEditable);
+
     int newIndexTmp(row_par_con);
     if (newIndexTmp == -1)
     {
         newIndexTmp = actionsTable_pri->rowCount();
     }
 
-    //action (type) 0 | description 1 | Execution state 2 | Last output 3 | Last error 4
+    //action (type) 0 | description 1 | enabled 2 | Execution state 3 | Last output 4 | Last error 5
     actionsTable_pri->insertRow(newIndexTmp);
     actionsTable_pri->setItem(newIndexTmp, 0, actionValueCellTmp);
     actionsTable_pri->setItem(newIndexTmp, 1, descriptionCellTmp);
-    //actionsTable_pri->setItem(newIndexTmp, 2, haltOnFailCellTmp);
-    //2 execution state, 3 last output, 4 last error
-    actionsTable_pri->setItem(newIndexTmp, 2, new QTableWidgetItem);
+    actionsTable_pri->setItem(newIndexTmp, 2, enabledCellTmp);
+    //3 execution state, 4 last output, 5 last error
     actionsTable_pri->setItem(newIndexTmp, 3, new QTableWidgetItem);
     actionsTable_pri->setItem(newIndexTmp, 4, new QTableWidgetItem);
+    actionsTable_pri->setItem(newIndexTmp, 5, new QTableWidgetItem);
 }
 
 void mainWindow_c::updateExistingActionRow_f(
         const actionType_ec& actionType_par_con
         , const QString& description_par_con
-        //, const bool haltOnFail_par_con
+        , const bool enabled_par_con
         , const int row_par_con)
 {
     QString actionTypeStr(actionTypeToStrUMap_ext_con.at(actionType_par_con));
@@ -874,25 +1130,25 @@ void mainWindow_c::updateExistingActionRow_f(
     actionsTable_pri->item(row_par_con, 0)->setText(actionTypeStr);
     actionsTable_pri->item(row_par_con, 1)->setText(description_par_con);
     actionsTable_pri->item(row_par_con, 1)->setToolTip(description_par_con);
-    //Qt::CheckState checkValue(haltOnFail_par_con ? Qt::Checked : Qt::Unchecked);
-    //actionsTable_pri->item(row_par_con, 2)->setCheckState(checkValue);
+    Qt::CheckState checkValueTmp(enabled_par_con ? Qt::Checked : Qt::Unchecked);
+    actionsTable_pri->item(row_par_con, 2)->setCheckState(checkValueTmp);
 }
 
 void mainWindow_c::clearAllRowsResultColumns_f()
 {
     for (auto rowIndex_ite = 0, l = actionsTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
     {
-        //2 execution state, 3 last output, 4 last error
-        actionsTable_pri->item(rowIndex_ite, 2)->setText("");
+        //3 execution state, 4 last output, 5 last error
         actionsTable_pri->item(rowIndex_ite, 3)->setText("");
         actionsTable_pri->item(rowIndex_ite, 4)->setText("");
+        actionsTable_pri->item(rowIndex_ite, 5)->setText("");
     }
 }
 
 void mainWindow_c::createMessageBoxAskAboutExecutingActionsOnClose_f()
 {
     askAboutExecutingActionsOnCloseMessageBox_pri = new QMessageBox(this);
-    askAboutExecutingActionsOnCloseMessageBox_pri->setText(R"(Action/s are executing. What to do?)");
+    askAboutExecutingActionsOnCloseMessageBox_pri->setText(appConfig_ptr_ext->translate_f(R"(Action/s are executing. What to do?)"));
     askAboutExecutingActionsOnCloseMessageBox_pri->setTextFormat(Qt::RichText);
     askAboutExecutingActionsOnCloseMessageBox_pri->setWindowModality(Qt::WindowModal);
     askAboutExecutingActionsOnCloseMessageBox_pri->setAttribute(Qt::WA_DeleteOnClose);
@@ -918,7 +1174,7 @@ void mainWindow_c::createMessageBoxAskAboutExecutingActionsOnClose_f()
 void mainWindow_c::createMessageBoxAskAboutStoppingExecutionOnClose_f()
 {
     askAboutStoppingExecutionOnCloseMessageBox_pri = new QMessageBox(this);
-    askAboutStoppingExecutionOnCloseMessageBox_pri->setText(R"(Execution is stopping. What to do?)");
+    askAboutStoppingExecutionOnCloseMessageBox_pri->setText(appConfig_ptr_ext->translate_f(R"(Execution is stopping. What to do?)"));
     askAboutStoppingExecutionOnCloseMessageBox_pri->setTextFormat(Qt::RichText);
     askAboutStoppingExecutionOnCloseMessageBox_pri->setWindowModality(Qt::WindowModal);
     askAboutStoppingExecutionOnCloseMessageBox_pri->setAttribute(Qt::WA_DeleteOnClose);
@@ -948,7 +1204,7 @@ void mainWindow_c::updateActionRow_f(const int row_par_con)
         insertActionRow_f(
                     actionDataPtrTmp->type_f()
                     , actionDataPtrTmp->description_f()
-                    //, actionDataTmp.haltOnFail_f()
+                    , actionDataPtrTmp->enabled_f()
         );
     }
     else
@@ -957,7 +1213,7 @@ void mainWindow_c::updateActionRow_f(const int row_par_con)
         updateExistingActionRow_f(
                     actionDataPtrTmp->type_f()
                     , actionDataPtrTmp->description_f()
-                    //, actionDataTmp.haltOnFail_f()
+                    , actionDataPtrTmp->enabled_f()
                     , row_par_con
         );
     }
@@ -969,13 +1225,19 @@ void mainWindow_c::moveSelectedActions_f(const int moveOffSet_par_con)
     {
         if (actonDataHub_ptr_ext->executingActions_f())
         {
-            errorQMessageBox_f("Action moving disallowed while executing actions", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Action moving disallowed while executing actions")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
         QList<QTableWidgetItem *> selectionTmp = actionsTable_pri->selectedItems();
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("Empty selection to move", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Empty selection to move")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -1011,7 +1273,7 @@ void mainWindow_c::moveSelectedActions_f(const int moveOffSet_par_con)
                 insertActionRow_f(
                             actionTmp->type_f()
                             , actionTmp->description_f()
-                            //, actionDataTmp.haltOnFail_f()
+                            , actionTmp->enabled_f()
                             , destinationRow
                 );
                 //deselects previous stuff, doesn't maintain "old" selection
@@ -1043,13 +1305,19 @@ void mainWindow_c::openChangeActionIndexWindow_f()
     {
         if (actonDataHub_ptr_ext->executingActions_f())
         {
-            errorQMessageBox_f("Action index change disallowed while executing actions", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Action index change disallowed while executing actions")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
         QList<QTableWidgetItem *> selectionTmp(actionsTable_pri->selectedItems());
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("No action row selected to change row index", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No action row selected to change row index")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -1061,15 +1329,19 @@ void mainWindow_c::openChangeActionIndexWindow_f()
 
         if (rowIndexesTmp.size() > 1)
         {
-            errorQMessageBox_f("Action row index change can only be applied to a single row", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Action row index change can only be applied to a single row")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
         int currentIndexTmp(selectionTmp.first()->row());
 
         changeActionIndexInputDialog_pri = new QInputDialog(this);
-        changeActionIndexInputDialog_pri->setWindowTitle("Change Action index");
-        changeActionIndexInputDialog_pri->setLabelText("Input a new index to move the action to (current index: " + QString::number(currentIndexTmp) + ")");
+        changeActionIndexInputDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Change Action index"));
+        changeActionIndexInputDialog_pri->setLabelText(
+                    appConfig_ptr_ext->translateAndReplace_f({"Input a new index to move the action to (current index: {0})", currentIndexTmp}));
         changeActionIndexInputDialog_pri->setInputMode(QInputDialog::IntInput);
         changeActionIndexInputDialog_pri->setIntValue(currentIndexTmp);
         changeActionIndexInputDialog_pri->setWindowModality(Qt::WindowModal);
@@ -1097,14 +1369,17 @@ void mainWindow_c::inputDialogChangeActionIndexFinished_f(const int result_par)
             insertActionRow_f(
                         actionTmp->type_f()
                         , actionTmp->description_f()
-                        //, actionDataTmp->haltOnFail_f()
+                        , actionTmp->enabled_f()
                         , newIndexTmp
             );
             //actionsTable_pri->selectRow(newIndexTmp);
         }
         else
         {
-            errorQMessageBox_f("Same or wrong index to move the row: " + QString::number(newIndexTmp), "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translateAndReplace_f({"Same or wrong index to move the row: {0}", newIndexTmp})
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
         }
     }
     changeActionIndexInputDialog_pri->deleteLater();
@@ -1117,14 +1392,19 @@ void mainWindow_c::updateActionOutput_f(action_c* action_par_ptr_con)
     //update the cell of the row with the last part of the str
     int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(action_par_ptr_con->id_f()));
     //action (type) 0 | description 1 | Execution state 2 | Last output 3 | Last error 4
-    actionsTable_pri->item(rowTmp, 3)->setText(action_par_ptr_con->actionDataExecutionResult_ptr_f()->output_f().left(32));
+    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(action_par_ptr_con->actionDataExecutionResult_ptr_f()->output_f()));
+    actionsTable_pri->item(rowTmp, 3)->setText(truncateString_f(translationTmp, 32));
+    actionsTable_pri->item(rowTmp, 3)->setToolTip(translationTmp);
 }
 
 void mainWindow_c::updateActionError_f(action_c* action_par_ptr_con)
 {
     int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(action_par_ptr_con->id_f()));
     //action (type) 0 | description 1 |  Execution state 2 | Last output 3 | Last error 4
-    actionsTable_pri->item(rowTmp, 4)->setText(action_par_ptr_con->actionDataExecutionResult_ptr_f()->error_f().left(32));
+    //FUTURE translation should be done here
+    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(action_par_ptr_con->actionDataExecutionResult_ptr_f()->errors_f()));
+    actionsTable_pri->item(rowTmp, 4)->setText(truncateString_f(translationTmp, 32));
+    actionsTable_pri->item(rowTmp, 4)->setToolTip(translationTmp);
 }
 
 void mainWindow_c::updateActionExecutionState_f(action_c* action_par_ptr_con)
@@ -1139,9 +1419,10 @@ void mainWindow_c::updateActionExecutionState_f(action_c* action_par_ptr_con)
     //qDebug() << "rowTmp " << QString::number(rowTmp) << endl;
     //qDebug() << "actionExecutionStateStrTmp " << actionExecutionStateStrTmp << endl;
 #endif
-
+    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(actionExecutionStateStrTmp));
     //action (type) 0 | description 1 | Execution state 2 | Last output 3 | Last error 4
-    actionsTable_pri->item(rowTmp, 2)->setText(actionExecutionStateStrTmp.left(32));
+    actionsTable_pri->item(rowTmp, 2)->setText(truncateString_f(translationTmp, 32));
+    actionsTable_pri->item(rowTmp, 2)->setText(translationTmp);
 }
 
 void mainWindow_c::removeActions_f()
@@ -1150,13 +1431,19 @@ void mainWindow_c::removeActions_f()
     {
         if (actonDataHub_ptr_ext->executingActions_f())
         {
-            errorQMessageBox_f("Action removal disallowed while executing actions", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Action removal disallowed while executing actions")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
         QList<QTableWidgetItem *> selectionTmp = actionsTable_pri->selectedItems();
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("No action rows selected for removal", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No action rows selected for removal")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -1191,7 +1478,7 @@ void mainWindow_c::executeActionsButtonClicked_f()
         if (actonDataHub_ptr_ext->actionsExecutionStopped_f())
         {
             runFromStoppedActionMessageBox_pri = new QMessageBox(this);
-            runFromStoppedActionMessageBox_pri->setText(R"(Run from last unsuccessful action?)");
+            runFromStoppedActionMessageBox_pri->setText(appConfig_ptr_ext->translate_f(R"(Run from last unsuccessful action?)"));
             //runFromHaltedActionMessageBox_pri->setTextFormat(Qt::RichText);
             runFromStoppedActionMessageBox_pri->setStandardButtons(QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
             runFromStoppedActionMessageBox_pri->setDefaultButton(QMessageBox::Yes);
@@ -1212,7 +1499,7 @@ void mainWindow_c::executeActionsButtonClicked_f()
             //the dependent one would stay indefinitely "excuting checks"
             //still the user could stop everything later anyway if
             //he gets "stuck" trying to manage the execution
-            executeActionsButton_pri->setText("Stopping...");
+            executeActionsButton_pri->setText(appConfig_ptr_ext->translate_f("Stopping..."));
             actonDataHub_ptr_ext->tryStopExecutingActions_f();
             break;
         }
@@ -1229,7 +1516,10 @@ void mainWindow_c::showExecutionOptionsButtonClicked_f()
     {
         if (actonDataHub_ptr_ext->executingActions_f())
         {
-            errorQMessageBox_f("Execution options window disallowed while actions are executing", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("Execution options window disallowed while actions are executing")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -1245,31 +1535,31 @@ void mainWindow_c::showExecutionOptionsButtonClicked_f()
 void mainWindow_c::executionFinished_f()
 {
     //FUTURE this might need more details like duration, if errors or not, x/y successfull
-    statusBarLabel_pri->setText("Action/s execution finished");
+    statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Action/s execution finished"));
     //restore execute button text values
-    executeActionsButton_pri->setText("&Execute Actions");
-    executeActionsButton_pri->setToolTip("No selection executes all actions, selection executes selected actions");
+    executeActionsButton_pri->setText(appConfig_ptr_ext->translate_f("&Execute Actions"));
+    executeActionsButton_pri->setToolTip(appConfig_ptr_ext->translate_f("No selection executes all actions, selection executes selected actions"));
 }
 
 void mainWindow_c::executionStarted_f()
 {
-    statusBarLabel_pri->setText("Action/s execution started");
+    statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Action/s execution started"));
 
-    executeActionsButton_pri->setText("Executing... Press again to Stop");
-    executeActionsButton_pri->setToolTip("Will stop after finishing already executing action/s");
+    executeActionsButton_pri->setText(appConfig_ptr_ext->translate_f("Executing... Press again to Stop"));
+    executeActionsButton_pri->setToolTip(appConfig_ptr_ext->translate_f("Will stop after finishing already executing action/s"));
 }
 
 void mainWindow_c::stoppingExecution_f()
 {
-    statusBarLabel_pri->setText("Trying to stop execution...");
+    statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Trying to stop execution..."));
 }
 
 void mainWindow_c::executionStopped_f()
 {
-    statusBarLabel_pri->setText("Execution stopped");
+    statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Execution stopped"));
     //restore execute button text values
-    executeActionsButton_pri->setText("&Execute Actions");
-    executeActionsButton_pri->setToolTip("No selection executes all actions, selection executes selected actions");
+    executeActionsButton_pri->setText(appConfig_ptr_ext->translate_f("&Execute Actions"));
+    executeActionsButton_pri->setToolTip(appConfig_ptr_ext->translate_f("No selection executes all actions, selection executes selected actions"));
 }
 
 void mainWindow_c::actionResultsCleared_f(action_c* const action_par_ptr_con)
@@ -1283,7 +1573,7 @@ void mainWindow_c::stopExecutingActionsAndClose_f()
 {
     if (actonDataHub_ptr_ext->executingActions_f())
     {
-        connect(actonDataHub_ptr_ext->proxyQObj_f(), &actonDataHubProxyQObj_c::actionsExecutionFinished_signal, this, &mainWindow_c::close);
+        connect(actonDataHub_ptr_ext, &actonDataHub_c::actionsExecutionFinished_signal, this, &mainWindow_c::close);
         actonDataHub_ptr_ext->tryStopExecutingActions_f();
         executeActionsButton_pri->setText(appConfig_ptr_ext->translate_f("Stopping..."));
         statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping execution... (exiting after)"));
@@ -1296,7 +1586,7 @@ void mainWindow_c::stopExecutingActionsElseKillAndClose_f()
 {
     if (actonDataHub_ptr_ext->executingActions_f())
     {
-        connect(actonDataHub_ptr_ext->proxyQObj_f(), &actonDataHubProxyQObj_c::actionsExecutionFinished_signal, this, &mainWindow_c::close);
+        connect(actonDataHub_ptr_ext, &actonDataHub_c::actionsExecutionFinished_signal, this, &mainWindow_c::close);
         actonDataHub_ptr_ext->tryStopExecutingActions_f(true);
         executeActionsButton_pri->setText(appConfig_ptr_ext->translate_f("Stopping..."));
 
@@ -1305,7 +1595,7 @@ void mainWindow_c::stopExecutingActionsElseKillAndClose_f()
             killCountdown_pri = actonDataHub_ptr_ext->executionOptions_f().killTimeoutMilliseconds_f() / 1000;
             statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping execution... will kill in ") + QString::number(killCountdown_pri));
             QTimer* killCountdownTimerPtr(new QTimer(this));
-            connect(actonDataHub_ptr_ext->proxyQObj_f(), &actonDataHubProxyQObj_c::actionsExecutionFinished_signal, killCountdownTimerPtr, &QTimer::deleteLater);
+            connect(actonDataHub_ptr_ext, &actonDataHub_c::actionsExecutionFinished_signal, killCountdownTimerPtr, &QTimer::deleteLater);
             connect(killCountdownTimerPtr, &QTimer::timeout, [this, killCountdownTimerPtr]()
             {
                 killCountdown_pri = killCountdown_pri - 1;
@@ -1332,7 +1622,7 @@ void mainWindow_c::killExecutingActionsAndClose_f()
     if (actonDataHub_ptr_ext->executingActions_f() and actonDataHub_ptr_ext->stoppingActionsExecution_f())
     {
         statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Killing execution... (exiting after)"));
-        connect(actonDataHub_ptr_ext->proxyQObj_f(), &actonDataHubProxyQObj_c::actionsExecutionFinished_signal, this, &mainWindow_c::close, Qt::UniqueConnection);
+        connect(actonDataHub_ptr_ext, &actonDataHub_c::actionsExecutionFinished_signal, this, &mainWindow_c::close, Qt::UniqueConnection);
         actonDataHub_ptr_ext->tryStopExecutingActions_f(true);
     }
     askAboutStoppingExecutionOnCloseMessageBox_pri->close();
@@ -1444,7 +1734,10 @@ void mainWindow_c::showExecutionDetails_f()
     {
         if (actionsTable_pri->selectedItems().isEmpty())
         {
-            errorQMessageBox_f("No action row selected", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No action row selected")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -1455,7 +1748,10 @@ void mainWindow_c::showExecutionDetails_f()
         {
             if (actionPtrTmp->actionDataExecutionResult_ptr_f() == nullptr)
             {
-                errorQMessageBox_f("Action has no execution results", "Error", this);
+                errorQMessageBox_f(
+                            appConfig_ptr_ext->translate_f("Action has no execution results")
+                            , appConfig_ptr_ext->translate_f("Error")
+                            , this);
                 break;
             }
             else
@@ -1492,7 +1788,7 @@ void mainWindow_c::showAboutMessage_f()
                     R"(Source: <a href="https://github.com/jouven/ActonQtg">github.com/jouven/ActonQtg</a><br>)"
                     R"(Homepage: <a href="https://avidcalm.com">avidcalm.com</a></p>)"
                     )
-                , "About actonQtg"
+                , appConfig_ptr_ext->translate_f("About actonQtg")
                 , this
     );
 }

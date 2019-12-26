@@ -69,13 +69,15 @@ public:
     void addDirectoryHistory_f(const QString& fileDialogStringId_par_con, const QString& directory_par_con);
 
     QString translate_f(const QString& key_par_con);
+    QString translateAndReplace_f(const text_c& text_par_con);
+    QString translateAndReplace_f(const textCompilation_c& textCompilation_par_con);
     //FUTURE allow to change language using translationFromToPairs_f (the "to" part)
     //Making a program like "translationParserAvidcalm" (which is another program made by me, that parses the source js/cpp files for translations)
     //but to generate skeleton json language files
     //(from language will always be hardcoded because the initial source-language is always harcoded)
 
     bool addLogMessage_f(
-            const QString& message_par_con
+            const text_c& message_par_con
             , const logItem_c::type_ec logType_par_con
             , const QString& sourceFile_par_con
             , const QString& sourceFunction_par_con

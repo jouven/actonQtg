@@ -39,10 +39,10 @@ argumentEditWindow_c::argumentEditWindow_c(
 
     QHBoxLayout* argumentValueLayoutTmp = new QHBoxLayout;
 
-    argumentField_pri = new QPlainTextEdit(argument_par_con);
-    auto minHeightTmp(argumentField_pri->fontMetrics().lineSpacing() + 14);
-    argumentField_pri->setMinimumHeight(minHeightTmp);
-    argumentField_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+    argumentFieldPTE_pri = new QPlainTextEdit(argument_par_con);
+    auto minHeightTmp(argumentFieldPTE_pri->fontMetrics().lineSpacing() + 14);
+    argumentFieldPTE_pri->setMinimumHeight(minHeightTmp);
+    argumentFieldPTE_pri->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
     //add a size handler for the processPath
 //    QSizeGrip * sizeGripTmp = new QSizeGrip(argumentField_pri);
 
@@ -51,7 +51,7 @@ argumentEditWindow_c::argumentEditWindow_c(
 //    sizeGripLayoutTmp->addWidget(sizeGripTmp, 0, Qt::AlignBottom | Qt::AlignRight);
 
     argumentValueLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Value")));
-    argumentValueLayoutTmp->addWidget(argumentField_pri);
+    argumentValueLayoutTmp->addWidget(argumentFieldPTE_pri);
 
     QHBoxLayout* argumentIndexLayoutTmp = new QHBoxLayout;
 
@@ -129,7 +129,7 @@ void argumentEditWindow_c::saveButtonPushed_f()
         //or the index is greater than the last position
         //return
         bool goodNumberConversion(false);
-        if (argumentField_pri->toPlainText().isEmpty()
+        if (argumentFieldPTE_pri->toPlainText().isEmpty()
             or argumentIndexField_pri->text().toLong(&goodNumberConversion) < 0
             or argumentIndexField_pri->text().toLong() > rowCount_pri_con
             or not goodNumberConversion)
@@ -138,7 +138,7 @@ void argumentEditWindow_c::saveButtonPushed_f()
             break;
         }
 
-        argument_c argumentTmp(argumentField_pri->toPlainText(), enabledCheckbox_pri->isChecked());
+        argument_c argumentTmp(argumentFieldPTE_pri->toPlainText(), enabledCheckbox_pri->isChecked());
         int newIndexTmp(argumentIndexField_pri->text().toInt());
         const bool rowUpdateTmp_con(newIndexTmp == currentIndex_pri_con);
 

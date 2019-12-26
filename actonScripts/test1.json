@@ -1,0 +1,106 @@
+{
+    "actions": [
+        {
+            "actionTypeData": {
+                "createParents": true,
+                "directoryPath": "./test",
+                "errorIfExists": false
+            },
+            "checkResultLogicAnd": true,
+            "checksEnabled": true,
+            "description": "createdirectory test (default)",
+            "enabled": true,
+            "repeatExecution": false,
+            "stopAllExecutionOnError": true,
+            "stringId": "createdirectory test (default)",
+            "type": "createDirectory"
+        },
+        {
+            "actionTypeData": {
+                "bufferSize": "1048576",
+                "copyEmptyDirectories": true,
+                "copyHidden": true,
+                "createDestinationAndParents": false,
+                "destinationPath": "/home/jouven/qtcreatorprojects/actonQtg/build-Desktop-Debug/test",
+                "destinationTreatment": "noOverwrite",
+                "navigateHidden": true,
+                "navigateSubdirectories": true,
+                "noFilesCopiedIsError": true,
+                "resumeType": "transferTypeImplementation",
+                "sourcePath": "/home/jouven/qtcreatorprojects/actonQtg/build-Desktop-Debug",
+                "stopAllCopyOnFileCopyError": false,
+                "transferType": "copy"
+            },
+            "checkResultLogicAnd": true,
+            "checks": [
+                {
+                    "checkTypeData": {
+                        "actionStringId": "createdirectory test (default)",
+                        "finishedCount": "1",
+                        "successOnActionSuccess": true
+                    },
+                    "description": "wait for createDirectory Test",
+                    "enabled": true,
+                    "threaded": false,
+                    "type": "actionFinished"
+                }
+            ],
+            "checksEnabled": true,
+            "description": "copyfile test (default)",
+            "enabled": true,
+            "repeatExecution": false,
+            "stopAllExecutionOnError": true,
+            "stringId": "copyfile test (default)",
+            "type": "copyFile"
+        },
+        {
+            "actionTypeData": {
+                "errorIfNotExists": false,
+                "onlyIfEmpty": false,
+                "path": "./test"
+            },
+            "checkResultLogicAnd": true,
+            "checks": [
+                {
+                    "checkTypeData": {
+                        "actionStringId": "copyfile test (default)",
+                        "finishedCount": "1",
+                        "successOnActionSuccess": true
+                    },
+                    "description": "wait for copy",
+                    "enabled": true,
+                    "threaded": false,
+                    "type": "actionFinished"
+                }
+            ],
+            "checksEnabled": true,
+            "description": "deletefiledir test",
+            "enabled": true,
+            "repeatExecution": false,
+            "stopAllExecutionOnError": true,
+            "stringId": "deletefiledir test",
+            "type": "deleteFileDir"
+        },
+        {
+            "actionTypeData": {
+                "processPath": "ls -lahX",
+                "useActonEnvironment": true,
+                "workingDirectory": "/home/jouven/qtcreatorprojects/actonQtg/build-Desktop-Debug/test"
+            },
+            "checkResultLogicAnd": true,
+            "checksEnabled": true,
+            "description": "run process test",
+            "enabled": true,
+            "repeatExecution": false,
+            "stopAllExecutionOnError": true,
+            "stringId": "run process test",
+            "type": "runProcess"
+        }
+    ],
+    "executeOptions": {
+        "executionLoopType": "loopXTimes",
+        "extraThreads": "1",
+        "killTimeoutMilliseconds": "10000",
+        "loopXTimesCount": "0"
+    }
+}

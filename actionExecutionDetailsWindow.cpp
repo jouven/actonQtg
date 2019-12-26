@@ -55,7 +55,7 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
 
     anyFinishCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Any finish"));
     anyFinishCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("True if the action is done executing, no matter what state"));
-    anyFinishCheckbox_pri->setMinimumHeight(minHeightTmp);
+    //anyFinishCheckbox_pri->setMinimumHeight(minHeightTmp);
     firstRowLayoutTmp->addWidget(anyFinishCheckbox_pri);
 
     firstRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Return code")));
@@ -241,12 +241,12 @@ void actionExecutionDetailsWindow_c::tipsButtonClicked_f()
 
 void actionExecutionDetailsWindow_c::updateOutput_f()
 {
-    outputPTE_pri->setPlainText(actionDataExecutionResultPtr_pri->output_f());
+    outputPTE_pri->setPlainText(appConfig_ptr_ext->translateAndReplace_f(actionDataExecutionResultPtr_pri->output_f()));
 }
 
 void actionExecutionDetailsWindow_c::updateError_f()
 {
-    errorPTE_pri->setPlainText(actionDataExecutionResultPtr_pri->error_f());
+    errorPTE_pri->setPlainText(appConfig_ptr_ext->translateAndReplace_f(actionDataExecutionResultPtr_pri->errors_f()));
 }
 
 void actionExecutionDetailsWindow_c::updateExternalOutput_f()
@@ -261,7 +261,6 @@ void actionExecutionDetailsWindow_c::updateExternalError_f()
 
 void actionExecutionDetailsWindow_c::updateState_f()
 {
-
     if (executionStartDatetimeTE_pri->toPlainText().isEmpty() and actionDataExecutionResultPtr_pri->started_f())
     {
         executionStartDatetimeTE_pri->setText(

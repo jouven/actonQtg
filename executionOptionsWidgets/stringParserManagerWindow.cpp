@@ -3,6 +3,7 @@
 #include "stringParserEditorWindow.hpp"
 
 #include "../appConfig.hpp"
+#include "../stringFormatting.hpp"
 
 #include "actonQtso/actonDataHub.hpp"
 
@@ -200,26 +201,26 @@ void stringParserManagerWindow_c::addUpdateStringParserConfig_f()
 {
 //    while (true)
 //    {
-        int rowTmp(-1);
-        //if the selection is empty use the last row index
-        if (stringParserConfigsTable_pri->selectedItems().isEmpty())
-        {
-            rowTmp = stringParserConfigsTable_pri->rowCount();
-        }
-        else
-            //else get the first selected row
-        {
-            rowTmp = stringParserConfigsTable_pri->selectedItems().first()->row();
-        }
+    int rowTmp(-1);
+    //if the selection is empty use the last row index
+    if (stringParserConfigsTable_pri->selectedItems().isEmpty())
+    {
+        rowTmp = stringParserConfigsTable_pri->rowCount();
+    }
+    else
+        //else get the first selected row
+    {
+        rowTmp = stringParserConfigsTable_pri->selectedItems().first()->row();
+    }
 
-        stringParserEditorWindow_c* stringParserConfigWindowTmp(new stringParserEditorWindow_c(rowTmp, this));
-        //20180209 subwindow doesn't seem to work, popup has no "window" it's only the frame
-        stringParserConfigWindowTmp->setWindowFlag(Qt::Window, true);
-        stringParserConfigWindowTmp->setWindowModality(Qt::WindowModal);
+    stringParserEditorWindow_c* stringParserConfigWindowTmp(new stringParserEditorWindow_c(rowTmp, this));
+    //20180209 subwindow doesn't seem to work, popup has no "window" it's only the frame
+    stringParserConfigWindowTmp->setWindowFlag(Qt::Window, true);
+    stringParserConfigWindowTmp->setWindowModality(Qt::WindowModal);
 
-        connect(stringParserConfigWindowTmp, &stringParserEditorWindow_c::updateRow_Signal, this, &stringParserManagerWindow_c::updateActionRow_f);
+    connect(stringParserConfigWindowTmp, &stringParserEditorWindow_c::updateRow_Signal, this, &stringParserManagerWindow_c::updateActionRow_f);
 
-        stringParserConfigWindowTmp->show();
+    stringParserConfigWindowTmp->show();
 //        break;
 //    }
 }
@@ -231,7 +232,10 @@ void stringParserManagerWindow_c::removeStringParserConfigs_f()
         QList<QTableWidgetItem *> selectionTmp = stringParserConfigsTable_pri->selectedItems();
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("No string parser config rows selected for removal", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No string parser config rows selected for removal")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -260,7 +264,10 @@ void stringParserManagerWindow_c::copyStringParseConfig_f()
         QList<QTableWidgetItem *> selectionTmp = stringParserConfigsTable_pri->selectedItems();
         if (selectionTmp.isEmpty())
         {
-            errorQMessageBox_f("No string parser config row selected to copy", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("No string parser config row selected to copy")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -272,7 +279,10 @@ void stringParserManagerWindow_c::copyStringParseConfig_f()
 
         if (rowIndexesTmp.size() > 1)
         {
-            errorQMessageBox_f("String parser config row copy can only be applied to a single row", "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translate_f("String parser config row copy can only be applied to a single row")
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
             break;
         }
 
@@ -281,13 +291,20 @@ void stringParserManagerWindow_c::copyStringParseConfig_f()
         parserBase_c* parserPtrTmp(stringParserMap_ptr_ext->orderToParserBaseMap_f().value(selectedRowTmp));
 
         copyStringParserConfigIndexInputDialog_pri = new QInputDialog(this);
-        copyStringParserConfigIndexInputDialog_pri->setWindowTitle("Copy string parser configuration");
+        copyStringParserConfigIndexInputDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Copy string parser configuration"));
         copyStringParserConfigIndexInputDialog_pri->setLabelText(
+                    appConfig_ptr_ext->translateAndReplace_f({
                     "Input a new index to copy the string parser configuration to.\nString parser configuration source:"
-                    "\nType: " + parserBase_c::typeToStrUMap_sta_con.at(parserPtrTmp->type_f()) +
-                    "\nValue/Format: " + parserPtrTmp->valueFormat_f().left(80) +
-                    "\nRow index: " + QString::number(selectedRowTmp)
-                    );
+                    "\nString trigger: {0}"
+                    "\nType: {1}"
+                    "\nValue/Format: {2}"
+                    "\nRow index: {3}",
+                    parserPtrTmp->stringTrigger_f()
+                    , parserBase_c::typeToStrUMap_sta_con.at(parserPtrTmp->type_f())
+                    , truncateString_f(parserPtrTmp->valueFormat_f(), 255)
+                    , selectedRowTmp
+                    })
+        );
         copyStringParserConfigIndexInputDialog_pri->setInputMode(QInputDialog::IntInput);
         copyStringParserConfigIndexInputDialog_pri->setIntValue(selectedRowTmp);
         copyStringParserConfigIndexInputDialog_pri->setWindowModality(Qt::WindowModal);
@@ -316,7 +333,10 @@ void stringParserManagerWindow_c::inputDialogCopyStringParserConfigIndexFinished
         }
         else
         {
-            errorQMessageBox_f("Wrong index to copy the row: " + QString::number(newIndexTmp), "Error", this);
+            errorQMessageBox_f(
+                        appConfig_ptr_ext->translateAndReplace_f({"Wrong index to copy the row: {0}", newIndexTmp})
+                        , appConfig_ptr_ext->translate_f("Error")
+                        , this);
         }
     }
     copyStringParserConfigIndexInputDialog_pri->deleteLater();

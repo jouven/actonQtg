@@ -152,15 +152,17 @@ void appConfig_c::tryLoadTranslations_f()
         translator_pri.setTranslateFromLanguage_f("hard-coded");
         translator_pri.setTranslateToLanguageChain_f({"english"});
     }
+    logDataHub_pri.setTranslatorPtr_f(std::addressof(translator_pri));
 }
 
 appConfig_c::appConfig_c()
+    : logDataHub_pri(nullptr)
 {
     commandLineParser_pri.setApplicationDescription("ActonQtg, GUI program to manage acton files");
     commandLineParser_pri.addHelpOption();
     commandLineParser_pri.addVersionOption();
     //FUTURE parse arguments for, languagefile, log location...
-    commandLineParser_pri.addPositionalArgument("action file paths", "Optional, path/s to action files to be loaded, they must be compatible (all sequential or all dependency)");
+    commandLineParser_pri.addPositionalArgument("action file paths", "Optional, path/s to action files to be loaded, they must be compatible-valid");
     //FUTURE flag to run the loaded action files
 
     commandLineParser_pri.process(*qApp);
@@ -305,16 +307,49 @@ QString appConfig_c::translate_f(const QString& key_par_con)
     {
         resultTmp = translator_pri.translate_f(key_par_con, std::addressof(foundTmp));
     }
+    //this is already done when addNotFoundKeys in the translator_c object is true
+    //it is done like this because otherwise a lot of texts/labels will be empty
     if (not foundTmp)
     {
         resultTmp = key_par_con;
     }
-    //try to translate else return the same key, otherwise a lot of texts/labels will be empty
     return resultTmp;
 }
 
+QString appConfig_c::translateAndReplace_f(const text_c& text_par_con)
+{
+    QString resultTmp;
+    bool foundTmp(false);
+    if (translator_pri.isConfigSet_f())
+    {
+        resultTmp = translator_pri.translateAndReplace_f(text_par_con, std::addressof(foundTmp));
+    }
+    //this is already done when addNotFoundKeys in the translator_c object is true
+    //it is done like this because otherwise a lot of texts/labels will be empty
+    if (not foundTmp)
+    {
+        resultTmp = text_par_con.rawReplace_f();
+    }
+    return resultTmp;
+}
+
+QString appConfig_c::translateAndReplace_f(const textCompilation_c& textCompilation_par_con)
+{
+    QString resultTmp;
+    if (translator_pri.isConfigSet_f())
+    {
+        resultTmp = translator_pri.translateAndReplaceToString_f(textCompilation_par_con);
+    }
+    else
+    {
+        resultTmp = textCompilation_par_con.toRawReplace_f();
+    }
+    return resultTmp;
+}
+
+
 bool appConfig_c::addLogMessage_f(
-        const QString& message_par_con
+        const text_c& message_par_con
         , const logItem_c::type_ec logType_par_con
         , const QString& sourceFile_par_con
         , const QString& sourceFunction_par_con

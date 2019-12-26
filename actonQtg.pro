@@ -11,10 +11,8 @@ TEMPLATE = app
 android:QMAKE_CXXFLAGS += -std=c++14
 
 HEADERS       = \
-    actionWidgets/baseClassActionWidgets.hpp \
     appConfig.hpp \
     actionWindow.hpp \
-    checkWidgets/baseClassCheckWidgets.hpp \
     mainWindow.hpp \
     actionWidgets/runProcessExtra/argumentWindow.hpp \
     actionWidgets/createDirectoryWidgets.hpp \
@@ -40,13 +38,19 @@ HEADERS       = \
     executionOptionsWidgets/stringParserWidgets/stringReplacerWidgets.hpp \
     executionOptionsWidgets/stringParserWidgets/baseClassStringParserWidgets.hpp \
     executionOptionsWidgets/stringParserManagerWindow.hpp \
-    executionOptionsWidgets/stringParserEditorWindow.hpp
+    executionOptionsWidgets/stringParserEditorWindow.hpp \
+    commonWidgets.hpp \
+    actionWidgets/baseClassActionTypeWidgets.hpp \
+    checkWidgets/baseClassCheckTypeWidgets.hpp \
+    actionWidgets/deleteFileDirWidgets.hpp \
+    actionWidgets/metaEndExecutionCycleWidgets.hpp \
+    checkWidgets/timerWidgets.hpp \
+    checkWidgets/pathExistsWidgets.hpp \
+    stringFormatting.hpp
 
 SOURCES       = main.cpp \
-    actionWidgets/baseClassActionWidgets.cpp \
     appConfig.cpp \
     actionWindow.cpp \
-    checkWidgets/baseClassCheckWidgets.cpp \
     mainWindow.cpp \
     actionWidgets/runProcessExtra/argumentWindow.cpp \
     actionWidgets/createDirectoryWidgets.cpp \
@@ -72,7 +76,15 @@ SOURCES       = main.cpp \
     executionOptionsWidgets/stringParserWidgets/stringReplacerWidgets.cpp \
     executionOptionsWidgets/stringParserWidgets/baseClassStringParserWidgets.cpp \
     executionOptionsWidgets/stringParserManagerWindow.cpp \
-    executionOptionsWidgets/stringParserEditorWindow.cpp
+    executionOptionsWidgets/stringParserEditorWindow.cpp \
+    commonWidgets.cpp \
+    actionWidgets/baseClassActionTypeWidgets.cpp \
+    checkWidgets/baseClassCheckTypeWidgets.cpp \
+    actionWidgets/deleteFileDirWidgets.cpp \
+    actionWidgets/metaEndExecutionCycleWidgets.cpp \
+    checkWidgets/timerWidgets.cpp \
+    checkWidgets/pathExistsWidgets.cpp \
+    stringFormatting.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -103,7 +115,7 @@ CONFIG(release, debug|release){
 CONFIG(debug, debug|release){
 LIBS += -L$${MYPATH}home/jouven/mylibs/debug -ltimeso
 win32:LIBS += -lboost_date_time-mt
-!win32:LIBS += -lbackwardSTso -lboost_date_time
+!win32:LIBS += -lbackwardSTso
     DEPENDPATH += $${MYPATH}home/jouven/mylibs/debug
     QMAKE_RPATHDIR += $${MYPATH}home/jouven/mylibs/debug
     #QMAKE_LFLAGS += -rdynamic
@@ -130,7 +142,7 @@ CONFIG(debug, debug|release){
 
 LIBS += -lessentialQtso -lsignalso -lessentialQtgso -lactonQtso -lthreadedFunctionQtso \
 -ltranslatorJSONQtso -llogsinJSONQtso -lsizeConversionso -lstringParserMapQtso \
--lbaseClassQtso
+-lbaseClassQtso -ltextQtso
 
 QMAKE_CXXFLAGS_DEBUG -= -g
 QMAKE_CXXFLAGS_DEBUG += -pedantic -Wall -Wextra -g3

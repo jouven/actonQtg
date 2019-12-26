@@ -1,9 +1,11 @@
 #include "createDirectoryWidgets.hpp"
 
+#include "../commonWidgets.hpp"
 #include "../appConfig.hpp"
 
 #include "actonQtso/actions/createDirectory.hpp"
 
+#include "textQtso/text.hpp"
 #include "essentialQtgso/messageBox.hpp"
 
 #include <QtWidgets>
@@ -22,33 +24,6 @@ QString createDirectoryWidgets_c::derivedExtraTips_f() const
     return appConfig_ptr_ext->translate_f("<p>create directory widget tips</p>");
 }
 
-bool createDirectoryWidgets_c::isFieldsDataValid_f() const
-{
-    bool resultTmp(false);
-    while (true)
-    {
-        QString createDirectoryPathStr(createDirectoryPathPTE_pri->toPlainText());
-        if (createDirectoryPathStr.length() > 255)
-        {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Directory path is too long (>255): ") + QString::number(createDirectoryPathStr.length())
-                               , appConfig_ptr_ext->translate_f("Error")
-                               , static_cast<QWidget*>(this->parent()));
-            break;
-        }
-        if (createDirectoryPathStr.isEmpty())
-        {
-            errorQMessageBox_f(appConfig_ptr_ext->translate_f("Directory path is empty")
-                               , appConfig_ptr_ext->translate_f("Error")
-                               , static_cast<QWidget*>(this->parent()));
-            break;
-        }
-
-        resultTmp = true;
-        break;
-    }
-    return resultTmp;
-}
-
 createDirectoryData_c createDirectoryWidgets_c::fieldsToCreateDirectoryDataObject_f() const
 {
     return createDirectoryData_c(
@@ -61,12 +36,17 @@ createDirectoryData_c createDirectoryWidgets_c::fieldsToCreateDirectoryDataObjec
 bool createDirectoryWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
 {
     bool resultTmp(false);
-    if (isFieldsDataValid_f())
+    createDirectoryData_c objTmp(fieldsToCreateDirectoryDataObject_f());
+    textCompilation_c errorsTmp;
+    if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        createDirectoryAction_ptr_pri = new createDirectoryAction_c(actionDataBlock_par_con, fieldsToCreateDirectoryDataObject_f());
-
+        createDirectoryAction_ptr_pri = new createDirectoryAction_c(actionDataBlock_par_con, objTmp);
         actionPtr_pro = createDirectoryAction_ptr_pri;
         resultTmp = true;
+    }
+    if (errorsTmp.size_f() > 0)
+    {
+        messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
     }
     return resultTmp;
 }
@@ -74,10 +54,16 @@ bool createDirectoryWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBl
 bool createDirectoryWidgets_c::derivedSaveUpdate_f()
 {
     bool resultTmp(false);
-    if (isFieldsDataValid_f())
+    createDirectoryData_c objTmp(fieldsToCreateDirectoryDataObject_f());
+    textCompilation_c errorsTmp;
+    if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        createDirectoryAction_ptr_pri->createDirectoryData_c::operator=(fieldsToCreateDirectoryDataObject_f());
+        createDirectoryAction_ptr_pri->updateCreateDirectoryData_f(objTmp);
         resultTmp = true;
+    }
+    if (errorsTmp.size_f() > 0)
+    {
+        messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
     }
     return resultTmp;
 }
@@ -123,7 +109,10 @@ void createDirectoryWidgets_c::fileDialogBrowseDirectoryToCreateFinished_f(const
         if (not browseDirectoryToCreateDialog_pri->selectedFiles().isEmpty())
         {
             createDirectoryPathPTE_pri->setPlainText(browseDirectoryToCreateDialog_pri->selectedFiles().first());
-            appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + browseDirectoryToCreateDialog_pri->objectName(), browseDirectoryToCreateDialog_pri->directory().path());
+            appConfig_ptr_ext->addDirectoryHistory_f(
+                        this->objectName() + browseDirectoryToCreateDialog_pri->objectName()
+                        , browseDirectoryToCreateDialog_pri->directory().path()
+            );
         }
     }
     browseDirectoryToCreateDialog_pri->deleteLater();
@@ -132,19 +121,19 @@ void createDirectoryWidgets_c::fileDialogBrowseDirectoryToCreateFinished_f(const
 
 void createDirectoryWidgets_c::loadActionSpecificData_f()
 {
-    if (createDirectoryAction_ptr_pri not_eq nullptr)
-    {
-        createDirectoryPathPTE_pri->setPlainText(createDirectoryAction_ptr_pri->directoryPath_f());
-        createParentsCheckbox_pri->setChecked(createDirectoryAction_ptr_pri->createParents_f());
-        errorIfExistsCheckbox_pri->setChecked(createDirectoryAction_ptr_pri->errorIfExists_f());
-    }
+    createDirectoryData_c valuesToLoadTmp(createDirectoryAction_ptr_pri not_eq nullptr ? *createDirectoryAction_ptr_pri : createDirectoryData_c());
+
+    createDirectoryPathPTE_pri->setPlainText(valuesToLoadTmp.directoryPath_f());
+    createParentsCheckbox_pri->setChecked(valuesToLoadTmp.createParents_f());
+    errorIfExistsCheckbox_pri->setChecked(valuesToLoadTmp.errorIfExists_f());
+
 }
 
 createDirectoryWidgets_c::createDirectoryWidgets_c(
         action_c*& actionData_ptr_par
         , QVBoxLayout* const variableLayout_par_con
         )
-    : baseClassActionWidgets_c(actionData_ptr_par, variableLayout_par_con->parentWidget())
+    : baseClassActionTypeWidgets_c(actionData_ptr_par, variableLayout_par_con->parentWidget())
     , createDirectoryAction_ptr_pri(actionData_ptr_par == nullptr ? nullptr : static_cast<createDirectoryAction_c*>(actionData_ptr_par))
 {
     this->setObjectName("createDirectoryWidgets_");

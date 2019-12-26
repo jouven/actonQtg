@@ -16,8 +16,8 @@ class environmentPairToAddEditWindow_c : public QWidget
 
     QVBoxLayout* mainLayout_pri;
 
-    QPlainTextEdit* keyField_pri;
-    QPlainTextEdit* valueField_pri;
+    QPlainTextEdit* keyFieldPTE_pri;
+    QPlainTextEdit* valueFieldPTE_pri;
 
     QCheckBox* enabledCheckbox_pri;
     QSplitter* mainSplitter_pri;

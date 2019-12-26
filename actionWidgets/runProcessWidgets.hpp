@@ -1,7 +1,7 @@
 #ifndef ACTONQTG_RUNPROCESSAWIDGETS_HPP
 #define ACTONQTG_RUNPROCESSAWIDGETS_HPP
 
-#include "baseClassActionWidgets.hpp"
+#include "baseClassActionTypeWidgets.hpp"
 
 class QPlainTextEdit;
 class QTableWidget;
@@ -19,7 +19,7 @@ class action_c;
 class argument_c;
 class environmentPairConfig_c;
 
-class runProcessWidgets_c : public baseClassActionWidgets_c
+class runProcessWidgets_c : public baseClassActionTypeWidgets_c
 {
     Q_OBJECT
 
@@ -32,8 +32,8 @@ class runProcessWidgets_c : public baseClassActionWidgets_c
 
     QSplitter* mainSplitter_pri;
 
-    argumentEditWindow_c* argumentWindow_pri;
-    environmentPairToAddEditWindow_c* environmentPairWindow_pri;
+    argumentEditWindow_c* argumentWindow_pri = nullptr;
+    environmentPairToAddEditWindow_c* environmentPairWindow_pri = nullptr;
 
     QFileDialog* selectWorkingDirectoryDialog_pri = nullptr;
     QFileDialog* selectProcessFileDialog_pri = nullptr;
@@ -53,7 +53,6 @@ class runProcessWidgets_c : public baseClassActionWidgets_c
     void derivedParentClosing_f() override;
     QString derivedExtraTips_f() const override;
     runProcessData_c fieldsToRunProcessDataObject_f() const;
-    bool isFieldsDataValid_f() const;
 public:
     explicit runProcessWidgets_c(
             action_c*& actionData_ptr_par

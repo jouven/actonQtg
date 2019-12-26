@@ -1,5 +1,7 @@
-#ifndef ACTONQTG_BASECLASSACTIONWIDGETS_HPP
-#define ACTONQTG_BASECLASSACTIONWIDGETS_HPP
+#ifndef ACTONQTG_BASECLASSACTIONTYPEWIDGETS_HPP
+#define ACTONQTG_BASECLASSACTIONTYPEWIDGETS_HPP
+
+#include "actonQtso/actionMappings/actions.hpp"
 
 #include <QObject>
 
@@ -7,8 +9,9 @@ class QString;
 
 class action_c;
 class actionData_c;
+//class textCompilation_c;
 
-class baseClassActionWidgets_c : public QObject
+class baseClassActionTypeWidgets_c : public QObject
 {
     Q_OBJECT
 
@@ -20,9 +23,9 @@ protected:
     virtual void derivedParentClosing_f() = 0;
     virtual QString derivedExtraTips_f() const = 0;
 
-    explicit baseClassActionWidgets_c(action_c*& actionPtrRef_par, QObject* parent_par);
-public:
+    explicit baseClassActionTypeWidgets_c(action_c*& actionPtrRef_par, QObject* parent_par);
 
+public:
     bool saveNew_f(const actionData_c& actionData_par_con);
     bool saveUpdate_f();
     void parentClosing_f();
@@ -30,4 +33,4 @@ public:
     QString extraTips_f() const;
 };
 
-#endif // ACTONQTG_BASECLASSACTIONWIDGETS_HPP
+#endif // ACTONQTG_BASECLASSACTIONTYPEWIDGETS_HPP

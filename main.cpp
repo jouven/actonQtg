@@ -38,10 +38,11 @@ int main(int argc, char *argv[])
     //which makes it more cumbersome
     //let's just use some pointers to local variables
 
+    //translation and logs are initialized here
     appConfig_c appConfigTmp;
     appConfig_ptr_ext = std::addressof(appConfigTmp);
 
-    actonDataHub_c actonDataHubTmp;
+    actonDataHub_c actonDataHubTmp(std::addressof(qtapp));
     actonDataHub_ptr_ext = std::addressof(actonDataHubTmp);
 
     //the parser class can be used from the ptr in the parser library or from the
@@ -49,7 +50,15 @@ int main(int argc, char *argv[])
     stringParserMap_c stringParserMapTmp;
     stringParserMap_ptr_ext = std::addressof(stringParserMapTmp);
 
-    actonDataHubTmp.executionOptions_f().setStringParserMap_f(stringParserMap_ptr_ext);
+    {
+        //add stringparser ptr to the actonhub_c execution options
+        executionOptions_c executionOptionsTmp(actonDataHubTmp.executionOptions_f());
+        executionOptionsTmp.setStringParserMap_f(std::addressof(stringParserMapTmp));
+        actonDataHubTmp.setExecutionOptions_f(executionOptionsTmp);
+    }
+    //TODO add a way to see checks execution results from the action action execution result
+    //show id values, read-only, on the action and check editors and the grids of actions/checks
+
     actonDataHubTmp.setLogDataHub_f(appConfigTmp.logDataHub_f());
 //#ifdef DEBUGJOUVEN
 //    qDebug() << "actonDataHubTmp.setLogDataHub_f(appConfigTmp.logDataHub_f());";

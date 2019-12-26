@@ -32,6 +32,7 @@ class checkExecutionDetailsWindow_c : public QWidget
     checkDataExecutionResult_c* checkDataExecutionResultPtr_pri = nullptr;
 
     void closeEvent(QCloseEvent* event) override;
+
 public:
     explicit checkExecutionDetailsWindow_c(
             checkDataExecutionResult_c* checkDataExecutionResult_ptr_par

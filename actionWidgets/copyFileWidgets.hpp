@@ -1,8 +1,13 @@
 #ifndef ACTONQTG_COPYFILEWIDGETS_HPP
 #define ACTONQTG_COPYFILEWIDGETS_HPP
 
-#include "baseClassActionWidgets.hpp"
+#include "baseClassActionTypeWidgets.hpp"
 
+class copyFileData_c;
+class copyFileAction_c;
+class actionData_c;
+class action_c;
+class textCompilation_c;
 
 class QComboBox;
 class QSplitter;
@@ -13,12 +18,7 @@ class QFileDialog;
 class QLineEdit;
 class QTableWidget;
 
-class copyFileData_c;
-class copyFileAction_c;
-class actionData_c;
-class action_c;
-
-class copyFileWidgets_c : public baseClassActionWidgets_c
+class copyFileWidgets_c : public baseClassActionTypeWidgets_c
 {
     Q_OBJECT
 
@@ -28,6 +28,7 @@ class copyFileWidgets_c : public baseClassActionWidgets_c
     QPlainTextEdit* destinationPathPTE_pri;
 
     QComboBox* transferTypeCombobox_pri;
+    QComboBox* resumeTypeCombobox_pri;
     QComboBox* destinationTreatmentCombobox_pri;
 
     QTableWidget* filenameFullExtensionsTable_pri;
@@ -52,7 +53,7 @@ class copyFileWidgets_c : public baseClassActionWidgets_c
     copyFileAction_c* copyFileAction_ptr_pri = nullptr;
 
     void loadActionSpecificData_f();
-    bool isFieldsDataValid_f() const;
+    bool isFieldsDataValid_f(textCompilation_c* errors_par) const;
     copyFileData_c fieldsToCopyFileDataObject_f() const;
 
     void browsePath_f();
