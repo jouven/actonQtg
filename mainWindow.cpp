@@ -655,7 +655,7 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
         {
             //resizeFileTable_f();
             int_fast32_t actionLoadCountTmp(actonDataHub_ptr_ext->size_f() - actionCountBeforeLoad);
-            text_c loadedMessageTmp("Loaded {0} actions from {1} files", actionLoadCountTmp, loadedFileCountTmp);
+            text_c loadedMessageTmp("Loaded {0} actions from {1} file/s", actionLoadCountTmp, loadedFileCountTmp);
 #ifdef DEBUGJOUVEN
 //            qDebug() << "loadedMessageTmp.rawText_f() " << loadedMessageTmp.rawText_f() << endl;
 //            qDebug() << "loadedMessageTmp.rawReplace_f() " << loadedMessageTmp.rawReplace_f() << endl;
@@ -666,7 +666,7 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
     }
     else
     {
-        errorsTmp.append_f({"No save files selected"});
+        errorsTmp.append_f({"No save file/s selected"});
         //statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("No save files selected"));
     }
     if (not errorsTmp.empty_f())

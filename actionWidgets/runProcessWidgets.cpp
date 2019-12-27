@@ -59,7 +59,7 @@ runProcessData_c runProcessWidgets_c::fieldsToRunProcessDataObject_f() const
         bool enabledTmp(environmentToAddTable_pri->item(rowIndex_ite, 2)->checkState() == Qt::CheckState::Checked);
         QString keyTmp(environmentToAddTable_pri->item(rowIndex_ite, 0)->text());
         QString valueTmp(environmentToAddTable_pri->item(rowIndex_ite, 1)->text());
-        environmentToAddPairsTmp.insert(keyTmp, {valueTmp, enabledTmp});
+        environmentToAddPairsTmp.insert(keyTmp, environmentPairConfig_c(valueTmp, enabledTmp));
     }
     return runProcessData_c(
                 processPathTmp
