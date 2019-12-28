@@ -10,8 +10,8 @@
             "checks": [
                 {
                     "checkTypeData": {
-                        "fileAPath": "/home/jouven/qtcreatorprojects/actonQtg/build-Desktop-Debug/actonQtg",
-                        "fileBPath": "/home/jouven/qtcreatorprojects/actonQtg/build-Desktop-Debug/actonQtg"
+                        "fileAPath": "./main.o",
+                        "fileBPath": "./main.o"
                     },
                     "description": "same file testt",
                     "enabled": true,

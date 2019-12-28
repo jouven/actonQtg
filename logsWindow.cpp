@@ -208,7 +208,7 @@ logsWindow_c::logsWindow_c()
     //for the bottom buttons
     QHBoxLayout* lastRowLayoutTmp = new QHBoxLayout;
 
-    QPushButton* cancelButtonTmp = new QPushButton("&Cancel");
+    QPushButton* cancelButtonTmp = new QPushButton("&Close");
     lastRowLayoutTmp->addWidget(cancelButtonTmp);
     connect(cancelButtonTmp, &QPushButton::clicked, this, &logsWindow_c::cancelButtonClicked_f);
 
