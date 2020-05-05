@@ -3,6 +3,7 @@
 #include "appConfig.hpp"
 #include "checkWidgets/baseClassCheckTypeWidgets.hpp"
 #include "checkWidgets/actionFinishedWidgets.hpp"
+#include "checkWidgets/actionStartedExecutingWidgets.hpp"
 #include "checkWidgets/sameFileWidgets.hpp"
 #include "checkWidgets/pathExistsWidgets.hpp"
 #include "checkWidgets/timerWidgets.hpp"
@@ -69,6 +70,11 @@ void checkWindow_c::loadCheckData_f()
         valuesToLoadTmp = new actionFinishedCheck_c();
         valuesToLoadTmp->deleteLater();
     }
+    else
+    {
+        checkIdLineEdit_pri->setText(QString::number(valuesToLoadTmp->id_f()));
+    }
+    checkIdLineEdit_pri->setEnabled(false);
 
     int loadedCheckTypeIndexTmp(checkTypeCombo_pri->findData(valuesToLoadTmp->typeStr_f().toLower()));
     checkTypeCombo_pri->setCurrentIndex(loadedCheckTypeIndexTmp);
@@ -110,8 +116,20 @@ checkWindow_c::checkWindow_c(
 
     //statusBarLabel_pri = new QLabel;
 
-    //combo actions + checkbox halt on fail
+    //checkId + combo actions + checkbox halt on fail
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;
+
+    checkIdLineEdit_pri = new QLineEdit;
+    checkIdLineEdit_pri->setToolTip(
+                appConfig_ptr_ext->translate_f(
+                    "CheckId identifies uniquely this check during actonQtg execution, a checkId for the same check might change between actonQtg executions"
+                    " because checkId/s are not saved (might change in the future?) when saving checks/actions into a file."
+                    "<br>The way the ids are assigned is tied to the order the checks are loaded/created since actonQtg started executing"
+                    )
+                );
+    checkIdLineEdit_pri->setMaximumWidth(50);
+    firstRowLayoutTmp->addWidget(new QLabel("CheckId"));
+    firstRowLayoutTmp->addWidget(checkIdLineEdit_pri);
 
     descriptionPTE_pri = new QPlainTextEdit(this);
     auto minHeightTmp(descriptionPTE_pri->fontMetrics().lineSpacing() + 14);
@@ -281,6 +299,7 @@ void checkWindow_c::createWidgetsPerCheck_f(
         , {	checkType_ec::sameFile, [this]() -> baseClassCheckTypeWidgets_c* { return new sameFileWidgets_c(check_ptr_pri, variableLayout_pri);}}
         , {	checkType_ec::pathExists, [this]() -> baseClassCheckTypeWidgets_c* { return new pathExistsWidgets_c(check_ptr_pri, variableLayout_pri);}}
         , {	checkType_ec::actionFinished, [this]() -> baseClassCheckTypeWidgets_c* { return new actionFinishedWidgets_c(check_ptr_pri, variableLayout_pri, static_cast<action_c*>(checkDataHub_ptr_pri->parent()));}}
+        , {	checkType_ec::actionStartedExecuting, [this]() -> baseClassCheckTypeWidgets_c* { return new actionStartedExecutingWidgets_c(check_ptr_pri, variableLayout_pri, static_cast<action_c*>(checkDataHub_ptr_pri->parent()));}}
     });
 
     auto findResultTmp(checkTypeToCheckCreationFunctionMap_con.find(strToCheckTypeMap_ext_con.value(checkTypeStrTmp)));
@@ -354,23 +373,31 @@ bool checkWindow_c::save_f()
     checkData_c objTmp(fieldsToCheckDataObject_f());
     if (objTmp.isFieldsCheckDataValid_f(std::addressof(errorsTmp)))
     {
+        bool checkTypeSaveResultTmp(false);
         if (isNew_pri)
         {
-            baseClassCheckWidgets_pri->saveNew_f(objTmp);
-            checkDataHub_ptr_pri->insertCheck_f(check_ptr_pri, row_pri_con);
+            checkTypeSaveResultTmp = baseClassCheckWidgets_pri->saveNew_f(objTmp);
+            if (checkTypeSaveResultTmp)
+            {
+                checkDataHub_ptr_pri->insertCheck_f(check_ptr_pri, row_pri_con);
+                checkIdLineEdit_pri->setText(QString::number(check_ptr_pri->id_f()));
+            }
         }
         else
         {
-            bool actionTypeSaveResultTmp(baseClassCheckWidgets_pri->saveUpdate_f());
-            if (actionTypeSaveResultTmp)
+            checkTypeSaveResultTmp = baseClassCheckWidgets_pri->saveUpdate_f();
+            if (checkTypeSaveResultTmp)
             {
                 check_ptr_pri->updateCheckData_f(objTmp);
             }
         }
 
-        resultTmp = true;
-        Q_EMIT updateRow_Signal(row_pri_con);
-        close();
+        if (checkTypeSaveResultTmp)
+        {
+            Q_EMIT updateRow_Signal(row_pri_con);
+            resultTmp = true;
+            close();
+        }
     }
     if (errorsTmp.size_f() > 0)
     {

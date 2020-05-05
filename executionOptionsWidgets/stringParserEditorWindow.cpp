@@ -313,9 +313,11 @@ void stringParserEditorWindow_c::save_f()
         //when saving new parser since the string trigger can't be modified after
         if (isNew_pri)
         {
-            if (actonDataHub_ptr_ext->hasStringTriggerAnyDependency_f(stringTriggerTmp, nullptr) > 0)
+            auto conflictCheckTmp(actonDataHub_ptr_ext->stringTriggerCreationConflict_f(stringTriggerTmp, nullptr, false));
+            if (conflictCheckTmp.first > 0)
             {
-                errorQMessageBox_f(appConfig_ptr_ext->translate_f("String trigger already in use in an action-check")
+                text_c errorMessageTmp("String trigger already in use, actionId {0} checkId {1}", conflictCheckTmp.first, conflictCheckTmp.second);
+                errorQMessageBox_f(appConfig_ptr_ext->translateAndReplace_f(errorMessageTmp)
                                    , appConfig_ptr_ext->translate_f("Error")
                                    , this);
                 break;

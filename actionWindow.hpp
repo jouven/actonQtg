@@ -11,6 +11,7 @@ class QCheckBox;
 class QSplitter;
 class QMessageBox;
 class QPushButton;
+class QLineEdit;
 
 class actionData_c;
 class action_c;
@@ -24,6 +25,8 @@ class actionWindow_c : public QWidget
     //QLabel* statusBarLabel_pri;
     QVBoxLayout* variableLayout_pri;
     QSplitter* mainSplitter_pri;
+
+    QLineEdit* actionIdLineEdit_pri;
 
     QPlainTextEdit* actionStringIdPTE_pri;
     QPlainTextEdit* descriptionPTE_pri;

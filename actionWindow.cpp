@@ -6,6 +6,7 @@
 #include "actionWidgets/copyFileWidgets.hpp"
 #include "actionWidgets/deleteFileDirWidgets.hpp"
 #include "actionWidgets/metaEndExecutionCycleWidgets.hpp"
+#include "actionWidgets/folderChangeReactionWidgets.hpp"
 #include "actionChecksWindow.hpp"
 #include "commonWidgets.hpp"
 
@@ -94,7 +95,11 @@ void actionWindow_c::loadActionData_f()
         valuesToLoadTmp = new metaEndExecutionCycleAction_c();
         valuesToLoadTmp->deleteLater();
     }
-
+    else
+    {
+        actionIdLineEdit_pri->setText(QString::number(valuesToLoadTmp->id_f()));
+    }
+    actionIdLineEdit_pri->setEnabled(false);
     int loadedActionTypeIndexTmp(actionTypeCombo_pri->findData(valuesToLoadTmp->typeStr_f().toLower()));
     actionTypeCombo_pri->setCurrentIndex(loadedActionTypeIndexTmp);
     //action type combo only enabled for new actions
@@ -143,12 +148,24 @@ actionWindow_c::actionWindow_c(
     this->setAttribute(Qt::WA_DeleteOnClose);
 
     actionStringIdPTE_pri = new QPlainTextEdit(this);
-    auto minHeightTmp(actionStringIdPTE_pri->fontMetrics().lineSpacing() + 14);
+    auto minHeightTmp(actionStringIdPTE_pri->fontMetrics().lineSpacing() + 12);
 
     //statusBarLabel_pri = new QLabel;
 
-    //combo actions + checkbox halt on fail
+    //actionId + combo actions + checkbox halt on fail
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;
+
+    actionIdLineEdit_pri = new QLineEdit;
+    actionIdLineEdit_pri->setToolTip(
+                appConfig_ptr_ext->translate_f(
+                    "ActionId identifies uniquely this action during actonQtg execution, an actionId for the same action might change between actonQtg executions"
+                    " because actionId/s are not saved (might change in the future?) when saving actions into a file."
+                    "<br>The way the ids are assigned is tied to the order the actions are loaded/created since actonQtg started executing"
+                    )
+                );
+    actionIdLineEdit_pri->setMaximumWidth(50);
+    firstRowLayoutTmp->addWidget(new QLabel("ActionId"));
+    firstRowLayoutTmp->addWidget(actionIdLineEdit_pri);
 
     //enabled
     enabledCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Enabled"));
@@ -186,7 +203,7 @@ Action must be saved/exist to enable this button)"
 
     //enabled checks
     checksEnabledCheckbox_pri = new QCheckBox(appConfig_ptr_ext->translate_f("Checks enabled"));
-    checksEnabledCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("Disables this actions checks, disabled checks won't execute"));
+    checksEnabledCheckbox_pri->setToolTip(appConfig_ptr_ext->translate_f("Unchecked: disables this action's check/s i.e., checks are ignored for this action"));
     //checksEnabledCheckbox_pri->setMinimumHeight(minHeightTmp);
     //checksEnabledCheckbox_pri->setChecked(true);
     firstRowLayoutTmp->addWidget(checksEnabledCheckbox_pri);
@@ -334,6 +351,7 @@ void actionWindow_c::createWidgetsPerAction_f(
        , {	actionType_ec::copyFile, [this]() -> baseClassActionTypeWidgets_c* { return new copyFileWidgets_c(action_ptr_pri, variableLayout_pri);}}
        , {	actionType_ec::deleteFileDir, [this]() -> baseClassActionTypeWidgets_c* { return new deleteFileDirWidgets_c(action_ptr_pri, variableLayout_pri);}}
        , {	actionType_ec::metaEndExecutionCycle, [this]() -> baseClassActionTypeWidgets_c* { return new metaEndExecutionCycleWidgets_c(action_ptr_pri, variableLayout_pri);}}
+       , {	actionType_ec::folderChangeReaction, [this]() -> baseClassActionTypeWidgets_c* { return new folderChangeReactionWidgets_c(action_ptr_pri, variableLayout_pri);}}
     });
 
     auto findResultTmp(actionTypeToActionCreationFunctionMap_con.find(strToActionTypeMap_ext_con.value(actionTypeStrTmp)));
@@ -405,43 +423,53 @@ bool actionWindow_c::save_f()
     if (objTmp.isFieldsActionDataValid_f(std::addressof(errorsTmp)))
     {
         bool askUpdateStringIdDepdencies(false);
+        bool actionTypeSaveResultTmp(false);
         if (isNew_pri)
         {
-            baseClassActionTypeWidgets_pri->saveNew_f(objTmp);
-            actonDataHub_ptr_ext->insertActionData_f(action_ptr_pri, row_pri_con);
-            //enable the checks button after saving the new action
-            manageChecks_pri->setEnabled(true);
-            //change window title
-            setWindowTitle(appConfig_ptr_ext->translate_f("Update Action"));
+            actionTypeSaveResultTmp = baseClassActionTypeWidgets_pri->saveNew_f(objTmp);
+            if (actionTypeSaveResultTmp)
+            {
+                actonDataHub_ptr_ext->insertActionData_f(action_ptr_pri, row_pri_con, std::addressof(errorsTmp));
+                //load the id field
+                actionIdLineEdit_pri->setText(QString::number(action_ptr_pri->id_f()));
+                //enable the checks button after saving the new action
+                manageChecks_pri->setEnabled(true);
+                //change window title
+                setWindowTitle(appConfig_ptr_ext->translate_f("Update Action"));
+                isNew_pri = false;
+            }
         }
         else
         {
-            bool actionTypeSaveResultTmp(baseClassActionTypeWidgets_pri->saveUpdate_f());
+            actionTypeSaveResultTmp = baseClassActionTypeWidgets_pri->saveUpdate_f();
             if (actionTypeSaveResultTmp)
             {
                 oldStringId_pri = action_ptr_pri->stringId_f();
-                action_ptr_pri->updateActionData_f(objTmp);
-//                if (oldStringId_pri not_eq action_ptr_pri->stringId_f()
-//                    and actonDataHub_ptr_ext->hasStringIdAnyDependency_f(oldStringId_pri))
-//                {
-//                    askUpdateStringIdDepdencies = true;
-//                }
+                action_ptr_pri->updateActionData_f(objTmp, false, std::addressof(errorsTmp));
+                if (oldStringId_pri not_eq action_ptr_pri->stringId_f()
+                    and (actonDataHub_ptr_ext->stringTriggerDependencyCount_f(oldStringId_pri) > 0))
+                {
+                    askUpdateStringIdDepdencies = true;
+                }
             }
         }
 
-        Q_EMIT updateRow_Signal(row_pri_con);
-        informationQMessageBox_f(appConfig_ptr_ext->translate_f("Action data saved"), appConfig_ptr_ext->translate_f("Information"));
-        if (askUpdateStringIdDepdencies)
+        if (actionTypeSaveResultTmp)
         {
-            openAskUpdateStringIdDepdenciesWindow_f();
-            //Q_EMIT askUpdateStringIdDepdencies_signal();
+            Q_EMIT updateRow_Signal(row_pri_con);
+            informationQMessageBox_f(appConfig_ptr_ext->translate_f("Action data saved"), appConfig_ptr_ext->translate_f("Information"));
+            if (askUpdateStringIdDepdencies)
+            {
+                openAskUpdateStringIdDepdenciesWindow_f();
+                //Q_EMIT askUpdateStringIdDepdencies_signal();
+            }
+            else
+            {
+                //saving shouldn't imply closing, since checks might be edited after
+                //close();
+            }
+            resultTmp = true;
         }
-        else
-        {
-            //saving shouldn't imply closing, since checks might be edited after
-            //close();
-        }
-        resultTmp = true;
     }
     if (errorsTmp.size_f() > 0)
     {

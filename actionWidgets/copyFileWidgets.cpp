@@ -221,7 +221,7 @@ copyFileData_c copyFileWidgets_c::fieldsToCopyFileDataObject_f() const
         }
     }
 
-    MACRO_ADDACTONQTGLOG("Create copyFileAction obj from fields", logItem_c::type_ec::debug);
+    MACRO_ADDACTONQTGLOG("Create copyFileAction obj from fields", copyFileAction_ptr_pri, logItem_c::type_ec::debug);
     return copyFileData_c(
                 sourcePathTmp
                 , destinationPathTmp
@@ -702,7 +702,7 @@ continue copying, saving the errors, and showing them at the end)"));
 
     //that's the "string" length of max 64bit signed number
     /////////////////////////////////////"9223372036854775808 (length 19)
-    QValidator *validatorTmp = new QRegExpValidator(QRegExp("[0-9]{19}"), this);
+    QValidator *validatorTmp = new QRegExpValidator(QRegExp("[1-9][0-9]{18}"), this);
     bufferSizeLineEdit_pri->setValidator(validatorTmp);
     bufferSizeLineEdit_pri->setToolTip(appConfig_ptr_ext->translate_f(
                 "<p>Mind the free available ram size, when using trueMove this can be \"abused\" to read a file in one-shot and, if nothing goes wrong, write it in one-shot using 0 extra space</p>"

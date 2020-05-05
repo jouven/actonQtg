@@ -39,8 +39,8 @@
 
 void mainWindow_c::closeEvent(QCloseEvent* event)
 {
-    //1 check if anything is running
-    //1A nothing running, quit normally
+    //1 check if anything is executing
+    //1A nothing executing, quit normally
     //1B something running --> ask user
     //--> cancel (do nothing and not close-quit)
     //--> stop (basically hit stop button and connect the end to a function that closes after)
@@ -311,15 +311,16 @@ mainWindow_c::mainWindow_c()
     fourthRowLayoutTmp->addWidget(aboutButtonTmp);
     QObject::connect(aboutButtonTmp, &QPushButton::clicked, this, &mainWindow_c::showAboutMessage_f);
 
-    actionsTable_pri = new QTableWidget(0, 6);
+    actionsTable_pri = new QTableWidget(0, 7);
     actionsTable_pri->setObjectName("QTableWidget_");
     actionsTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     QStringList labels;
     //WARNING if this ever changes, in this file there are several places where this kind of comment that should be changed
-    //action (type) 0 | description 1 | enabled 2 | Execution state 3 | Last output 4 | Last error 5
+    //0 ActionId | 1 action (type) | 2 description | 3 enabled | 4 Execution state | 5 Last output | 6 Last error
     labels
-            << appConfig_ptr_ext->translate_f("Action")
+            << appConfig_ptr_ext->translate_f("ActionId")
+            << appConfig_ptr_ext->translate_f("Action Type")
             << appConfig_ptr_ext->translate_f("Description")
             << appConfig_ptr_ext->translate_f("Enabled")
             << appConfig_ptr_ext->translate_f("Execution state")
@@ -608,7 +609,7 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
                     text_c logMessageTmp(R"(Deserializing file {0} JSON)", fileStr_ite_con);
                     MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::debug);
                 }
-                deserializeActonDataHub_f(jsonDocObjTmp.object(), actonDataHub_ptr_ext , true, std::addressof(errorsTmp));
+                deserializeActonDataHub_f(jsonDocObjTmp.object(), actonDataHub_ptr_ext, true, std::addressof(errorsTmp));
                 {
                     text_c logMessageTmp(R"(Found {0} actions)", actonDataHub_ptr_ext->size_f());
                     MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::debug);
@@ -774,7 +775,7 @@ void mainWindow_c::messageBoxSaveActionsToFileOnExitFinished_f(const int result_
         saveActionFileDialog_pri->setAcceptMode(QFileDialog::AcceptSave);
         saveActionFileDialog_pri->setFileMode(QFileDialog::AnyFile);
         saveActionFileDialog_pri->setDirectory(QDir::currentPath());
-        //TODO add datetime string i.e. actions_YYYYMMdd_hhmmss.json
+        //TODO add current datetime string on the default filename when saving i.e. actions_YYYYMMdd_hhmmss.json
         saveActionFileDialog_pri->selectFile("actions.json");
         saveActionFileDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Save action file..."));
         saveActionFileDialog_pri->setViewMode(QFileDialog::Detail);
@@ -1063,9 +1064,7 @@ void mainWindow_c::inputDialogCopyActionIndexFinished_f(const int result_par)
 
             actonDataHub_ptr_ext->insertActionData_f(actionCopyTmp, newIndexTmp);
             insertActionRow_f(
-                        actionCopyTmp->type_f()
-                        , actionCopyTmp->description_f()
-                        , actionCopyTmp->enabled_f()
+                        actionCopyTmp
                         , newIndexTmp
             );
             //actionsTable_pri->selectRow(newIndexTmp);
@@ -1083,22 +1082,21 @@ void mainWindow_c::inputDialogCopyActionIndexFinished_f(const int result_par)
 }
 
 void mainWindow_c::insertActionRow_f(
-        const actionType_ec& actionType_par_con
-        , const QString& description_par_con
-        , const bool enabled_par_con
+        const action_c* actionPtr_par_con
         , const int row_par_con)
 {
-    QString actionTypeStr(actionTypeToStrUMap_ext_con.at(actionType_par_con));
+    QTableWidgetItem *actionIdCellTmp(new QTableWidgetItem(QString::number(actionPtr_par_con->id_f())));
+    actionIdCellTmp->setFlags(actionIdCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *actionValueCellTmp(new QTableWidgetItem(actionTypeStr));
+    QTableWidgetItem *actionValueCellTmp(new QTableWidgetItem(actionPtr_par_con->typeStr_f()));
     actionValueCellTmp->setFlags(actionValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *descriptionCellTmp(new QTableWidgetItem(description_par_con));
-    descriptionCellTmp->setToolTip(description_par_con);
+    QTableWidgetItem *descriptionCellTmp(new QTableWidgetItem(actionPtr_par_con->description_f()));
+    descriptionCellTmp->setToolTip(actionPtr_par_con->description_f());
     descriptionCellTmp->setFlags(descriptionCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     QTableWidgetItem *enabledCellTmp(new QTableWidgetItem);
-    Qt::CheckState checkValueTmp(enabled_par_con ? Qt::Checked : Qt::Unchecked);
+    Qt::CheckState checkValueTmp(actionPtr_par_con->enabled_f() ? Qt::Checked : Qt::Unchecked);
     enabledCellTmp->setCheckState(checkValueTmp);
     enabledCellTmp->setFlags(enabledCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
@@ -1108,40 +1106,38 @@ void mainWindow_c::insertActionRow_f(
         newIndexTmp = actionsTable_pri->rowCount();
     }
 
-    //action (type) 0 | description 1 | enabled 2 | Execution state 3 | Last output 4 | Last error 5
+    //0 ActionId | 1 action (type) | 2 description | 3 enabled | 4 Execution state | 5 Last output | 6 Last error
     actionsTable_pri->insertRow(newIndexTmp);
-    actionsTable_pri->setItem(newIndexTmp, 0, actionValueCellTmp);
-    actionsTable_pri->setItem(newIndexTmp, 1, descriptionCellTmp);
-    actionsTable_pri->setItem(newIndexTmp, 2, enabledCellTmp);
-    //3 execution state, 4 last output, 5 last error
-    actionsTable_pri->setItem(newIndexTmp, 3, new QTableWidgetItem);
+    actionsTable_pri->setItem(newIndexTmp, 0, actionIdCellTmp);
+    actionsTable_pri->setItem(newIndexTmp, 1, actionValueCellTmp);
+    actionsTable_pri->setItem(newIndexTmp, 2, descriptionCellTmp);
+    actionsTable_pri->setItem(newIndexTmp, 3, enabledCellTmp);
+
     actionsTable_pri->setItem(newIndexTmp, 4, new QTableWidgetItem);
     actionsTable_pri->setItem(newIndexTmp, 5, new QTableWidgetItem);
+    actionsTable_pri->setItem(newIndexTmp, 6, new QTableWidgetItem);
 }
 
 void mainWindow_c::updateExistingActionRow_f(
-        const actionType_ec& actionType_par_con
-        , const QString& description_par_con
-        , const bool enabled_par_con
+        const action_c* actionPtr_par_con
         , const int row_par_con)
 {
-    QString actionTypeStr(actionTypeToStrUMap_ext_con.at(actionType_par_con));
-
-    actionsTable_pri->item(row_par_con, 0)->setText(actionTypeStr);
-    actionsTable_pri->item(row_par_con, 1)->setText(description_par_con);
-    actionsTable_pri->item(row_par_con, 1)->setToolTip(description_par_con);
-    Qt::CheckState checkValueTmp(enabled_par_con ? Qt::Checked : Qt::Unchecked);
-    actionsTable_pri->item(row_par_con, 2)->setCheckState(checkValueTmp);
+    actionsTable_pri->item(row_par_con, 0)->setText(QString::number(actionPtr_par_con->id_f()));
+    actionsTable_pri->item(row_par_con, 1)->setText(actionPtr_par_con->typeStr_f());
+    actionsTable_pri->item(row_par_con, 2)->setText(actionPtr_par_con->description_f());
+    actionsTable_pri->item(row_par_con, 2)->setToolTip(actionPtr_par_con->description_f());
+    Qt::CheckState checkValueTmp(actionPtr_par_con->enabled_f() ? Qt::Checked : Qt::Unchecked);
+    actionsTable_pri->item(row_par_con, 3)->setCheckState(checkValueTmp);
 }
 
 void mainWindow_c::clearAllRowsResultColumns_f()
 {
     for (auto rowIndex_ite = 0, l = actionsTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
     {
-        //3 execution state, 4 last output, 5 last error
-        actionsTable_pri->item(rowIndex_ite, 3)->setText("");
+        //4 execution state, 5 last output, 6 last error
         actionsTable_pri->item(rowIndex_ite, 4)->setText("");
         actionsTable_pri->item(rowIndex_ite, 5)->setText("");
+        actionsTable_pri->item(rowIndex_ite, 6)->setText("");
     }
 }
 
@@ -1202,18 +1198,14 @@ void mainWindow_c::updateActionRow_f(const int row_par_con)
     {
         //qInfo() << "insert action row " << endl;
         insertActionRow_f(
-                    actionDataPtrTmp->type_f()
-                    , actionDataPtrTmp->description_f()
-                    , actionDataPtrTmp->enabled_f()
+                    actionDataPtrTmp
         );
     }
     else
     {
         //qInfo() << "update row " << row_par_con << endl;
         updateExistingActionRow_f(
-                    actionDataPtrTmp->type_f()
-                    , actionDataPtrTmp->description_f()
-                    , actionDataPtrTmp->enabled_f()
+                    actionDataPtrTmp
                     , row_par_con
         );
     }
@@ -1269,15 +1261,15 @@ void mainWindow_c::moveSelectedActions_f(const int moveOffSet_par_con)
                 actonDataHub_ptr_ext->moveRowActionData_f(index_ite_con, destinationRow);
                 //change the grid (visual)
                 actionsTable_pri->removeRow(index_ite_con);
-                action_c* actionTmp(actonDataHub_ptr_ext->action_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(destinationRow)));
+                action_c* actionPtrTmp(actonDataHub_ptr_ext->action_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(destinationRow)));
                 insertActionRow_f(
-                            actionTmp->type_f()
-                            , actionTmp->description_f()
-                            , actionTmp->enabled_f()
+                            actionPtrTmp
                             , destinationRow
                 );
-                //deselects previous stuff, doesn't maintain "old" selection
-                //actionsTable_pri->selectRow(destinationRow);
+                if (selectionTmp.size() == 1)
+                {
+                    actionsTable_pri->selectRow(destinationRow);
+                }
             }
         }
         break;
@@ -1364,12 +1356,10 @@ void mainWindow_c::inputDialogChangeActionIndexFinished_f(const int result_par)
             //change the data
             actonDataHub_ptr_ext->moveRowActionData_f(currentIndexTmp, newIndexTmp);
             //change the grid (visual)
-            action_c* actionTmp(actonDataHub_ptr_ext->action_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(newIndexTmp)));
+            action_c* actionPtrTmp(actonDataHub_ptr_ext->action_ptr_f(actonDataHub_ptr_ext->rowToActionDataId_f(newIndexTmp)));
             actionsTable_pri->removeRow(currentIndexTmp);
             insertActionRow_f(
-                        actionTmp->type_f()
-                        , actionTmp->description_f()
-                        , actionTmp->enabled_f()
+                        actionPtrTmp
                         , newIndexTmp
             );
             //actionsTable_pri->selectRow(newIndexTmp);
@@ -1391,20 +1381,20 @@ void mainWindow_c::updateActionOutput_f(action_c* action_par_ptr_con)
     //get the row, get the acionData Obj for the id (to get the executionResult Obj)
     //update the cell of the row with the last part of the str
     int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(action_par_ptr_con->id_f()));
-    //action (type) 0 | description 1 | Execution state 2 | Last output 3 | Last error 4
+    //0 ActionId | 1 action (type) | 2 description | 3 enabled | 4 Execution state | 5 Last output | 6 Last error
     QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(action_par_ptr_con->actionDataExecutionResult_ptr_f()->output_f()));
-    actionsTable_pri->item(rowTmp, 3)->setText(truncateString_f(translationTmp, 32));
-    actionsTable_pri->item(rowTmp, 3)->setToolTip(translationTmp);
+    actionsTable_pri->item(rowTmp, 5)->setText(truncateString_f(translationTmp, 32));
+    actionsTable_pri->item(rowTmp, 5)->setToolTip(translationTmp);
 }
 
 void mainWindow_c::updateActionError_f(action_c* action_par_ptr_con)
 {
     int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(action_par_ptr_con->id_f()));
-    //action (type) 0 | description 1 |  Execution state 2 | Last output 3 | Last error 4
+    //0 ActionId | 1 action (type) | 2 description | 3 enabled | 4 Execution state | 5 Last output | 6 Last error
     //FUTURE translation should be done here
     QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(action_par_ptr_con->actionDataExecutionResult_ptr_f()->errors_f()));
-    actionsTable_pri->item(rowTmp, 4)->setText(truncateString_f(translationTmp, 32));
-    actionsTable_pri->item(rowTmp, 4)->setToolTip(translationTmp);
+    actionsTable_pri->item(rowTmp, 6)->setText(truncateString_f(translationTmp, 32));
+    actionsTable_pri->item(rowTmp, 6)->setToolTip(translationTmp);
 }
 
 void mainWindow_c::updateActionExecutionState_f(action_c* action_par_ptr_con)
@@ -1711,6 +1701,7 @@ void mainWindow_c::executeActions_f()
                     QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::executionStateUpdated_signal, this, &mainWindow_c::updateActionExecutionState_f, Qt::UniqueConnection);
                     QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::outputUpdated_signal, this, &mainWindow_c::updateActionOutput_f, Qt::UniqueConnection);
                     QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::error_signal, this, &mainWindow_c::updateActionError_f, Qt::UniqueConnection);
+                    QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::errors_signal, this, &mainWindow_c::updateActionError_f, Qt::UniqueConnection);
                     QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::resultsCleared_signal, this, &mainWindow_c::actionResultsCleared_f, Qt::UniqueConnection);
 
                     //on the grid only the above are used
@@ -1783,7 +1774,8 @@ void mainWindow_c::showAboutMessage_f()
     plainQMessageBox_f
     (
                 appConfig_ptr_ext->translate_f(
-                    "<p>ActonQtg</b> allows run actions in an organized maner i.e. (1) create directory, (2) copy stuff to this new directory... stopping if there are errors on any step or taking alternative paths</p>"
+                    "<p>Execute actions in an organized maner i.e. (1) create directory, (2) copy stuff to this new directory..."
+                    " stopping if there are errors on any step or taking alternative paths</p>"
                     "<p>Creaded by: Jouven<br>"
                     R"(Source: <a href="https://github.com/jouven/ActonQtg">github.com/jouven/ActonQtg</a><br>)"
                     R"(Homepage: <a href="https://avidcalm.com">avidcalm.com</a></p>)"

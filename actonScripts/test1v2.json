@@ -85,7 +85,7 @@
                     }
                 ],
                 "processPath": "ls",
-                "useActonEnvironment": true,
+                "useProgramEnvironment": true,
                 "workingDirectory": "./test"
             },
             "checkResultLogicAnd": true,
@@ -119,7 +119,7 @@
                     }
                 ],
                 "processPath": "ls",
-                "useActonEnvironment": true,
+                "useProgramEnvironment": true,
                 "workingDirectory": "./test"
             },
             "checkResultLogicAnd": true,

@@ -68,8 +68,8 @@ class actionChecksWindow_c : public QWidget
     void closeEvent(QCloseEvent* event) override;
 
     void clearAllRowsResultColumns_f();
-    void updateExistingCheckRow_f(const checkType_ec& checkType_par_con, const QString& description_par_con, const int row_par_con);
-    void insertCheckRow_f(const checkType_ec& checkType_par_con, const QString& description_par_con, const int row_par_con = -1);
+    void updateExistingCheckRow_f(const check_c* checkPtr_par_con, const int row_par_con);
+    void insertCheckRow_f(const check_c* checkPtr_par_con, const int row_par_con = -1);
     void moveSelectedChecks_f(const int moveOffSet_par_con);
     void executeChecks_f();
 

@@ -1,5 +1,7 @@
 #include "appConfig.hpp"
 
+#include "actonQtso/actonDataHub.hpp"
+
 //#include <QApplication>
 #include <QFile>
 //#include <QFileInfo>
@@ -278,7 +280,7 @@ void appConfig_c::addDirectoryHistory_f(
         , const QString& directory_par_con
 )
 {
-    uint_fast64_t nowTmp(std::chrono::steady_clock::now().time_since_epoch().count());
+    int_fast64_t nowTmp(std::chrono::steady_clock::now().time_since_epoch().count());
     if (fileDialogNameToDirectoryNameAndTimeMap_pri.count(fileDialogStringId_par_con) > 0)
     {
 
@@ -357,6 +359,38 @@ bool appConfig_c::addLogMessage_f(
 )
 {
     return logDataHub_pri.addMessage_f(message_par_con, logType_par_con, sourceFile_par_con, sourceFunction_par_con, line_par_con);
+}
+
+bool appConfig_c::addLogMessage_f(
+        const text_c& message_par_con
+        , const action_c* actionPtr_par
+        , const logItem_c::type_ec logType_par_con
+        , const QString& sourceFile_par_con
+        , const QString& sourceFunction_par_con
+        , const int_fast32_t line_par_con)
+{
+    bool resultTmp(false);
+    if (actonDataHub_ptr_ext not_eq nullptr and actionPtr_par not_eq nullptr)
+    {
+        resultTmp = actonDataHub_ptr_ext->addLogMessage_f(message_par_con, actionPtr_par, logType_par_con, sourceFile_par_con, sourceFunction_par_con, line_par_con);
+    }
+    return resultTmp;
+}
+
+bool appConfig_c::addLogMessage_f(
+        const text_c& message_par_con
+        , const check_c* checkPtr_par
+        , const logItem_c::type_ec logType_par_con
+        , const QString& sourceFile_par_con
+        , const QString& sourceFunction_par_con
+        , const int_fast32_t line_par_con)
+{
+    bool resultTmp(false);
+    if (actonDataHub_ptr_ext not_eq nullptr and checkPtr_par not_eq nullptr)
+    {
+        resultTmp = actonDataHub_ptr_ext->addLogMessage_f(message_par_con, checkPtr_par, logType_par_con, sourceFile_par_con, sourceFunction_par_con, line_par_con);
+    }
+    return resultTmp;
 }
 
 std::vector<std::pair<const logItem_c* const, const QDateTime* const>> appConfig_c::getLogs_f(const logFilter_c& logFilter_par_con) const

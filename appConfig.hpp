@@ -14,11 +14,13 @@
 #include <vector>
 
 class QJsonObject;
+class action_c;
+class check_c;
 
 //don't call this macro inside the appConfig_c class (like calling from the ctor and hanging the process... without errors...)
 //inside use MACRO_ADDMESSAGE
-#define MACRO_ADDACTONQTGLOG(MESSAGE, TYPE) appConfig_ptr_ext->addLogMessage_f(MESSAGE, TYPE, MACRO_FILENAME, __func__, __LINE__)
-
+#define MACRO_FILEMETA MACRO_FILENAME, __func__, __LINE__
+#define MACRO_ADDACTONQTGLOG(...) appConfig_ptr_ext->addLogMessage_f(__VA_ARGS__, MACRO_FILEMETA)
 class appConfig_c
 {
     bool configLoaded_pri = false;
@@ -78,6 +80,21 @@ public:
 
     bool addLogMessage_f(
             const text_c& message_par_con
+            , const logItem_c::type_ec logType_par_con
+            , const QString& sourceFile_par_con
+            , const QString& sourceFunction_par_con
+            , const int_fast32_t line_par_con
+    );
+    bool addLogMessage_f(
+            const text_c& message_par_con
+            , const action_c* actionPtr_par
+            , const logItem_c::type_ec logType_par_con
+            , const QString& sourceFile_par_con
+            , const QString& sourceFunction_par_con
+            , const int_fast32_t line_par_con
+    );
+    bool addLogMessage_f(const text_c& message_par_con
+            , const check_c* checkPtr_par
             , const logItem_c::type_ec logType_par_con
             , const QString& sourceFile_par_con
             , const QString& sourceFunction_par_con

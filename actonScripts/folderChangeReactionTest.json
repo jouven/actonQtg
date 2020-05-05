@@ -1,0 +1,89 @@
+{
+    "actions": [
+        {
+            "actionTypeData": {
+                "errorIfNotExists": false,
+                "onlyIfEmpty": false,
+                "path": "deletefiledir"
+            },
+            "checkResultLogicAnd": true,
+            "checksEnabled": true,
+            "description": "deletefiledir desc",
+            "enabled": false,
+            "repeatExecution": false,
+            "stopAllExecutionOnError": true,
+            "stringId": "deletefiledir",
+            "type": "deleteFileDir"
+        },
+        {
+            "actionTypeData": {
+                "changesToMonitor": [
+                    "fileCreated"
+                ],
+                "fileSizeChangeTypeToMonitor": "any",
+                "folderPath": "H:/veryuseddata/portable/msys64/home/jouven/qtcreatorprojects/actonQtg/testFolderChangeReaction",
+                "monitorIntervalMs": "2000",
+                "reactionActionStringId": "runprocess execute",
+                "reactionOrder": "alphabetical",
+                "reactionType": "execute",
+                "recurseFolders": false,
+                "reverseReactionOrder": false,
+                "sequentialReaction": true,
+                "useAbsolutePaths": false
+            },
+            "checkResultLogicAnd": true,
+            "checksEnabled": true,
+            "description": "folderchangereactiondesc",
+            "enabled": true,
+            "repeatExecution": false,
+            "stopAllExecutionOnError": true,
+            "stringId": "folderchangereaction",
+            "type": "folderChangeReaction"
+        },
+        {
+            "actionTypeData": {
+                "bufferSize": "1048576",
+                "copyEmptyDirectories": true,
+                "copyHidden": true,
+                "createDestinationAndParents": false,
+                "destinationPath": "H:/veryuseddata/portable/msys64/home/jouven/qtcreatorprojects/actonQtg/testFolderChangeReactionDestination",
+                "destinationTreatment": "resume",
+                "navigateHidden": true,
+                "navigateSubdirectories": true,
+                "noFilesCopiedIsError": false,
+                "resumeType": "transferTypeImplementation",
+                "sourcePath": "source",
+                "stopAllCopyOnFileCopyError": true,
+                "transferType": "copy"
+            },
+            "checkResultLogicAnd": true,
+            "checksEnabled": true,
+            "description": "copyfile desc",
+            "enabled": false,
+            "repeatExecution": false,
+            "stopAllExecutionOnError": true,
+            "stringId": "copyfile",
+            "type": "copyFile"
+        },
+        {
+            "actionTypeData": {
+                "processPath": "something",
+                "useProgramEnvironment": true
+            },
+            "checkResultLogicAnd": true,
+            "checksEnabled": true,
+            "description": "runprocess execute desc",
+            "enabled": false,
+            "repeatExecution": false,
+            "stopAllExecutionOnError": true,
+            "stringId": "runprocess execute",
+            "type": "runProcess"
+        }
+    ],
+    "executeOptions": {
+        "executionLoopType": "loopXTimes",
+        "extraThreads": "1",
+        "killTimeoutMilliseconds": "10000",
+        "loopXTimesCount": "0"
+    }
+}

@@ -197,7 +197,7 @@ executionOptionsWindow_c::executionOptionsWindow_c(
 
     QLabel* killTimeoutMillisecondsLabelTmp = new QLabel(appConfig_ptr_ext->translate_f("Kill timeout"));
     killTimeoutMillisecondsLabelTmp->setToolTip(appConfig_ptr_ext->translate_f(
-                "<p>How many milliseconds to wait after stopping before resorting to kill</p>"
+                "<p>How many milliseconds to wait after stopping before kill (only applies to runProcess)</p>"
                 "<p>Minimum 0, maximum INT32MAX</p>"
     ));
 

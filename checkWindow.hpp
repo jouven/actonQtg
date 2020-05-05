@@ -9,6 +9,7 @@ class QPlainTextEdit;
 class QVBoxLayout;
 class QCheckBox;
 class QSplitter;
+class QLineEdit;
 
 class checksDataHub_c;
 class checkData_c;
@@ -24,6 +25,7 @@ class checkWindow_c : public QWidget
     QVBoxLayout* variableLayout_pri;
     QSplitter* mainSplitter_pri;
 
+    QLineEdit* checkIdLineEdit_pri;
     //QPlainTextEdit* checkStringIdPTE_pri;
     QPlainTextEdit* descriptionPTE_pri;
 

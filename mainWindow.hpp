@@ -61,8 +61,8 @@ class mainWindow_c : public QWidget
     void clearActions_f();
 
     void loadFileList_f(const QStringList& fileList_par_con);
-    void updateExistingActionRow_f(const actionType_ec& actionType_par_con, const QString& description_par_con, const bool enabled_par_con, const int row_par_con);
-    void insertActionRow_f(const actionType_ec& actionType_par_con, const QString& description_par_con, const bool enabled_par_con, const int row_par_con = -1);
+    void updateExistingActionRow_f(const action_c* actionPtr_par_con, const int row_par_con);
+    void insertActionRow_f(const action_c* actionPtr_par_con, const int row_par_con = -1);
     void moveSelectedActions_f(const int moveOffSet_par_con);
 
     void saveActionFile_f(const QString& savePath_par_con);

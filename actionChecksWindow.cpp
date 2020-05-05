@@ -95,14 +95,20 @@ actionChecksWindow_c::actionChecksWindow_c(
     QObject::connect(executionDetailsButtonTmp, &QPushButton::clicked, this, &actionChecksWindow_c::showExecutionDetailsButtonClicked_f);
 
 
-    actionChecksTable_pri = new QTableWidget(0, 5);
+    actionChecksTable_pri = new QTableWidget(0, 6);
     actionChecksTable_pri->setObjectName("QTableWidget_");
     actionChecksTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     QStringList labels;
     //WARNING if this ever changes, in this file there are several places where this kind of comment that should be changed
-    //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
-    labels << appConfig_ptr_ext->translate_f("Check") << appConfig_ptr_ext->translate_f("Description") << appConfig_ptr_ext->translate_f("Execution state")  << appConfig_ptr_ext->translate_f("Last error") << appConfig_ptr_ext->translate_f("Result");
+    //0 checkId | 1 check (type) | 2 description | 3 Execution state | 4 Last error | 5 Result
+    labels
+            << appConfig_ptr_ext->translate_f("CheckId")
+            << appConfig_ptr_ext->translate_f("Check Type")
+            << appConfig_ptr_ext->translate_f("Description")
+            << appConfig_ptr_ext->translate_f("Execution state")
+            << appConfig_ptr_ext->translate_f("Last error")
+            << appConfig_ptr_ext->translate_f("Result");
     actionChecksTable_pri->setHorizontalHeaderLabels(labels);
     actionChecksTable_pri->horizontalHeader()->setObjectName("QHeaderView_");
     actionChecksTable_pri->setShowGrid(true);
@@ -255,16 +261,16 @@ void actionChecksWindow_c::addEditActionCheckButtonClicked_f()
 }
 
 void actionChecksWindow_c::insertCheckRow_f(
-        const checkType_ec& checkType_par_con
-        , const QString& description_par_con
+        const check_c* checkPtr_par_con
         , const int row_par_con)
 {
-    const QString& checkTypeStr(checkTypeToStrUMap_ext_con.at(checkType_par_con));
+    QTableWidgetItem *checkIdCellTmp(new QTableWidgetItem(QString::number(checkPtr_par_con->id_f())));
+    checkIdCellTmp->setFlags(checkIdCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *checkValueCellTmp(new QTableWidgetItem(checkTypeStr));
-    checkValueCellTmp->setFlags(checkValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
+    QTableWidgetItem *checkTypeCellTmp(new QTableWidgetItem(checkPtr_par_con->typeStr_f()));
+    checkTypeCellTmp->setFlags(checkTypeCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *descriptionCellTmp(new QTableWidgetItem(description_par_con));
+    QTableWidgetItem *descriptionCellTmp(new QTableWidgetItem(checkPtr_par_con->description_f()));
     descriptionCellTmp->setFlags(descriptionCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     int newIndexTmp(row_par_con);
@@ -274,33 +280,31 @@ void actionChecksWindow_c::insertCheckRow_f(
     }
 
     actionChecksTable_pri->insertRow(newIndexTmp);
-    actionChecksTable_pri->setItem(newIndexTmp, 0, checkValueCellTmp);
-    actionChecksTable_pri->setItem(newIndexTmp, 1, descriptionCellTmp);
-    //2 execution state, 3 last error, 5 last result
-    actionChecksTable_pri->setItem(newIndexTmp, 2, new QTableWidgetItem);
+    actionChecksTable_pri->setItem(newIndexTmp, 0, checkIdCellTmp);
+    actionChecksTable_pri->setItem(newIndexTmp, 1, checkTypeCellTmp);
+    actionChecksTable_pri->setItem(newIndexTmp, 2, descriptionCellTmp);
+    //3 execution state, 4 last error, 5 last result
     actionChecksTable_pri->setItem(newIndexTmp, 3, new QTableWidgetItem);
     actionChecksTable_pri->setItem(newIndexTmp, 4, new QTableWidgetItem);
+    actionChecksTable_pri->setItem(newIndexTmp, 5, new QTableWidgetItem);
 }
 
 void actionChecksWindow_c::updateExistingCheckRow_f(
-        const checkType_ec& checkType_par_con
-        , const QString& description_par_con
+        const check_c* checkPtr_par_con
         , const int row_par_con)
 {
-    const QString& checkTypeStr(checkTypeToStrUMap_ext_con.at(checkType_par_con));
-
-    actionChecksTable_pri->item(row_par_con, 0)->setText(checkTypeStr);
-    actionChecksTable_pri->item(row_par_con, 1)->setText(description_par_con);
+    actionChecksTable_pri->item(row_par_con, 1)->setText(checkPtr_par_con->typeStr_f());
+    actionChecksTable_pri->item(row_par_con, 2)->setText(checkPtr_par_con->description_f());
 }
 
 void actionChecksWindow_c::clearAllRowsResultColumns_f()
 {
     for (auto rowIndex_ite = 0, l = actionChecksTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
     {
-        //2 execution state, 3 last error, 4 last result
-        actionChecksTable_pri->item(rowIndex_ite, 2)->setText("");
+        //3 execution state, 4 last error, 5 last result
         actionChecksTable_pri->item(rowIndex_ite, 3)->setText("");
         actionChecksTable_pri->item(rowIndex_ite, 4)->setText("");
+        actionChecksTable_pri->item(rowIndex_ite, 5)->setText("");
     }
 }
 
@@ -314,7 +318,7 @@ void actionChecksWindow_c::updateCheckRow_f(const int row_par_con)
 #endif
     if (row_par_con == actionChecksTable_pri->rowCount())
     {
-        insertCheckRow_f(checkPtrTmp->type_f(), checkPtrTmp->description_f());
+        insertCheckRow_f(checkPtrTmp);
         if (checkPtrTmp->checkDataExecutionResult_ptr_f() not_eq nullptr)
         {
             updateCheckExecutionState_f(checkPtrTmp);
@@ -332,7 +336,7 @@ void actionChecksWindow_c::updateCheckRow_f(const int row_par_con)
     }
     else
     {
-        updateExistingCheckRow_f(checkPtrTmp->type_f(), checkPtrTmp->description_f(), row_par_con);
+        updateExistingCheckRow_f(checkPtrTmp, row_par_con);
     }
 }
 
@@ -399,7 +403,7 @@ void actionChecksWindow_c::inputDialogCopyCheckIndexFinished_f(const int result_
             check_c* checkCopyTmp(checkDataHub_ptr_pri->check_ptr_f(checkDataHub_ptr_pri->rowToCheckDataId_f(selectedRowTmp))->clone_f());
 
             checkDataHub_ptr_pri->insertCheck_f(checkCopyTmp, newIndexTmp);
-            insertCheckRow_f(checkCopyTmp->type_f(), checkCopyTmp->description_f(), newIndexTmp);
+            insertCheckRow_f(checkCopyTmp, newIndexTmp);
             //actionChecksTable_pri->selectRow(newIndexTmp);
         }
         else
@@ -479,10 +483,10 @@ void actionChecksWindow_c::copyCheckButtonClicked_f()
 void actionChecksWindow_c::updateCheckError_f(check_c* const check_par_ptr_con)
 {
     int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(check_par_ptr_con->id_f()));
-    //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
+    //0 checkId | 1 check (type) | 2 description | 3 Execution state | 4 Last error | 5 Result
     QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(check_par_ptr_con->checkDataExecutionResult_ptr_f()->errors_f()));
-    actionChecksTable_pri->item(rowTmp, 3)->setText(truncateString_f(translationTmp, 32));
-    actionChecksTable_pri->item(rowTmp, 3)->setToolTip(translationTmp);
+    actionChecksTable_pri->item(rowTmp, 4)->setText(truncateString_f(translationTmp, 32));
+    actionChecksTable_pri->item(rowTmp, 4)->setToolTip(translationTmp);
 }
 
 void actionChecksWindow_c::updateCheckExecutionState_f(check_c* const check_par_ptr_con)
@@ -490,9 +494,9 @@ void actionChecksWindow_c::updateCheckExecutionState_f(check_c* const check_par_
     int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(check_par_ptr_con->id_f()));
     QString checkExecutionStateStrTmp(checkExecutionStateToStrUMap_ext_con.at(check_par_ptr_con->checkDataExecutionResult_ptr_f()->lastState_f()));
     QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(checkExecutionStateStrTmp));
-    //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
-    actionChecksTable_pri->item(rowTmp, 2)->setText(truncateString_f(translationTmp, 32));
-    actionChecksTable_pri->item(rowTmp, 2)->setToolTip(translationTmp);
+    //0 checkId | 1 check (type) | 2 description | 3 Execution state | 4 Last error | 5 Result
+    actionChecksTable_pri->item(rowTmp, 3)->setText(truncateString_f(translationTmp, 32));
+    actionChecksTable_pri->item(rowTmp, 3)->setToolTip(translationTmp);
 }
 
 void actionChecksWindow_c::updateCheckResult_f(check_c* const check_par_ptr_con)
@@ -500,13 +504,13 @@ void actionChecksWindow_c::updateCheckResult_f(check_c* const check_par_ptr_con)
     int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(check_par_ptr_con->id_f()));
     if (check_par_ptr_con->checkDataExecutionResult_ptr_f() not_eq nullptr and check_par_ptr_con->checkDataExecutionResult_ptr_f()->finished_f())
     {
-        //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
-        actionChecksTable_pri->item(rowTmp, 4)->setText(check_par_ptr_con->checkDataExecutionResult_ptr_f()->result_f() ? appConfig_ptr_ext->translate_f("True") : appConfig_ptr_ext->translate_f("False"));
+        //0 checkId | 1 check (type) | 2 description | 3 Execution state | 4 Last error | 5 Result
+        actionChecksTable_pri->item(rowTmp, 5)->setText(check_par_ptr_con->checkDataExecutionResult_ptr_f()->result_f() ? appConfig_ptr_ext->translate_f("True") : appConfig_ptr_ext->translate_f("False"));
     }
     else
     {
-        //0 check (type) | 1 description | 2 Execution state | 3 Last error | 4 Result
-        actionChecksTable_pri->item(rowTmp, 4)->setText("");
+        //0 checkId | 1 check (type) | 2 description | 3 Execution state | 4 Last error | 5 Result
+        actionChecksTable_pri->item(rowTmp, 5)->setText("");
     }
 }
 
@@ -767,7 +771,7 @@ void actionChecksWindow_c::moveSelectedChecks_f(const int moveOffSet_par_con)
                 //change the grid (visual)
                 actionChecksTable_pri->removeRow(index_ite_con);
                 check_c* checkPtrTmp(checkDataHub_ptr_pri->check_ptr_f(checkDataHub_ptr_pri->rowToCheckDataId_f(destinationRow)));
-                insertCheckRow_f(checkPtrTmp->type_f(), checkPtrTmp->description_f(), destinationRow);
+                insertCheckRow_f(checkPtrTmp, destinationRow);
                 //deselects previous stuff, doesn't maintain "old" selection
                 //actionsTable_pri->selectRow(destinationRow);
             }
@@ -800,7 +804,7 @@ void actionChecksWindow_c::inputDialogChangeCheckIndexFinished_f(const int resul
             //change the grid (visual)
             check_c* checkPtrTmp(checkDataHub_ptr_pri->check_ptr_f(checkDataHub_ptr_pri->rowToCheckDataId_f(newIndexTmp)));
             actionChecksTable_pri->removeRow(currentIndexTmp);
-            insertCheckRow_f(checkPtrTmp->type_f(), checkPtrTmp->description_f(), newIndexTmp);
+            insertCheckRow_f(checkPtrTmp, newIndexTmp);
             //actionsTable_pri->selectRow(newIndexTmp);
         }
         else

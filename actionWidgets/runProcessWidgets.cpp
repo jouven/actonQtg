@@ -191,7 +191,7 @@ void runProcessWidgets_c::insertEnvironmentPairRow_f(
     QTableWidgetItem *environmentKeyCellTmp(new QTableWidgetItem(key_par_con));
     environmentKeyCellTmp->setFlags(environmentKeyCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem *environmentValueCellTmp(new QTableWidgetItem(environmentPair_par_con.environmentValue()));
+    QTableWidgetItem *environmentValueCellTmp(new QTableWidgetItem(environmentPair_par_con.environmentValue_f()));
     environmentValueCellTmp->setFlags(environmentValueCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     QTableWidgetItem *environmentPairEnabledCellTmp(new QTableWidgetItem);
@@ -224,7 +224,7 @@ void runProcessWidgets_c::updateEnvironmentPairRow_f(
         , const int row_par_con)
 {
     environmentToAddTable_pri->item(row_par_con, 0)->setText(key_par_con);
-    environmentToAddTable_pri->item(row_par_con, 1)->setText(environmentPair_par_con.environmentValue());
+    environmentToAddTable_pri->item(row_par_con, 1)->setText(environmentPair_par_con.environmentValue_f());
     Qt::CheckState checkValueTmp(environmentPair_par_con.enabled_f() ? Qt::Checked : Qt::Unchecked);
     environmentToAddTable_pri->item(row_par_con, 2)->setCheckState(checkValueTmp);
 }
@@ -235,7 +235,7 @@ void runProcessWidgets_c::loadActionSpecificData_f()
 
     processPathPTE_pri->setPlainText(valuesToLoadTmp.processPath_f());
     workingDirectoryPTE_pri->setPlainText(valuesToLoadTmp.workingDirectory_f());
-    useActonEnviroment_pri->setChecked(valuesToLoadTmp.useActonEnvironment_f());
+    useActonEnviroment_pri->setChecked(valuesToLoadTmp.useProgramEnvironment_f());
 
     for (const argument_c& argument_ite_con : valuesToLoadTmp.arguments_f())
     {

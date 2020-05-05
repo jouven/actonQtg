@@ -11,8 +11,10 @@ TEMPLATE = app
 android:QMAKE_CXXFLAGS += -std=c++14
 
 HEADERS       = \
+    actionWidgets/folderChangeReactionWidgets.hpp \
     appConfig.hpp \
     actionWindow.hpp \
+    checkWidgets/actionStartedExecutingWidgets.hpp \
     mainWindow.hpp \
     actionWidgets/runProcessExtra/argumentWindow.hpp \
     actionWidgets/createDirectoryWidgets.hpp \
@@ -49,8 +51,10 @@ HEADERS       = \
     stringFormatting.hpp
 
 SOURCES       = main.cpp \
+    actionWidgets/folderChangeReactionWidgets.cpp \
     appConfig.cpp \
     actionWindow.cpp \
+    checkWidgets/actionStartedExecutingWidgets.cpp \
     mainWindow.cpp \
     actionWidgets/runProcessExtra/argumentWindow.cpp \
     actionWidgets/createDirectoryWidgets.cpp \

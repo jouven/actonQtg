@@ -97,7 +97,7 @@ bool actionFinishedWidgets_c::isFieldsDataValid_f(textCompilation_c* errors_par)
             }
             else
             {
-                if (actonDataHub_ptr_ext->hasStringTriggerAnyDependency_f(stringTriggerTmp, actionFinishedCheck_ptr_pri))
+                if (actonDataHub_ptr_ext->stringTriggerDependencyCount_f(stringTriggerTmp, actionFinishedCheck_ptr_pri) > 0)
                 {
                     APPENDTEXTPTR(errors_par, "String trigger already in use, in an action-check")
                     errorTmp = true;
