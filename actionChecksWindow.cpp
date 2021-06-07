@@ -2,9 +2,10 @@
 
 #include "checkWindow.hpp"
 #include "appConfig.hpp"
-#include "checkExecutionDetailsWindow.hpp"
+#include "executionResultsWindow.hpp"
 #include "../stringFormatting.hpp"
 
+#include "actonQtso/checkDataExecutionResult.hpp"
 #include "actonQtso/actonDataHub.hpp"
 #include "actonQtso/checkData.hpp"
 #include "actonQtso/checkDataExecutionResult.hpp"
@@ -31,7 +32,7 @@ void actionChecksWindow_c::closeEvent(QCloseEvent* event)
         if (checkDataHub_ptr_pri->executingChecks_f())
         {
             text_c logMessageTmp(R"(Action, stringId {0}, "checks window" close while executing checks)", static_cast<action_c*>(checkDataHub_ptr_pri->parent())->stringId_f());
-            MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::info);
+            MACRO_ADDLOG(logMessageTmp, QString(), messageType_ec::information);
             createMessageBoxAskAboutExecutingChecksOnClose_f();
             break;
         }
@@ -60,6 +61,20 @@ actionChecksWindow_c::actionChecksWindow_c(
     this->setObjectName("actionChecksWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
+
+//    connect(commandsTable_pri, &QTableWidget::customContextMenuRequested,
+//            this, &Window_c::contextMenu);
+#ifdef __ANDROID__
+    baseWidget_pri = new QWidget(this);
+    baseWidget_pri->setAcceptDrops(true);
+#else
+    this->setAcceptDrops(true);
+#endif
+
+}
+
+void actionChecksWindow_c::show_f()
+{
     statusBarLabel_pri = new QLabel;
 
     //add/edit check, remove checks and copy checks
@@ -118,14 +133,7 @@ actionChecksWindow_c::actionChecksWindow_c(
 #ifdef __ANDROID__
     actionChecksTable_pri->setMinimumHeight(screenGeometry.height() / 3);
 #endif
-//    connect(commandsTable_pri, &QTableWidget::customContextMenuRequested,
-//            this, &Window_c::contextMenu);
-#ifdef __ANDROID__
-    baseWidget_pri = new QWidget(this);
-    baseWidget_pri->setAcceptDrops(true);
-#else
-    this->setAcceptDrops(true);
-#endif
+
     //grid and index changing widgwets
     QHBoxLayout* thirdRowLayoutTmp = new QHBoxLayout;
 
@@ -210,7 +218,7 @@ actionChecksWindow_c::actionChecksWindow_c(
     //qDebug() << "actionWindow_c::manageChecksButtonClicked_f() actionData_ptr_pri->actionDataExecutionResult_ptr_f() == nullptr " << (actionData_ptr_pri->actionDataExecutionResult_ptr_f() == nullptr) << endl;
 #endif
 
-    if (checkDataHub_ptr_par->executingChecks_f())
+    if (checkDataHub_ptr_pri->executingChecks_f())
     {
         executionStarted_f();
     }
@@ -219,7 +227,6 @@ actionChecksWindow_c::actionChecksWindow_c(
     QObject::connect(checkDataHub_ptr_pri, &checksDataHub_c::checksExecutionFinished_signal, this, &actionChecksWindow_c::executionFinished_f);
     QObject::connect(checkDataHub_ptr_pri, &checksDataHub_c::stoppingChecksExecution_signal, this, &actionChecksWindow_c::stoppingExecution_f);
 }
-
 
 void actionChecksWindow_c::okButtonClicked_f()
 {
@@ -322,16 +329,19 @@ void actionChecksWindow_c::updateCheckRow_f(const int row_par_con)
         if (checkPtrTmp->checkDataExecutionResult_ptr_f() not_eq nullptr)
         {
             updateCheckExecutionState_f(checkPtrTmp);
-            updateCheckError_f(checkPtrTmp);
+            if (checkPtrTmp->checkDataExecutionResult_ptr_f()->messageCount_f() > 0)
+            {
+                updateCheckError_f(checkPtrTmp->checkDataExecutionResult_ptr_f(), checkPtrTmp->checkDataExecutionResult_ptr_f()->lastMessage_f());
+            }
             if (checkPtrTmp->checkDataExecutionResult_ptr_f()->finished_f())
             {
-                updateCheckResult_f(checkPtrTmp);
+                updateCheckResult_f(checkPtrTmp->checkDataExecutionResult_ptr_f());
             }
             //and connect
-            QObject::connect(checkPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::executionStateUpdated_signal, this, &actionChecksWindow_c::updateCheckExecutionState_f, Qt::UniqueConnection);
-            QObject::connect(checkPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::error_signal, this, &actionChecksWindow_c::updateCheckError_f, Qt::UniqueConnection);
-            QObject::connect(checkPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::finished_signal , this, &actionChecksWindow_c::updateCheckResult_f, Qt::UniqueConnection);
-            QObject::connect(checkPtrTmp->checkDataExecutionResult_ptr_f(), &checkDataExecutionResult_c::resultsCleared_signal, this, &actionChecksWindow_c::checkResultsCleared_f, Qt::UniqueConnection);
+            QObject::connect(checkPtrTmp->checkDataExecutionResult_ptr_f(), &checkExecutionResult_c::executionStateUpdated_signal, this, &actionChecksWindow_c::updateCheckExecutionState_f, Qt::UniqueConnection);
+            QObject::connect(checkPtrTmp->checkDataExecutionResult_ptr_f(), &checkExecutionResult_c::errorMessageAdded_signal, this, &actionChecksWindow_c::updateCheckError_f, Qt::UniqueConnection);
+            QObject::connect(checkPtrTmp->checkDataExecutionResult_ptr_f(), &checkExecutionResult_c::finished_signal , this, &actionChecksWindow_c::updateCheckResult_f, Qt::UniqueConnection);
+            //QObject::connect(checkPtrTmp->checkDataExecutionResult_ptr_f(), &checkExecutionResult_c::resultsCleared_signal, this, &actionChecksWindow_c::checkResultsCleared_f, Qt::UniqueConnection);
         }
     }
     else
@@ -480,11 +490,12 @@ void actionChecksWindow_c::copyCheckButtonClicked_f()
     }
 }
 
-void actionChecksWindow_c::updateCheckError_f(check_c* const check_par_ptr_con)
+void actionChecksWindow_c::updateCheckError_f(const executionResult_c* executionResult_par, const executionMessage_c* errorMessage_par)
 {
-    int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(check_par_ptr_con->id_f()));
+    const checkExecutionResult_c* checkExecutionResultPtrTmp(static_cast<const checkExecutionResult_c*>(executionResult_par));
+    int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(checkExecutionResultPtrTmp->check_ptr_f()->id_f()));
     //0 checkId | 1 check (type) | 2 description | 3 Execution state | 4 Last error | 5 Result
-    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(check_par_ptr_con->checkDataExecutionResult_ptr_f()->errors_f()));
+    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(errorMessage_par->text_f()));
     actionChecksTable_pri->item(rowTmp, 4)->setText(truncateString_f(translationTmp, 32));
     actionChecksTable_pri->item(rowTmp, 4)->setToolTip(translationTmp);
 }
@@ -492,20 +503,21 @@ void actionChecksWindow_c::updateCheckError_f(check_c* const check_par_ptr_con)
 void actionChecksWindow_c::updateCheckExecutionState_f(check_c* const check_par_ptr_con)
 {
     int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(check_par_ptr_con->id_f()));
-    QString checkExecutionStateStrTmp(checkExecutionStateToStrUMap_ext_con.at(check_par_ptr_con->checkDataExecutionResult_ptr_f()->lastState_f()));
+    QString checkExecutionStateStrTmp(checkExecutionStateToString_f(check_par_ptr_con->checkDataExecutionResult_ptr_f()->lastState_f()));
     QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(checkExecutionStateStrTmp));
     //0 checkId | 1 check (type) | 2 description | 3 Execution state | 4 Last error | 5 Result
     actionChecksTable_pri->item(rowTmp, 3)->setText(truncateString_f(translationTmp, 32));
     actionChecksTable_pri->item(rowTmp, 3)->setToolTip(translationTmp);
 }
 
-void actionChecksWindow_c::updateCheckResult_f(check_c* const check_par_ptr_con)
+void actionChecksWindow_c::updateCheckResult_f(const executionResult_c* executionResult_par_con)
 {
-    int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(check_par_ptr_con->id_f()));
-    if (check_par_ptr_con->checkDataExecutionResult_ptr_f() not_eq nullptr and check_par_ptr_con->checkDataExecutionResult_ptr_f()->finished_f())
+    const checkExecutionResult_c* checkExecutionResultPtrTmp(static_cast<const checkExecutionResult_c*>(executionResult_par_con));
+    int rowTmp(checkDataHub_ptr_pri->checkDataIdToRow_f(checkExecutionResultPtrTmp->check_ptr_f()->id_f()));
+    if (executionResult_par_con not_eq nullptr and executionResult_par_con->finished_f())
     {
         //0 checkId | 1 check (type) | 2 description | 3 Execution state | 4 Last error | 5 Result
-        actionChecksTable_pri->item(rowTmp, 5)->setText(check_par_ptr_con->checkDataExecutionResult_ptr_f()->result_f() ? appConfig_ptr_ext->translate_f("True") : appConfig_ptr_ext->translate_f("False"));
+        actionChecksTable_pri->item(rowTmp, 5)->setText(checkExecutionResultPtrTmp->result_f() ? appConfig_ptr_ext->translate_f("True") : appConfig_ptr_ext->translate_f("False"));
     }
     else
     {
@@ -542,12 +554,12 @@ void actionChecksWindow_c::stoppingExecution_f()
     statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Trying to stop execution..."));
 }
 
-void actionChecksWindow_c::checkResultsCleared_f(check_c* const check_par_ptr_con)
-{
-    updateCheckResult_f(check_par_ptr_con);
-    updateCheckError_f(check_par_ptr_con);
-    updateCheckExecutionState_f(check_par_ptr_con);
-}
+//void actionChecksWindow_c::checkResultsCleared_f(check_c* const check_par_ptr_con)
+//{
+//    updateCheckResult_f(check_par_ptr_con);
+//    updateCheckError_f(check_par_ptr_con);
+//    updateCheckExecutionState_f(check_par_ptr_con);
+//}
 
 void actionChecksWindow_c::createMessageBoxAskAboutExecutingChecksOnClose_f()
 {
@@ -634,12 +646,12 @@ void actionChecksWindow_c::executeChecks_f()
                 //it's not tracked if the executions results are already connected... so... delete the results object each time and connect,
                 //otherwise repeated connections would happen, to solve this "issue" would require a map of which actions are connected and which aren't
                 //also reconnect or undo the initial connection if the check types changes
-                checkDataExecutionResult_c* checkExecutionResultPtr = checkPtrTmp->createGetCheckDataExecutionResult_ptr_f();
+                checkExecutionResult_c* checkExecutionResultPtr = checkPtrTmp->createGetCheckDataExecutionResult_ptr_f();
                 //FUTURE add warning when running an action again if there are results already?
-                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::executionStateUpdated_signal, this, &actionChecksWindow_c::updateCheckExecutionState_f, Qt::UniqueConnection);
-                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::error_signal, this, &actionChecksWindow_c::updateCheckError_f, Qt::UniqueConnection);
-                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::finished_signal , this, &actionChecksWindow_c::updateCheckResult_f, Qt::UniqueConnection);
-                QObject::connect(checkExecutionResultPtr, &checkDataExecutionResult_c::resultsCleared_signal, this, &actionChecksWindow_c::checkResultsCleared_f, Qt::UniqueConnection);
+                QObject::connect(checkExecutionResultPtr, &checkExecutionResult_c::executionStateUpdated_signal, this, &actionChecksWindow_c::updateCheckExecutionState_f, Qt::UniqueConnection);
+                QObject::connect(checkExecutionResultPtr, &checkExecutionResult_c::errorMessageAdded_signal, this, &actionChecksWindow_c::updateCheckError_f, Qt::UniqueConnection);
+                QObject::connect(checkExecutionResultPtr, &checkExecutionResult_c::finished_signal , this, &actionChecksWindow_c::updateCheckResult_f, Qt::UniqueConnection);
+                //QObject::connect(checkExecutionResultPtr, &checkExecutionResult_c::resultsCleared_signal, this, &actionChecksWindow_c::checkResultsCleared_f, Qt::UniqueConnection);
 
                 //on the grid only the above are used
                 //QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::actionExternalOutputUpdated_signal, this, &mainWindow_c::updateActionExternalOutput_f);
@@ -676,47 +688,49 @@ void actionChecksWindow_c::executeChecksButtonClicked_f()
 
 void actionChecksWindow_c::showExecutionDetailsButtonClicked_f()
 {
+    executionResultsWindow_c* executionResultsWindowTmp(nullptr);
     while (true)
     {
-        checkDataExecutionResult_c* checkDataExecutionResultTmp_ptr(nullptr);
-        if (actionChecksTable_pri->selectedItems().isEmpty())
+        QList<QTableWidgetItem *> selectionTmp(actionChecksTable_pri->selectedItems());
+        std::set<int> rowIndexSetTmp;
+        //get the selected row (indexes)
+        for (const QTableWidgetItem* item_ite_con : selectionTmp)
         {
-            errorQMessageBox_f(
-                        appConfig_ptr_ext->translate_f("No check row selected")
-                        , appConfig_ptr_ext->translate_f("Error")
-                        , this);
-            break;
+            rowIndexSetTmp.emplace(item_ite_con->row());
         }
 
-        int rowTmp(actionChecksTable_pri->selectedItems().first()->row());
-        int_fast32_t checkDataIdTmp(checkDataHub_ptr_pri->rowToCheckDataId_f(rowTmp));
-        check_c* checkPtrTmp(checkDataHub_ptr_pri->check_ptr_f(checkDataIdTmp));
-        if (checkPtrTmp not_eq nullptr)
+        //if nothing is selected, filter by all the checks on the table
+        if (rowIndexSetTmp.empty())
         {
-            if (checkPtrTmp->checkDataExecutionResult_ptr_f() == nullptr)
+            for (int index_ite = 0; index_ite < actionChecksTable_pri->rowCount(); ++index_ite)
             {
-                errorQMessageBox_f(
-                            appConfig_ptr_ext->translate_f("Check has no execution results")
-                            , appConfig_ptr_ext->translate_f("Error")
-                            , this);
-                break;
+                rowIndexSetTmp.emplace(index_ite);
             }
-            else
-            {
-                checkDataExecutionResultTmp_ptr = checkPtrTmp->checkDataExecutionResult_ptr_f();
-            }
-        }
-        else
-        {
-            //this shouldn't happen (see the "same" code in mainWindow for an explanation)
         }
 
-        checkExecutionDetailsWindow_c* checkExecutionDetailsWindowTmp = new checkExecutionDetailsWindow_c(checkDataExecutionResultTmp_ptr, this);
-        //20180209 subwindow doesn't seem to work, popup has no "window" it's only the frame
-        checkExecutionDetailsWindowTmp->setWindowFlag(Qt::Window, true);
-        checkExecutionDetailsWindowTmp->setWindowModality(Qt::WindowModal);
-        checkExecutionDetailsWindowTmp->show();
+        std::vector<check_c*> selectedChecksTmp;
+        for (const int row_ite_con : rowIndexSetTmp)
+        {
+            int_fast64_t checkDataIdTmp(checkDataHub_ptr_pri->rowToCheckDataId_f(row_ite_con));
+            check_c* checkPtrTmp(checkDataHub_ptr_pri->check_ptr_f(checkDataIdTmp));
+            //no need to check if the checks have results because executionResultsWindow_c can stay empty
+            selectedChecksTmp.emplace_back(checkPtrTmp);
+        }
+
+        if (not selectedChecksTmp.empty())
+        {
+            executionResultsWindowTmp = new executionResultsWindow_c(selectedChecksTmp);
+        }
         break;
+    }
+
+    if (executionResultsWindowTmp not_eq nullptr)
+    {
+        executionResultsWindowTmp->setWindowFlag(Qt::Window, true);
+        executionResultsWindowTmp->setWindowModality(Qt::WindowModal);
+        //it is set in the class ctor of executionResultsWindow_c
+        //executionResultsWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
+        executionResultsWindowTmp->show_f();
     }
 }
 

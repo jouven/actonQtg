@@ -14,8 +14,6 @@ class argumentEditWindow_c;
 class environmentPairToAddEditWindow_c;
 class runProcessData_c;
 class runProcessAction_c;
-class actionData_c;
-class action_c;
 class argument_c;
 class environmentPairConfig_c;
 
@@ -48,7 +46,7 @@ class runProcessWidgets_c : public baseClassActionTypeWidgets_c
     void insertEnvironmentPairRow_f(const QString& key_par_con, const environmentPairConfig_c& environmentPair_par_con);
     void updateEnvironmentPairRow_f(const QString& key_par_con, const environmentPairConfig_c& environmentPair_par_con, const int row_par_con);
 
-    bool derivedSaveNew_f(const actionData_c& actionDataBlock_par_con) override;
+    bool derivedSaveNew_f(const actionData_c& actionDataBlock_par_con, actonDataHub_c* parentActonDataHub_par) override;
     bool derivedSaveUpdate_f() override;
     void derivedParentClosing_f() override;
     QString derivedExtraTips_f() const override;

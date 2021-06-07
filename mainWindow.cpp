@@ -4,8 +4,10 @@
 //this will not fly
 #include "mainWindow.hpp"
 
+#include "actonDataHubGlobal.hpp"
 #include "actionWindow.hpp"
-#include "actionExecutionDetailsWindow.hpp"
+//#include "actionExecutionDetailsWindow.hpp"
+#include "executionResultsWindow.hpp"
 #include "appConfig.hpp"
 #include "optionsWindow.hpp"
 #include "executionOptionsWindow.hpp"
@@ -19,14 +21,14 @@
 #include "actonQtso/actonBaseSerialization.hpp"
 #include "actonQtso/actionMappings/actionStrMapping.hpp"
 #include "actonQtso/actionMappings/actionExecutionStateStrMapping.hpp"
-#include "stringParserMapQtso/stringParserMap.hpp"
-
 
 #include "essentialQtgso/messageBox.hpp"
+#include "essentialQtso/macros.hpp"
 //just to check the thread count
 #include "threadedFunctionQtso/threadedFunctionQt.hpp"
-#include "signalso/signal.hpp"
+//#include "signalso/signal.hpp"
 //#include "sizeConversionso/byte.hpp"
+#include "signalProxyQtso/signalProxyQtso.hpp"
 
 #include "comuso/practicalTemplates.hpp"
 
@@ -48,12 +50,17 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
     //processes will require this, but runProcess already has a kill option (QProcess has).
     //AND even thougth this program doesn't have this case yet, there might be unkillable actions,
     //like a "data move" (if it's not implemented like a copy first + erase at the end)
+    //2 an OS signal happens, when this happens it is usually sent by an user or because the system is shutting down
+    //in either case the user using the program will have from 5? seconds to maybe infinite (if it's not followed by a SIGKILL)
+    //Anyway to make it simple, the program will show a window notifying ther user e.g., "termination signal X received, will try to close this program"
+    //and then call closeEvent on the main window
+    statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Exiting..."));
     bool evenAcceptedTmp(false);
     while (true)
     {
         if (actonDataHub_ptr_ext->stoppingActionsExecution_f() and not actonDataHub_ptr_ext->killingActionsExecution_f())
         {
-            MACRO_ADDACTONQTGLOG("Close while stopping actions", logItem_c::type_ec::info);
+            MACRO_ADDLOG("Close while stopping actions", QString(), messageType_ec::information);
             createMessageBoxAskAboutStoppingExecutionOnClose_f();
             break;
         }
@@ -64,11 +71,11 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
         //ask to cancel, stop or kill
         if (actonDataHub_ptr_ext->executingActions_f())
         {
-            if (killCountdown_pri > 0)
+            if (elapsedStopping_pri > 0)
             {
                 break;
             }
-            MACRO_ADDACTONQTGLOG("Close while executing actions", logItem_c::type_ec::info);
+            MACRO_ADDLOG("Close while executing actions", QString(), messageType_ec::information);
             createMessageBoxAskAboutExecutingActionsOnClose_f();
             break;
         }
@@ -157,39 +164,25 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
             }
         }
 
-        if (signalso::isRunning_f())
+        //TODO this can probably be removed
+        if (threadedFunction_c::threadsInUse_f() > 0)
         {
-            signalso::stopRunning_f();
+            text_c logMessageTmp(R"(Nothing running but qThreads exist, count: {0})", threadedFunction_c::threadsInUse_f());
+            MACRO_ADDLOG(logMessageTmp, QString(), messageType_ec::information);
         }
 
-        if (finalCounterSeconds_pri == 0 and threadedFunction_c::qThreadCount_f() == 0)
-        {
-            MACRO_ADDACTONQTGLOG("Saving geometry + saving config file/s + clearAllActionData_f, then close", logItem_c::type_ec::info);
-            appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + actionsTable_pri->objectName() + actionsTable_pri->horizontalHeader()->objectName(), actionsTable_pri->horizontalHeader()->saveState());
-            appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + actionsTable_pri->objectName(), actionsTable_pri->saveGeometry());
-            appConfig_ptr_ext->setWidgetGeometry_f(this->objectName(), saveGeometry());
-            Q_EMIT close_signal();
-            MACRO_ADDACTONQTGLOG("Geometry saved", logItem_c::type_ec::debug);
-            appConfig_ptr_ext->saveConfigFile_f();
-            MACRO_ADDACTONQTGLOG("Config file/s saved", logItem_c::type_ec::debug);
-            //IMPORTANT¿ because otherwise the dtor of the actions in the datahub happens when the qtapp instance has already been dtored
-            //because qtapp is a variable in the "main" but actonDataHub_f() has a static variable behind which gets dtored later
-            //20191204 not needed anymore, since it's a qobject and everything else is a child
-            //actonDataHub_ptr_ext->clearAllActionData_f();
-            //MACRO_ADDACTONQTGLOG("clearAllActionData_f", logItem_c::type_ec::debug);
-            evenAcceptedTmp = true;
-        }
-        else
-        {
-            if (threadedFunction_c::qThreadCount_f() > 0)
-            {
-                text_c logMessageTmp(R"(Nothing running but qThreads exist, count: {0})", threadedFunction_c::qThreadCount_f());
-                MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::info);
-            }
-        }
+        MACRO_ADDLOG("Setting geometry for saving", QString(), messageType_ec::information);
+        appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + actionsTable_pri->objectName() + actionsTable_pri->horizontalHeader()->objectName(), actionsTable_pri->horizontalHeader()->saveState());
+        appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + actionsTable_pri->objectName(), actionsTable_pri->saveGeometry());
+        appConfig_ptr_ext->setWidgetGeometry_f(this->objectName(), saveGeometry());
+
+        Q_EMIT closeWindow_signal();
+        closingWindow_pri = true;
+        evenAcceptedTmp = true;
+
         break;
     }
-    if (evenAcceptedTmp)
+    if (evenAcceptedTmp and finalCounterSeconds_pri == 0)
     {
         event->accept();
     }
@@ -217,7 +210,11 @@ void mainWindow_c::closeEvent(QCloseEvent* event)
 mainWindow_c::mainWindow_c()
 {
     this->setObjectName("mainWindow_");
+}
 
+void mainWindow_c::start_f()
+{
+    QObject::connect(signalso::signalProxy_ptr_ext, &signalso::signalProxy_c::signalTriggered_signal, this, &mainWindow_c::OSSignalRecieved_f);
     const QRect screenGeometry = QApplication::desktop()->availableGeometry(this);
 
     QShortcut* quitShortCut(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q), this));
@@ -288,9 +285,9 @@ mainWindow_c::mainWindow_c()
     thirdRowLayoutTmp->addWidget(executeActionsButton_pri);
     QObject::connect(executeActionsButton_pri, &QPushButton::clicked, this, &mainWindow_c::executeActionsButtonClicked_f);
 
-    QPushButton* executionDetailsButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Execution &details"));
-    thirdRowLayoutTmp->addWidget(executionDetailsButtonTmp);
-    QObject::connect(executionDetailsButtonTmp, &QPushButton::clicked, this, &mainWindow_c::showExecutionDetails_f);
+    QPushButton* showExecutionResultsButtonTmp = new QPushButton(appConfig_ptr_ext->translate_f("Execution &results"));
+    thirdRowLayoutTmp->addWidget(showExecutionResultsButtonTmp);
+    QObject::connect(showExecutionResultsButtonTmp, &QPushButton::clicked, this, &mainWindow_c::showExecutionResults_f);
 
     //tips, about buttons and program options
     QHBoxLayout* fourthRowLayoutTmp = new QHBoxLayout;
@@ -312,6 +309,7 @@ mainWindow_c::mainWindow_c()
     QObject::connect(aboutButtonTmp, &QPushButton::clicked, this, &mainWindow_c::showAboutMessage_f);
 
     actionsTable_pri = new QTableWidget(0, 7);
+    actionsTable_pri->verticalHeader()->setVisible(false);
     actionsTable_pri->setObjectName("QTableWidget_");
     actionsTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
 
@@ -409,9 +407,9 @@ mainWindow_c::mainWindow_c()
 #endif
     //resize(screenGeometry.width(), screenGeometry.height() * 0.99);
 
-    auto* mainLoopTimer = new QTimer(this);
-    QObject::connect(mainLoopTimer, &QTimer::timeout, this, &mainWindow_c::mainLoop_f);
-    mainLoopTimer->start(500);
+//    auto* mainLoopTimer = new QTimer(this);
+//    QObject::connect(mainLoopTimer, &QTimer::timeout, this, &mainWindow_c::mainLoop_f);
+//    mainLoopTimer->start(500);
 
     if (appConfig_ptr_ext->configLoaded_f())
     {
@@ -438,10 +436,21 @@ mainWindow_c::mainWindow_c()
     //would require the program to be shipped with the source, but it would make debugging easier
     if (not appConfig_ptr_ext->commandLinePositionalArguments_f().isEmpty())
     {
-        MACRO_ADDACTONQTGLOG(R"(Load positional arguments as "acton" files)", logItem_c::type_ec::info);
+        MACRO_ADDLOG(R"(Load positional arguments as "acton" files)", QString(), messageType_ec::information);
         loadFileList_f(appConfig_ptr_ext->commandLinePositionalArguments_f());
     }
-    MACRO_ADDACTONQTGLOG("Main window ctored", logItem_c::type_ec::debug);
+    else
+    {
+        updateMaxThreads_f();
+    }
+    MACRO_ADDLOG("Main window ctored", QString(), messageType_ec::debug);
+    show();
+}
+
+void mainWindow_c::updateMaxThreads_f()
+{
+    threadedFunction_c::setMaxUsableThreads_f(actonDataHub_ptr_ext->executionOptions_f().extraThreads_f());
+    MACRO_ADDLOG({R"(Using {0} extra threads)", actonDataHub_ptr_ext->executionOptions_f().extraThreads_f()}, QString(), messageType_ec::information);
 }
 
 void mainWindow_c::dragEnterEvent(QDragEnterEvent* event)
@@ -474,23 +483,23 @@ void mainWindow_c::dropEvent(QDropEvent* event)
     }
 }
 
-void mainWindow_c::mainLoop_f()
-{
-    if (finalCounterSeconds_pri == 0 and threadedFunction_c::qThreadCount_f() == 0)
-    {
-        this->close();
-    }
-    if (not signalso::isRunning_f())
-    {
-        statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Exiting..."));
-        finalCounterSeconds_pri = finalCounterSeconds_pri - 1;
-    }
-//    QTimer::singleShot(0,[=]
+//void mainWindow_c::mainLoop_f()
+//{
+//    if (finalCounterSeconds_pri == 0)
 //    {
-//        //directoryComboBox_pri->adjustSize();
-//        adjustSize();
-    //    });
-}
+//        this->close();
+//    }
+//    if (closingWindow_pri)
+//    {
+//        statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Exiting..."));
+//        finalCounterSeconds_pri = finalCounterSeconds_pri - 1;
+//    }
+////    QTimer::singleShot(0,[=]
+////    {
+////        //directoryComboBox_pri->adjustSize();
+////        adjustSize();
+//    //    });
+//}
 
 void mainWindow_c::showOptions_f()
 {
@@ -566,7 +575,7 @@ void mainWindow_c::clearAllActions_f()
 
 void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
 {
-    MACRO_ADDACTONQTGLOG("Load file list (for acton files with actions)", logItem_c::type_ec::debug);
+    MACRO_ADDLOG("Load file list (for acton files with actions)", QString(), messageType_ec::debug);
     textCompilation_c errorsTmp;
     if (not fileList_par_con.isEmpty())
     {
@@ -607,12 +616,12 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
                 const int_fast32_t sizeBeforeLoad(actonDataHub_ptr_ext->size_f());
                 {
                     text_c logMessageTmp(R"(Deserializing file {0} JSON)", fileStr_ite_con);
-                    MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::debug);
+                    MACRO_ADDLOG(logMessageTmp, QString(), messageType_ec::debug);
                 }
                 deserializeActonDataHub_f(jsonDocObjTmp.object(), actonDataHub_ptr_ext, true, std::addressof(errorsTmp));
                 {
                     text_c logMessageTmp(R"(Found {0} actions)", actonDataHub_ptr_ext->size_f());
-                    MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::debug);
+                    MACRO_ADDLOG(logMessageTmp, QString(), messageType_ec::debug);
                 }
                 for (int rowIndex_ite = 0, l = actonDataHub_ptr_ext->size_f(); rowIndex_ite < l; ++rowIndex_ite)
                 {
@@ -625,7 +634,7 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
 //        //qDebug() << "actionDataRefPairTmp.second " << actionDataRefPairTmp.second << endl;
 //#endif
                     updateActionRow_f(rowIndex_ite);
-                    if (not signalso::isRunning_f())
+                    if (closingWindow_pri)
                     {
                         break;
                     }
@@ -635,7 +644,7 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
             if (thisFileLoadedSomethingTmp)
             {
                 text_c logMessageTmp(R"(Save file loaded {0})", fileStr_ite_con);
-                MACRO_ADDACTONQTGLOG(logMessageTmp, logItem_c::type_ec::info);
+                MACRO_ADDLOG(logMessageTmp, QString(), messageType_ec::information);
                 loadedFileCountTmp += 1;
                 if (fileList_par_con.size() == 1)
                 {
@@ -647,13 +656,14 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
                 //statusBar message is done at the end
                 //statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("JSON file " + fileStr_ite_con + " has no actions"));
             }
-            if (not signalso::isRunning_f())
+            if (closingWindow_pri)
             {
                 break;
             }
         }
         if (loadedFileCountTmp > 0)
         {
+            updateMaxThreads_f();
             //resizeFileTable_f();
             int_fast32_t actionLoadCountTmp(actonDataHub_ptr_ext->size_f() - actionCountBeforeLoad);
             text_c loadedMessageTmp("Loaded {0} actions from {1} file/s", actionLoadCountTmp, loadedFileCountTmp);
@@ -667,7 +677,7 @@ void mainWindow_c::loadFileList_f(const QStringList& fileList_par_con)
     }
     else
     {
-        errorsTmp.append_f({"No save file/s selected"});
+        errorsTmp.append_f("No save file/s selected");
         //statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("No save files selected"));
     }
     if (not errorsTmp.empty_f())
@@ -730,7 +740,7 @@ void mainWindow_c::fileDialogActionFilesToLoadFinished_f(const int result_par)
         {
             loadFileList_f(selectActionFilesToLoadDialog_pri->selectedFiles());
 #ifdef DEBUGJOUVEN
-            qDebug() << "selectActionFilesToLoadDialog_pri->directory().path() " << selectActionFilesToLoadDialog_pri->directory().path() << endl;
+            qDebug() << "selectActionFilesToLoadDialog_pri->directory().path() " << selectActionFilesToLoadDialog_pri->directory().path() << Qt::endl;
 #endif
             appConfig_ptr_ext->addDirectoryHistory_f(this->objectName() + selectActionFilesToLoadDialog_pri->objectName(), selectActionFilesToLoadDialog_pri->directory().path());
         }
@@ -775,8 +785,8 @@ void mainWindow_c::messageBoxSaveActionsToFileOnExitFinished_f(const int result_
         saveActionFileDialog_pri->setAcceptMode(QFileDialog::AcceptSave);
         saveActionFileDialog_pri->setFileMode(QFileDialog::AnyFile);
         saveActionFileDialog_pri->setDirectory(QDir::currentPath());
-        //TODO add current datetime string on the default filename when saving i.e. actions_YYYYMMdd_hhmmss.json
-        saveActionFileDialog_pri->selectFile("actions.json");
+        QString timestampStr(QDateTime::currentDateTime().toString("_yyyyMMdd_hhmmss"));
+        saveActionFileDialog_pri->selectFile("actions" + timestampStr + ".json");
         saveActionFileDialog_pri->setWindowTitle(appConfig_ptr_ext->translate_f("Save action file..."));
         saveActionFileDialog_pri->setViewMode(QFileDialog::Detail);
         saveActionFileDialog_pri->setFilter(QDir::Hidden | QDir::NoDotAndDotDot | QDir::Files | QDir::AllDirs | QDir::Drives);
@@ -814,6 +824,20 @@ void mainWindow_c::messageBoxSaveActionsToFileOnExitFinished_f(const int result_
             close();
         }
     }
+}
+
+void mainWindow_c::OSSignalRecieved_f(int signal_par)
+{
+    QMessageBox* informationMessageBoxPtrTmp(new QMessageBox(this));
+    informationMessageBoxPtrTmp->setAttribute(Qt::WA_DeleteOnClose);
+    informationMessageBoxPtrTmp->setWindowTitle(appConfig_ptr_ext->translate_f("Warning"));
+    text_c textTmp("OS signal {0} received, proceeding to close the program", signal_par);
+    informationMessageBoxPtrTmp->setText(appConfig_ptr_ext->translateAndReplace_f(textTmp));
+    informationMessageBoxPtrTmp->setModal(Qt::WindowModal);
+
+    QObject::connect(informationMessageBoxPtrTmp, &QMessageBox::finished, this, &mainWindow_c::close);
+
+    informationMessageBoxPtrTmp->show();
 }
 
 void mainWindow_c::messageBoxOverwriteLastActionLoadedFileFinished_f(const int result_par)
@@ -1193,6 +1217,10 @@ void mainWindow_c::updateActionRow_f(const int row_par_con)
 {
     int_fast32_t actionDataId(actonDataHub_ptr_ext->rowToActionDataId_f(row_par_con));
     action_c* actionDataPtrTmp(actonDataHub_ptr_ext->action_ptr_f(actionDataId));
+#ifdef DEBUGJOUVEN
+    //qDebug() << "actionDataPtrTmp is nullptr " << QSTRINGBOOL(actionDataPtrTmp == nullptr) << Qt::endl;
+    //qDebug() << "actionDataPtrTmp->actonDataHubParent_f() is nullptr " << QSTRINGBOOL(actionDataPtrTmp->actonDataHubParent_f() == nullptr) << Qt::endl;
+#endif
     //qInfo() << "3 actionDataTmp.description_f() " << actionDataTmp.description_f() << endl;
     if (row_par_con == actionsTable_pri->rowCount())
     {
@@ -1376,33 +1404,34 @@ void mainWindow_c::inputDialogChangeActionIndexFinished_f(const int result_par)
     changeActionIndexInputDialog_pri = nullptr;
 }
 
-void mainWindow_c::updateActionOutput_f(action_c* action_par_ptr_con)
+void mainWindow_c::updateActionOutput_f(const executionResult_c* executionResult_ptr_par, const executionMessage_c* message_par)
 {
     //get the row, get the acionData Obj for the id (to get the executionResult Obj)
     //update the cell of the row with the last part of the str
-    int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(action_par_ptr_con->id_f()));
+    const actionExecutionResult_c* actionExecutionResultPtrTmp(static_cast<const actionExecutionResult_c*>(executionResult_ptr_par));
+    int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(actionExecutionResultPtrTmp->action_ptr_f()->id_f()));
     //0 ActionId | 1 action (type) | 2 description | 3 enabled | 4 Execution state | 5 Last output | 6 Last error
-    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(action_par_ptr_con->actionDataExecutionResult_ptr_f()->output_f()));
+    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(message_par->text_f()));
     actionsTable_pri->item(rowTmp, 5)->setText(truncateString_f(translationTmp, 32));
     actionsTable_pri->item(rowTmp, 5)->setToolTip(translationTmp);
 }
 
-void mainWindow_c::updateActionError_f(action_c* action_par_ptr_con)
+void mainWindow_c::updateActionError_f(const executionResult_c* executionResult_ptr_par, const executionMessage_c* message_par)
 {
-    int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(action_par_ptr_con->id_f()));
+    const actionExecutionResult_c* actionExecutionResultPtrTmp(static_cast<const actionExecutionResult_c*>(executionResult_ptr_par));
+    int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(actionExecutionResultPtrTmp->action_ptr_f()->id_f()));
     //0 ActionId | 1 action (type) | 2 description | 3 enabled | 4 Execution state | 5 Last output | 6 Last error
-    //FUTURE translation should be done here
-    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(action_par_ptr_con->actionDataExecutionResult_ptr_f()->errors_f()));
+    QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(message_par->text_f()));
     actionsTable_pri->item(rowTmp, 6)->setText(truncateString_f(translationTmp, 32));
     actionsTable_pri->item(rowTmp, 6)->setToolTip(translationTmp);
 }
 
-void mainWindow_c::updateActionExecutionState_f(action_c* action_par_ptr_con)
+void mainWindow_c::updateActionExecutionState_f(const action_c* action_par_ptr_con)
 {
 #ifdef DEBUGJOUVEN
     //qDebug() << "actionData_par_con.id_f() " << QString::number(actionData_par_ptr_con->id_f()) << endl;
 #endif
-    QString actionExecutionStateStrTmp(actionExecutionStateToStrUMap_ext_con.at(action_par_ptr_con->actionDataExecutionResult_ptr_f()->lastState_f()));
+    QString actionExecutionStateStrTmp(actionExecutionStateToString_f(action_par_ptr_con->actionDataExecutionResult_ptr_f()->lastState_f()));
     int rowTmp(actonDataHub_ptr_ext->actionDataIdToRow_f(action_par_ptr_con->id_f()));
 
 #ifdef DEBUGJOUVEN
@@ -1410,9 +1439,9 @@ void mainWindow_c::updateActionExecutionState_f(action_c* action_par_ptr_con)
     //qDebug() << "actionExecutionStateStrTmp " << actionExecutionStateStrTmp << endl;
 #endif
     QString translationTmp(appConfig_ptr_ext->translateAndReplace_f(actionExecutionStateStrTmp));
-    //action (type) 0 | description 1 | Execution state 2 | Last output 3 | Last error 4
-    actionsTable_pri->item(rowTmp, 2)->setText(truncateString_f(translationTmp, 32));
-    actionsTable_pri->item(rowTmp, 2)->setText(translationTmp);
+    //0 actionId | 1 action (type) | 2 description | 3 Enabled | 4 Execution state | 5 Last output | 6 Last error
+    actionsTable_pri->item(rowTmp, 4)->setText(truncateString_f(translationTmp, 32));
+    actionsTable_pri->item(rowTmp, 4)->setText(translationTmp);
 }
 
 void mainWindow_c::removeActions_f()
@@ -1514,6 +1543,7 @@ void mainWindow_c::showExecutionOptionsButtonClicked_f()
         }
 
         executionOptionsWindow_c* executeOptionsWindowTmp(new executionOptionsWindow_c(this));
+        QObject::connect(executeOptionsWindowTmp, &executionOptionsWindow_c::updateMaxThreads_signal, this, &mainWindow_c::updateMaxThreads_f);
         //20180209 subwindow doesn't seem to work, popup has no "window" it's only the frame
         executeOptionsWindowTmp->setWindowFlag(Qt::Window, true);
         executeOptionsWindowTmp->setWindowModality(Qt::WindowModal);
@@ -1552,12 +1582,12 @@ void mainWindow_c::executionStopped_f()
     executeActionsButton_pri->setToolTip(appConfig_ptr_ext->translate_f("No selection executes all actions, selection executes selected actions"));
 }
 
-void mainWindow_c::actionResultsCleared_f(action_c* const action_par_ptr_con)
-{
-    updateActionOutput_f(action_par_ptr_con);
-    updateActionError_f(action_par_ptr_con);
-    updateActionExecutionState_f(action_par_ptr_con);
-}
+//void mainWindow_c::actionResultsCleared_f(action_c* const action_par_ptr_con)
+//{
+//    updateActionOutput_f(action_par_ptr_con);
+//    updateActionError_f(action_par_ptr_con);
+//    updateActionExecutionState_f(action_par_ptr_con);
+//}
 
 void mainWindow_c::stopExecutingActionsAndClose_f()
 {
@@ -1568,8 +1598,11 @@ void mainWindow_c::stopExecutingActionsAndClose_f()
         executeActionsButton_pri->setText(appConfig_ptr_ext->translate_f("Stopping..."));
         statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping execution... (exiting after)"));
     }
-    askAboutExecutingActionsOnCloseMessageBox_pri->close();
-    askAboutExecutingActionsOnCloseMessageBox_pri = nullptr;
+    if (askAboutExecutingActionsOnCloseMessageBox_pri not_eq nullptr)
+    {
+        askAboutExecutingActionsOnCloseMessageBox_pri->close();
+        askAboutExecutingActionsOnCloseMessageBox_pri = nullptr;
+    }
 }
 
 void mainWindow_c::stopExecutingActionsElseKillAndClose_f()
@@ -1580,28 +1613,40 @@ void mainWindow_c::stopExecutingActionsElseKillAndClose_f()
         actonDataHub_ptr_ext->tryStopExecutingActions_f(true);
         executeActionsButton_pri->setText(appConfig_ptr_ext->translate_f("Stopping..."));
 
-        if (actonDataHub_ptr_ext->executionOptions_f().killTimeoutMilliseconds_f() > 1000)
+        //TODO add and elapsed timmer so the user knows how much has he waited
+
+        QTimer* elapsedCountdownTimerPtr(new QTimer(this));
+        connect(actonDataHub_ptr_ext, &actonDataHub_c::actionsExecutionFinished_signal, elapsedCountdownTimerPtr, &QTimer::deleteLater);
+        connect(elapsedCountdownTimerPtr, &QTimer::timeout, [mainWindowPtr=this]()
         {
-            killCountdown_pri = actonDataHub_ptr_ext->executionOptions_f().killTimeoutMilliseconds_f() / 1000;
-            statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping execution... will kill in ") + QString::number(killCountdown_pri));
-            QTimer* killCountdownTimerPtr(new QTimer(this));
-            connect(actonDataHub_ptr_ext, &actonDataHub_c::actionsExecutionFinished_signal, killCountdownTimerPtr, &QTimer::deleteLater);
-            connect(killCountdownTimerPtr, &QTimer::timeout, [this, killCountdownTimerPtr]()
-            {
-                killCountdown_pri = killCountdown_pri - 1;
-                statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping execution... will kill in ") + QString::number(killCountdown_pri));
-                if (killCountdown_pri <= 0)
-                {
-                    killCountdownTimerPtr->deleteLater();
-                    statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Killing execution...  (exiting after)"));
-                }
-            });
-            killCountdownTimerPtr->start(1000);
-        }
-        else
-        {
-            statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping-Killing execution... (exiting after)"));
-        }
+            mainWindowPtr->elapsedStopping_pri = mainWindowPtr->elapsedStopping_pri - 1;
+            text_c elapsedTextTmp("Stopping execution... {0} seconds elapsed", mainWindowPtr->elapsedStopping_pri);
+            mainWindowPtr->statusBarLabel_pri->setText(appConfig_ptr_ext->translateAndReplace_f(elapsedTextTmp));
+        });
+        elapsedCountdownTimerPtr->start(1000);
+
+//        if (actonDataHub_ptr_ext->executionOptions_f().killTimeoutMilliseconds_f() > 1000)
+//        {
+//            killCountdown_pri = actonDataHub_ptr_ext->executionOptions_f().killTimeoutMilliseconds_f() / 1000;
+//            statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping execution... will kill in ") + QString::number(killCountdown_pri));
+//            QTimer* killCountdownTimerPtr(new QTimer(this));
+//            connect(actonDataHub_ptr_ext, &actonDataHub_c::actionsExecutionFinished_signal, killCountdownTimerPtr, &QTimer::deleteLater);
+//            connect(killCountdownTimerPtr, &QTimer::timeout, [this, killCountdownTimerPtr]()
+//            {
+//                killCountdown_pri = killCountdown_pri - 1;
+//                statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping execution... will kill in ") + QString::number(killCountdown_pri));
+//                if (killCountdown_pri <= 0)
+//                {
+//                    killCountdownTimerPtr->deleteLater();
+//                    statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Killing execution...  (exiting after)"));
+//                }
+//            });
+//            killCountdownTimerPtr->start(1000);
+//        }
+//        else
+//        {
+//            statusBarLabel_pri->setText(appConfig_ptr_ext->translate_f("Stopping-Killing execution... (exiting after)"));
+//        }
     }
     askAboutExecutingActionsOnCloseMessageBox_pri->close();
     askAboutExecutingActionsOnCloseMessageBox_pri = nullptr;
@@ -1635,7 +1680,7 @@ void mainWindow_c::runFromStoppedActionsMessageBoxResult_f(const int result_par)
         }
         if (result_par == QMessageBox::Yes)
         {
-            actonDataHub_ptr_ext->tryResumeActionsExecution_f();
+            resumeActionsExecution_f();
             break;
         }
         break;
@@ -1694,15 +1739,15 @@ void mainWindow_c::executeActions_f()
 #endif
             if (actionPtrTmp not_eq nullptr)
             {
-                actionDataExecutionResult_c* actionExecutionResultPtr(actionPtrTmp->createGetActionDataExecutionResult_ptr_f());
+                actionExecutionResult_c* actionExecutionResultPtr(actionPtrTmp->createGetActionDataExecutionResult_ptr_f());
                 //will be nullptr if the action is disabled
                 if (actionExecutionResultPtr not_eq nullptr)
                 {
-                    QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::executionStateUpdated_signal, this, &mainWindow_c::updateActionExecutionState_f, Qt::UniqueConnection);
-                    QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::outputUpdated_signal, this, &mainWindow_c::updateActionOutput_f, Qt::UniqueConnection);
-                    QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::error_signal, this, &mainWindow_c::updateActionError_f, Qt::UniqueConnection);
-                    QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::errors_signal, this, &mainWindow_c::updateActionError_f, Qt::UniqueConnection);
-                    QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::resultsCleared_signal, this, &mainWindow_c::actionResultsCleared_f, Qt::UniqueConnection);
+                    QObject::connect(actionExecutionResultPtr, &actionExecutionResult_c::executionStateUpdated_signal, this, &mainWindow_c::updateActionExecutionState_f, Qt::UniqueConnection);
+                    QObject::connect(actionExecutionResultPtr, &actionExecutionResult_c::informationMessageAdded_signal, this, &mainWindow_c::updateActionOutput_f, Qt::UniqueConnection);
+                    QObject::connect(actionExecutionResultPtr, &actionExecutionResult_c::errorMessageAdded_signal, this, &mainWindow_c::updateActionError_f, Qt::UniqueConnection);
+                    //QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::errors_signal, this, &mainWindow_c::updateActionError_f, Qt::UniqueConnection);
+                    //QObject::connect(actionExecutionResultPtr, &actionExecutionResult_c::resultsCleared_signal, this, &mainWindow_c::actionResultsCleared_f, Qt::UniqueConnection);
 
                     //on the grid only the above are used
                     //QObject::connect(actionExecutionResultPtr, &actionDataExecutionResult_c::actionExternalOutputUpdated_signal, this, &mainWindow_c::updateActionExternalOutput_f);
@@ -1712,61 +1757,86 @@ void mainWindow_c::executeActions_f()
         }
 
 #ifdef DEBUGJOUVEN
-        //qDebug() << "actonDataHub_ptr_ext->executeActionDataRows_f(rowsToExecuteTmp);" << endl;
+        //qDebug() << "actonDataHub_ptr_ext->executeActionDataRows_f(rowsToExecuteTmp);" << Qt::endl;
 #endif
-        actonDataHub_ptr_ext->executeActionDataRows_f(rowsToExecuteTmp);
-    }
-}
 
-void mainWindow_c::showExecutionDetails_f()
-{
-    actionDataExecutionResult_c* actionResultTmp_ptr(nullptr);
-    while (true)
-    {
-        if (actionsTable_pri->selectedItems().isEmpty())
+        textCompilation_c errorsTmp;
+        bool resultTmp(actonDataHub_ptr_ext->executeActionDataRows_f(rowsToExecuteTmp, std::addressof(errorsTmp)));
+        if (resultTmp)
         {
-            errorQMessageBox_f(
-                        appConfig_ptr_ext->translate_f("No action row selected")
-                        , appConfig_ptr_ext->translate_f("Error")
-                        , this);
-            break;
-        }
 
-        int rowTmp(actionsTable_pri->selectedItems().first()->row());
-        int_fast64_t actionDataIdTmp(actonDataHub_ptr_ext->rowToActionDataId_f(rowTmp));
-        action_c* actionPtrTmp(actonDataHub_ptr_ext->action_ptr_f(actionDataIdTmp));
-        if (actionPtrTmp not_eq nullptr)
-        {
-            if (actionPtrTmp->actionDataExecutionResult_ptr_f() == nullptr)
-            {
-                errorQMessageBox_f(
-                            appConfig_ptr_ext->translate_f("Action has no execution results")
-                            , appConfig_ptr_ext->translate_f("Error")
-                            , this);
-                break;
-            }
-            else
-            {
-                actionResultTmp_ptr = actionPtrTmp->actionDataExecutionResult_ptr_f();
-            }
         }
         else
         {
-            //this shouldn't be able to happen, it means the action doesn't exist but somehow a row was selected to show it's execution details
-            //            errorQMessageBox_f("Action for the actionId (" + QString::number(actionDataIdTmp) + ") not found", "Error", this);
-            //            break;
+            errorQMessageBox_f(errorsTmp.toRawReplace_f());
+        }
+    }
+}
+
+void mainWindow_c::resumeActionsExecution_f()
+{
+    for (auto rowIndex_ite = 0, l = actionsTable_pri->rowCount(); rowIndex_ite < l; ++rowIndex_ite)
+    {
+        int_fast64_t actionIdToRunTmp(actonDataHub_ptr_ext->rowToActionDataId_f(rowIndex_ite));
+
+        action_c* actionPtrTmp(actonDataHub_ptr_ext->action_ptr_f(actionIdToRunTmp));
+#ifdef DEBUGJOUVEN
+//            qDebug() << "actionIdToRunTmp " << actionIdToRunTmp << endl;
+#endif
+        if (actionPtrTmp not_eq nullptr)
+        {
+            if (actionPtrTmp->actionDataExecutionResult_ptr_f() not_eq nullptr and actionPtrTmp->actionDataExecutionResult_ptr_f()->lastState_f() == actionExecutionState_ec::stopped)
+            {
+                //action execution result of stopped objs need to be regenerated prior because otherwise they will be regenerated
+                //when each action execution detects they aren't on a initial state, then it's too late to "connect" anything
+                actionExecutionResult_c* actionExecutionResultPtr(actionPtrTmp->regenerateGetActionDataExecutionResult_ptr_f());
+
+                QObject::connect(actionExecutionResultPtr, &actionExecutionResult_c::executionStateUpdated_signal, this, &mainWindow_c::updateActionExecutionState_f, Qt::UniqueConnection);
+                QObject::connect(actionExecutionResultPtr, &actionExecutionResult_c::informationMessageAdded_signal, this, &mainWindow_c::updateActionOutput_f, Qt::UniqueConnection);
+                QObject::connect(actionExecutionResultPtr, &actionExecutionResult_c::errorMessageAdded_signal, this, &mainWindow_c::updateActionError_f, Qt::UniqueConnection);
+            }
+        }
+    }
+    actonDataHub_ptr_ext->tryResumeActionsExecution_f();
+}
+
+void mainWindow_c::showExecutionResults_f()
+{
+    executionResultsWindow_c* executionResultsWindowTmp;
+    while (true)
+    {
+        QList<QTableWidgetItem *> selectionTmp(actionsTable_pri->selectedItems());
+        std::set<int> rowIndexSetTmp;
+        //get the selected row (indexes)
+        for (const QTableWidgetItem* item_ite_con : selectionTmp)
+        {
+            rowIndexSetTmp.emplace(item_ite_con->row());
         }
 
+        if (rowIndexSetTmp.empty())
+        {
+            executionResultsWindowTmp = new executionResultsWindow_c();
+            break;
+        }
 
-        actionExecutionDetailsWindow_c* actionExecutionDetailsWindowTmp(new actionExecutionDetailsWindow_c(actionResultTmp_ptr, this));
-        //20180209 subwindow doesn't seem to work, popup has no "window" it's only the frame
-        actionExecutionDetailsWindowTmp->setWindowFlag(Qt::Window, true);
-        actionExecutionDetailsWindowTmp->setWindowModality(Qt::WindowModal);
-        //it is set in the class ctor of actionExecutionDetailsWindow_c
-        //actionExecutionDetailsWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
-        actionExecutionDetailsWindowTmp->show();
+        std::vector<action_c*> selectedActionsTmp;
+        for (const int row_ite_con : rowIndexSetTmp)
+        {
+            int_fast64_t actionDataIdTmp(actonDataHub_ptr_ext->rowToActionDataId_f(row_ite_con));
+            action_c* actionPtrTmp(actonDataHub_ptr_ext->action_ptr_f(actionDataIdTmp));
+            //no need to check if the actions have results because executionResultsWindow_c can stay empty
+            selectedActionsTmp.emplace_back(actionPtrTmp);
+        }
+
+        executionResultsWindowTmp = new executionResultsWindow_c(selectedActionsTmp);
         break;
     }
+
+    executionResultsWindowTmp->setWindowFlag(Qt::Window, true);
+    executionResultsWindowTmp->setWindowModality(Qt::WindowModal);
+    //it is set in the class ctor of executionResultsWindow_c
+    //executionResultsWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
+    executionResultsWindowTmp->show_f();
 }
 
 void mainWindow_c::showAboutMessage_f()

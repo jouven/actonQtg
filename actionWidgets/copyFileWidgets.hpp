@@ -5,9 +5,8 @@
 
 class copyFileData_c;
 class copyFileAction_c;
-class actionData_c;
-class action_c;
 class textCompilation_c;
+class directoryFilter_c;
 
 class QComboBox;
 class QSplitter;
@@ -52,13 +51,15 @@ class copyFileWidgets_c : public baseClassActionTypeWidgets_c
 
     copyFileAction_c* copyFileAction_ptr_pri = nullptr;
 
+    directoryFilter_c* tryGenerateFileListDirectoryFilter_pri = nullptr;
+
     void loadActionSpecificData_f();
     bool isFieldsDataValid_f(textCompilation_c* errors_par) const;
     copyFileData_c fieldsToCopyFileDataObject_f() const;
 
     void browsePath_f();
 
-    bool derivedSaveNew_f(const actionData_c& actionDataBlock_par_con) override;
+    bool derivedSaveNew_f(const actionData_c& actionDataBlock_par_con, actonDataHub_c* parentActonDataHub_par) override;
     bool derivedSaveUpdate_f() override;
     void derivedParentClosing_f() override;
     QString derivedExtraTips_f() const override;
@@ -76,7 +77,8 @@ private Q_SLOTS:
     void browseSourcePath_f();
     void browseDestinationPath_f();
     void fileDialogBrowseSourceFinished_f(const int result_par);
-    void tryGenerateFileList_f() const;
+    void tryGenerateFileList_f();
+    void printGeneratedFileList_f(std::vector<QString> fileList_par);
     void showCurrentWorkingDirectoryWindow_f();
     void addFilenameFullExtensionRow_f();
     void insertFullExtensionRow_f(const QString& fullExtrension_par_con = QString());

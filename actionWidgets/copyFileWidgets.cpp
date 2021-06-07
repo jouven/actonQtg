@@ -7,11 +7,15 @@
 #include "../optionsWidgets/workingDirectoryWindow.hpp"
 #include "../commonWidgets.hpp"
 #include "../appConfig.hpp"
+#include "../actonDataHubGlobal.hpp"
 
+#include "actonQtso/actonDataHub.hpp"
 #include "actonQtso/actions/copyFile.hpp"
 
 #include "essentialQtgso/messageBox.hpp"
+#include "essentialQtgso/waitDialog.hpp"
 #include "essentialQtso/macros.hpp"
+#include "filterDirectoryQtso/filterDirectory.hpp"
 
 #include <QtWidgets>
 //#include <QSplitter>
@@ -32,6 +36,17 @@ void copyFileWidgets_c::derivedParentClosing_f()
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + filenameRegexTable_pri->objectName() + filenameRegexTable_pri->horizontalHeader()->objectName(), filenameRegexTable_pri->horizontalHeader()->saveState());
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + filenameRegexTable_pri->objectName(), filenameRegexTable_pri->saveGeometry());
     appConfig_ptr_ext->setWidgetGeometry_f(this->objectName() + mainSplitter_pri->objectName(), mainSplitter_pri->saveState());
+    //it can only enter here if the action window is closed mid file list generation,
+    //because when the windows with the file list shows in that same slot deletes tryGenerateFileListDirectoryFilter_pri
+    if  (tryGenerateFileListDirectoryFilter_pri not_eq nullptr)
+    {
+        QObject::connect(
+                    tryGenerateFileListDirectoryFilter_pri
+                    , &directoryFilter_c::finishedThreaded_signal
+                    , tryGenerateFileListDirectoryFilter_pri
+                    , &directoryFilter_c::deleteLater);
+        tryGenerateFileListDirectoryFilter_pri->stopFiltering_f();
+    }
 }
 
 QString copyFileWidgets_c::derivedExtraTips_f() const
@@ -63,7 +78,7 @@ bool copyFileWidgets_c::isFieldsDataValid_f(textCompilation_c* errors_par) const
     return validTmp;
 }
 
-bool copyFileWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
+bool copyFileWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con, actonDataHub_c* parentActonDataHub_par)
 {
     bool resultTmp(false);
     textCompilation_c errorsTmp;
@@ -73,7 +88,7 @@ bool copyFileWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par
 
         if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
         {
-            copyFileAction_ptr_pri = new copyFileAction_c(actionDataBlock_par_con, objTmp);
+            copyFileAction_ptr_pri = new copyFileAction_c(parentActonDataHub_par, actionDataBlock_par_con, objTmp);
 
             actionPtr_pro = copyFileAction_ptr_pri;
             resultTmp = true;
@@ -221,7 +236,8 @@ copyFileData_c copyFileWidgets_c::fieldsToCopyFileDataObject_f() const
         }
     }
 
-    MACRO_ADDACTONQTGLOG("Create copyFileAction obj from fields", copyFileAction_ptr_pri, logItem_c::type_ec::debug);
+    text_c textTmp("Create copyFileAction obj from fields");
+    MACRO_ADDACTONDATAHUBLOG(actonDataHub_ptr_ext, textTmp, copyFileAction_ptr_pri, messageType_ec::debug);
     return copyFileData_c(
                 sourcePathTmp
                 , destinationPathTmp
@@ -241,40 +257,146 @@ copyFileData_c copyFileWidgets_c::fieldsToCopyFileDataObject_f() const
     );
 }
 
-void copyFileWidgets_c::tryGenerateFileList_f() const
+void copyFileWidgets_c::tryGenerateFileList_f()
 {
-    copyFileData_c copyFileAcitonTmp(fieldsToCopyFileDataObject_f());
+    copyFileData_c copyFileDataTmp(fieldsToCopyFileDataObject_f());
+    copyFileAction_c copyFileActionTmp(nullptr, actionData_c(), copyFileDataTmp);
     textCompilation_c errorsTmp;
-    while (copyFileAcitonTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
+    while (copyFileActionTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        directoryFilter_c* notinuse;
-        //TODO change so it can be stopped from the action editor, remember to add the mutex
-        std::vector<QString> fileListTmp(copyFileData_c::testSourceFileList_f(
-                                             std::addressof(copyFileAcitonTmp)
-                                             , notinuse
-                                             , std::addressof(errorsTmp))
-                                         );
-
-        if (errorsTmp.size_f() > 0)
+#ifdef DEBUGJOUVEN
+        //qDebug() << "copyFileAcitonTmp.isFieldsDataValid_f " << Qt::endl;
+        //qDebug() << "fileListTmp.size() " << QString::number(fileListTmp.size());
+#endif
+        //check if it's already generating, stop directory-file filtering and delete the current filtering object
+        if  (tryGenerateFileListDirectoryFilter_pri not_eq nullptr)
+        {
+            tryGenerateFileListDirectoryFilter_pri->stopFiltering_f();
+            tryGenerateFileListDirectoryFilter_pri->deleteLater();
+        }
+        //create a directory-file filter object
+        tryGenerateFileListDirectoryFilter_pri = copyFileAction_c::testSourceFileListV2_f(
+                    std::addressof(copyFileActionTmp)
+                    , std::addressof(errorsTmp)
+        );
+        //check if any error
+        if (not errorsTmp.empty_f())
         {
              messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
              break;
         }
 
+        if (tryGenerateFileListDirectoryFilter_pri == nullptr)
+        {
+            //won't enter since an error ptr is passed but just to be sure
+            break;
+        }
+
+        //setup a wait dialog, if tryGenerateFileList_f is called multiple times at most multiple wait dialogs will happen
+        //but it shouldn't last because once the previous filter object is finished it will close the wait dialog created for it
+        waitDialog_c* waitDialogPtr = new waitDialog_c(static_cast<QWidget*>(this->parent()), waitDialog_c::waitType_ec::elapsed, 0);
+        if (appConfig_ptr_ext->configLoaded_f())
+        {
+            waitDialogPtr->restoreGeometry(appConfig_ptr_ext->widgetGeometry_f(this->objectName() + waitDialogPtr->objectName()));
+        }
+        waitDialogPtr->setWaitMessage_f(text_c(appConfig_ptr_ext->translate_f(
+                                   "Generating file list, {0} elapsed"
+"\nThis window can be closed and the generation will continue in the background until the edited action window is closed or the generation is finished"
+"\nGUI will freeze for a time if the file list is big, freeze duration depends on how big the list is"), 0));
+        QObject::connect(tryGenerateFileListDirectoryFilter_pri, &directoryFilter_c::filterThreadedResultsReady_signal, this, &copyFileWidgets_c::printGeneratedFileList_f);
+        QObject::connect(tryGenerateFileListDirectoryFilter_pri, &directoryFilter_c::filterThreadedResultsReady_signal, waitDialogPtr,
+                         [lambdaThis = this, lambdaWaitDialog = waitDialogPtr]
+        {
+            appConfig_ptr_ext->setWidgetGeometry_f(lambdaThis->objectName() + lambdaWaitDialog->objectName(), lambdaWaitDialog->saveGeometry());
+        }
+        );
+        QObject::connect(tryGenerateFileListDirectoryFilter_pri, &directoryFilter_c::filterThreadedResultsReady_signal, waitDialogPtr, &QWidget::close);
+#ifdef DEBUGJOUVEN
+        //qDebug() << "tryGenerateFileListDirectoryFilter_pri->filterThreaded_f()" << Qt::endl;
+        //qDebug() << "fileListTmp.size() " << QString::number(fileListTmp.size());
+#endif
+        //connect a signal to get the errors of filter object
+        QObject::connect(tryGenerateFileListDirectoryFilter_pri, &directoryFilter_c::error_signal, this,
+                         [lambdaThis = this]
+        {
+            if (lambdaThis->tryGenerateFileListDirectoryFilter_pri->anyError_f())
+            {
+                messageBoxTheErrors_f(lambdaThis->tryGenerateFileListDirectoryFilter_pri->getErrors_f(), static_cast<QWidget*>(lambdaThis->parent()));
+                lambdaThis->tryGenerateFileListDirectoryFilter_pri->deleteLater();
+                lambdaThis->tryGenerateFileListDirectoryFilter_pri = nullptr;
+            }
+        });
+
+        waitDialogPtr->createWidgets_f();
+        waitDialogPtr->show();
+        waitDialogPtr->startWaiting_f();
+
+        tryGenerateFileListDirectoryFilter_pri->filterThreaded_f();
+
 #ifdef DEBUGJOUVEN
         //qDebug() << "errorStr " << errorStr;
         //qDebug() << "fileListTmp.size() " << QString::number(fileListTmp.size());
 #endif
-
-        fileListWindow_c* fileListWindowTmp = new fileListWindow_c(fileListTmp, static_cast<QWidget*>(this->parent()));
-        fileListWindowTmp->setWindowFlag(Qt::Window, true);
-        fileListWindowTmp->setWindowModality(Qt::WindowModal);
-        fileListWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
-        fileListWindowTmp->show();
-
         break;
     }
+    if (errorsTmp.empty_f())
+    {
+        //good
+    }
+    else
+    {
+        messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
+    }
 }
+
+void copyFileWidgets_c::printGeneratedFileList_f(std::vector<QString> fileList_par)
+{
+#ifdef DEBUGJOUVEN
+        //qDebug() << "printGeneratedFileList_f " << Qt::endl;
+        //qDebug() << "fileListTmp.size() " << QString::number(fileListTmp.size());
+#endif
+    fileListWindow_c* fileListWindowTmp = new fileListWindow_c(fileList_par, static_cast<QWidget*>(this->parent()));
+    fileListWindowTmp->setWindowFlag(Qt::Window, true);
+    fileListWindowTmp->setWindowModality(Qt::WindowModal);
+    fileListWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
+    fileListWindowTmp->show();
+
+    tryGenerateFileListDirectoryFilter_pri->deleteLater();
+    tryGenerateFileListDirectoryFilter_pri = nullptr;
+}
+//void copyFileWidgets_c::tryGenerateFileList_f() const
+//{
+//    copyFileData_c copyFileAcitonTmp(fieldsToCopyFileDataObject_f());
+//    textCompilation_c errorsTmp;
+//    while (copyFileAcitonTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
+//    {
+//        directoryFilter_c* notinuse;
+//        std::vector<QString> fileListTmp(copyFileData_c::testSourceFileList_f(
+//                                             std::addressof(copyFileAcitonTmp)
+//                                             , notinuse
+//                                             , std::addressof(errorsTmp))
+//                                         );
+
+//        if (errorsTmp.size_f() > 0)
+//        {
+//             messageBoxTheErrors_f(errorsTmp, static_cast<QWidget*>(this->parent()));
+//             break;
+//        }
+
+//#ifdef DEBUGJOUVEN
+//        //qDebug() << "errorStr " << errorStr;
+//        //qDebug() << "fileListTmp.size() " << QString::number(fileListTmp.size());
+//#endif
+
+//        fileListWindow_c* fileListWindowTmp = new fileListWindow_c(fileListTmp, static_cast<QWidget*>(this->parent()));
+//        fileListWindowTmp->setWindowFlag(Qt::Window, true);
+//        fileListWindowTmp->setWindowModality(Qt::WindowModal);
+//        fileListWindowTmp->setAttribute(Qt::WA_DeleteOnClose);
+//        fileListWindowTmp->show();
+
+//        break;
+//    }
+//}
 
 void copyFileWidgets_c::insertFullExtensionRow_f(
         const QString& fullExtrension_par_con)

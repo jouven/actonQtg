@@ -45,7 +45,7 @@ bool timerWidgets_c::isFieldsDataValid_f(textCompilation_c* errors_par) const
 
 timerData_c timerWidgets_c::fieldsTotimerDataObject_f() const
 {
-    timerData_c::type_ec typeTmp(timerData_c::strTotimerTypeMap_sta_con.value(alarmTypeCombobox_pri->currentData().toString()));
+    timerData_c::type_ec typeTmp(timerData_c::stringTotimerType_f(alarmTypeCombobox_pri->currentData().toString()));
     return timerData_c(
                 typeTmp
                 , timerValueLineEdit_pri->text().toLongLong()
@@ -108,7 +108,7 @@ void timerWidgets_c::loadCheckSpecificData_f()
     timerValueLineEdit_pri->setText(QString::number(valuesToLoadTmp.value_f()));
     if (valuesToLoadTmp.alarmType_f() not_eq timerData_c::type_ec::empty)
     {
-        QString alarmTypeStrTmp(timerData_c::timerTypeToStrUMap_sta_con.at(valuesToLoadTmp.alarmType_f()));
+        QString alarmTypeStrTmp(timerData_c::timerTypeToString_f(valuesToLoadTmp.alarmType_f()));
         int loadedIndexTmp(alarmTypeCombobox_pri->findData(alarmTypeStrTmp.toLower()));
         alarmTypeCombobox_pri->setCurrentIndex(loadedIndexTmp);
         alarmTypeComboChanged_f(loadedIndexTmp);
@@ -157,7 +157,7 @@ Changes in-between fields, datetimeEdit/Calendar and Value, happen when the fiel
     firstRowLayoutTmp->addWidget(new QLabel(appConfig_ptr_ext->translate_f("Alarm type")));
     firstRowLayoutTmp->addWidget(alarmTypeCombobox_pri);
 
-    for (const QString& alarmTypeStr_ite_con : timerData_c::strTotimerTypeMap_sta_con.keys())
+    for (const QString& alarmTypeStr_ite_con : timerData_c::timerTypeStringValues_f())
     {
         alarmTypeCombobox_pri->insertItem(alarmTypeCombobox_pri->count(), appConfig_ptr_ext->translate_f(alarmTypeStr_ite_con), alarmTypeStr_ite_con);
     }
@@ -241,7 +241,7 @@ void timerWidgets_c::valueLineEditChanged_f()
 
 void timerWidgets_c::datetimeEditChanged_f(const QDateTime& dateTime_par_con)
 {
-    timerData_c::type_ec alarmTypeTmp(timerData_c::strTotimerTypeMap_sta_con.value(alarmTypeCombobox_pri->itemData(alarmTypeCombobox_pri->currentIndex()).toString()));
+    timerData_c::type_ec alarmTypeTmp(timerData_c::stringTotimerType_f(alarmTypeCombobox_pri->itemData(alarmTypeCombobox_pri->currentIndex()).toString()));
     if (alarmTypeTmp == timerData_c::type_ec::dateTime)
     {
         timerValueLineEdit_pri->blockSignals(true);
@@ -252,7 +252,7 @@ void timerWidgets_c::datetimeEditChanged_f(const QDateTime& dateTime_par_con)
 
 void timerWidgets_c::alarmTypeComboChanged_f(int index_par)
 {
-    timerData_c::type_ec alarmTypeTmp(timerData_c::strTotimerTypeMap_sta_con.value(alarmTypeCombobox_pri->itemData(index_par).toString()));
+    timerData_c::type_ec alarmTypeTmp(timerData_c::stringTotimerType_f(alarmTypeCombobox_pri->itemData(index_par).toString()));
     while (true)
     {
         if (alarmTypeTmp == timerData_c::type_ec::timer)

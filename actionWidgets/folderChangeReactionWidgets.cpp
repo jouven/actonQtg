@@ -78,7 +78,7 @@ folderChangeReactionData_c folderChangeReactionWidgets_c::fieldsToFolderChangeRe
                     )
                 );
 #ifdef DEBUGJOUVEN
-    qDebug() << "reactionActionStringIdCombo_pri->currentData().toString() " << reactionActionStringIdCombo_pri->currentData().toString() << endl;
+    qDebug() << "reactionActionStringIdCombo_pri->currentData().toString() " << reactionActionStringIdCombo_pri->currentData().toString() << Qt::endl;
 #endif
     return folderChangeReactionData_c(
                 folderPathPTE_pri->toPlainText()
@@ -163,10 +163,14 @@ void folderChangeReactionWidgets_c::loadReactionActionStringIdCombo_f()
                     reactionTypeComboBox_pri->currentData().toString()
                     )
                 );
-    for (int_fast32_t index_ite = 0, l = actonDataHub_ptr_ext->size_f(); index_ite < l; ++index_ite)
+#ifdef DEBUGJOUVEN
+    qDebug() << "folderChangeReactionAction_ptr_pri is nullptr " << QSTRINGBOOL(folderChangeReactionAction_ptr_pri == nullptr) << Qt::endl;
+    qDebug() << "folderChangeReactionAction_ptr_pri->actonDataHubParent_f() is nullptr " << QSTRINGBOOL(folderChangeReactionAction_ptr_pri->actonDataHubParent_f() == nullptr) << Qt::endl;
+#endif
+    for (int_fast32_t index_ite = 0, l = folderChangeReactionAction_ptr_pri->actonDataHubParent_f()->size_f(); index_ite < l; ++index_ite)
     {
-        auto actionDataIdTmp(actonDataHub_ptr_ext->rowToActionDataId_f(index_ite));
-        action_c* actionPtrTmp(actonDataHub_ptr_ext->action_ptr_f(actionDataIdTmp));
+        auto actionDataIdTmp(folderChangeReactionAction_ptr_pri->actonDataHubParent_f()->rowToActionDataId_f(index_ite));
+        action_c* actionPtrTmp(folderChangeReactionAction_ptr_pri->actonDataHubParent_f()->action_ptr_f(actionDataIdTmp));
 #ifdef DEBUGJOUVEN
         //qDebug() << "1 actionPtrTmp is nullptr " << QSTRINGBOOL(actionPtrTmp == nullptr) << endl;
 #endif
@@ -180,7 +184,7 @@ void folderChangeReactionWidgets_c::loadReactionActionStringIdCombo_f()
 #endif
 }
 
-bool folderChangeReactionWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
+bool folderChangeReactionWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con, actonDataHub_c* parentActonDataHub_par)
 {
     bool resultTmp(false);
     textCompilation_c errorsTmp;
@@ -189,7 +193,7 @@ bool folderChangeReactionWidgets_c::derivedSaveNew_f(const actionData_c& actionD
         folderChangeReactionData_c objTmp(fieldsToFolderChangeReactionDataObject_f());
         if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
         {
-            folderChangeReactionAction_ptr_pri = new folderChangeReactionAction_c(actionDataBlock_par_con, objTmp);
+            folderChangeReactionAction_ptr_pri = new folderChangeReactionAction_c(parentActonDataHub_par, actionDataBlock_par_con, objTmp);
             actionPtr_pro = folderChangeReactionAction_ptr_pri;
             resultTmp = true;
         }
@@ -586,6 +590,5 @@ R"(Files will be reacted in reverse order e.g., newest first becomes oldest firs
     variableLayout_par_con->addLayout(fourthRowLayoutTmp);
 
     loadActionSpecificData_f();
-    //TODO test
 }
 

@@ -1,6 +1,8 @@
 #ifndef ACTONQTG_ACTIONEXECUTIONDETAILSWINDOW_HPP
 #define ACTONQTG_ACTIONEXECUTIONDETAILSWINDOW_HPP
 
+//OBSOLETE replaced by executionResultsWindow.hpp and executionResultWindows.hpp
+
 #include <QWidget>
 
 class QPlainTextEdit;
@@ -9,7 +11,7 @@ class QVBoxLayout;
 class QSplitter;
 class QCheckBox;
 
-class actionDataExecutionResult_c;
+class actionExecutionResult_c;
 
 class actionExecutionDetailsWindow_c : public QWidget
 {
@@ -30,12 +32,12 @@ class actionExecutionDetailsWindow_c : public QWidget
 
     QSplitter* mainSplitter_pri;
 
-    actionDataExecutionResult_c* actionDataExecutionResultPtr_pri = nullptr;
+    actionExecutionResult_c* actionDataExecutionResultPtr_pri = nullptr;
 
     void closeEvent(QCloseEvent* event) override;
 public:
     explicit actionExecutionDetailsWindow_c(
-            actionDataExecutionResult_c* actionDataExecutionResult_ptr_par
+            actionExecutionResult_c* actionDataExecutionResult_ptr_par
             , QWidget *parent_par = nullptr
     );
 

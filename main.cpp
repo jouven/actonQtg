@@ -1,18 +1,27 @@
 #include "mainWindow.hpp"
 
 #include "appConfig.hpp"
-#include "actonQtso/actonDataHub.hpp"
+#include "actonDataHubGlobal.hpp"
+#include "stringParserGlobal.hpp"
 
 #include "signalso/signal.hpp"
 #include "essentialQtso/essentialQt.hpp"
-#include "stringParserMapQtso/stringParserMap.hpp"
 
 #include <QApplication>
 
 #ifdef DEBUGJOUVEN
 #include <QDebug>
 #ifndef Q_OS_WIN
-#include "backwardSTso/backward.hpp"
+//this is to get pretty stacktrace when the execution crashes
+//instructions:
+//1 this only applies to program projects, libs don't need this (libs need debug, -gX flags when compiling)
+//2 link to -ldw or the elftutils library
+//3 set the DEFINES in the .pro BACKWARD_HAS_UNWIND BACKWARD_HAS_DW (check backward.hpp source for more info about the macros)
+//more info https://github.com/bombela/backward-cpp
+#include "backward-cpp/backward.hpp"
+namespace {
+backward::SignalHandling sh;
+}
 #endif
 #endif
 
@@ -29,17 +38,12 @@ int main(int argc, char *argv[])
 #endif
 
     QApplication qtapp(argc, argv);
-    QApplication::setApplicationName("actonQtg");
-    QApplication::setApplicationVersion("1.0");
 
-    //statics + references = who the F knows the initialization order
-    //plus initialization must be done when the reference is declared
-    //so they must be separated per units to really account for that
-    //which makes it more cumbersome
-    //let's just use some pointers to local variables
+    mainWindow_c mainWindowTmp;
+    mainWindow_ptr_ext = std::addressof(mainWindowTmp);
 
     //translation and logs are initialized here
-    appConfig_c appConfigTmp;
+    appConfig_c appConfigTmp(nullptr);
     appConfig_ptr_ext = std::addressof(appConfigTmp);
 
     actonDataHub_c actonDataHubTmp(std::addressof(qtapp));
@@ -56,29 +60,16 @@ int main(int argc, char *argv[])
         executionOptionsTmp.setStringParserMap_f(std::addressof(stringParserMapTmp));
         actonDataHubTmp.setExecutionOptions_f(executionOptionsTmp);
     }
-    //TODO add a way to see checks execution results from the action action execution result
-    //show id values, read-only, on the action and check editors and the grids of actions/checks
 
-    actonDataHubTmp.setLogDataHub_f(appConfigTmp.logDataHub_f());
 //#ifdef DEBUGJOUVEN
 //    qDebug() << "actonDataHubTmp.setLogDataHub_f(appConfigTmp.logDataHub_f());";
 //#endif
-    MACRO_ADDACTONQTGLOG("Create main window", logItem_c::type_ec::info);
-
-    mainWindow_c mainWindowTmp;
-    mainWindow_ptr_ext = std::addressof(mainWindowTmp);
-    mainWindowTmp.show();
+    //logs here won't happen because appConfig hasn't loaded the logs yet
+    //MACRO_ADDLOG("Create main window", QString(), messageType_ec::information);
 
     returnValue_ext = QApplication::exec();
 
-    MACRO_ADDACTONQTGLOG("Exit", logItem_c::type_ec::info);
-    //already in the mainwindow close function
-//    if (signalso::isRunning_f())
-//    {
-//        signalso::stopRunning_f();
-//    }
-    while (not signalso::isTheEnd_f())
-    {}
+    MACRO_ADDLOG("Exit", QString(), messageType_ec::information);
 
     return returnValue_ext;
 }

@@ -22,6 +22,8 @@ class QScrollArea;
 #endif
 
 class action_c;
+class executionResult_c;
+class executionMessage_c;
 
 class mainWindow_c : public QWidget
 {
@@ -31,16 +33,18 @@ class mainWindow_c : public QWidget
     QScrollArea* scrollArea_pri;
     QWidget* baseWidget_pri;
 #endif
-    QLabel* statusBarLabel_pri;
-    QPushButton* executeActionsButton_pri;
+    QLabel* statusBarLabel_pri = nullptr;
+    QPushButton* executeActionsButton_pri = nullptr;
 
-    QTableWidget* actionsTable_pri;
+    QTableWidget* actionsTable_pri = nullptr;
 
     //depends on the mainloop interval (it might not be a second)
     int finalCounterSeconds_pri = 2;
-    uint_fast64_t killCountdown_pri = 0;
+    //uint_fast64_t killCountdown_pri = 0;
+    uint_fast64_t elapsedStopping_pri = 0;
 
     QString lastLoadedFilePath_pri;
+    bool closingWindow_pri = false;
     bool triedToSaveOnExit_pri = false;
 
     QFileDialog* selectActionFilesToLoadDialog_pri = nullptr;
@@ -67,6 +71,7 @@ class mainWindow_c : public QWidget
 
     void saveActionFile_f(const QString& savePath_par_con);
     void executeActions_f();
+    void resumeActionsExecution_f();
     void clearAllRowsResultColumns_f();
 
     void createMessageBoxAskAboutExecutingActionsOnClose_f();
@@ -74,7 +79,9 @@ class mainWindow_c : public QWidget
     void createMessageBoxAskAboutStoppingExecutionOnClose_f();
 public:
     explicit mainWindow_c();
-
+public Q_SLOTS:
+    void start_f();
+    void updateMaxThreads_f();
 Q_SIGNALS:
     //NOT IN USE, QString is the text to set
     void setStatusBarText_signal(const QString&);
@@ -87,7 +94,7 @@ Q_SIGNALS:
     //void resizeFileTable_signal();
 
     //use queued
-    void close_signal();
+    void closeWindow_signal();
 private Q_SLOTS:
     //void contextMenu(const QPoint &pos);
 
@@ -102,7 +109,7 @@ private Q_SLOTS:
     //void resizeFileTable_f();
 
     void showAboutMessage_f();
-    void mainLoop_f();
+    //void mainLoop_f();
     void showOptions_f();
     void showTips_f();
 
@@ -116,7 +123,7 @@ private Q_SLOTS:
     void addUpdateAction_f();
     void removeActions_f();
 
-    void showExecutionDetails_f();
+    void showExecutionResults_f();
     void updateActionRow_f(const int row_par_con);
     void moveSelectedActionsDownByOne_f();
     void moveSelectedActionsUpByOne_f();
@@ -126,9 +133,9 @@ private Q_SLOTS:
     void inputDialogCopyActionIndexFinished_f(const int result_par);
 
     //functions dealing with action signal results
-    void updateActionOutput_f(action_c* action_par_ptr_con);
-    void updateActionError_f(action_c* action_par_ptr_con);
-    void updateActionExecutionState_f(action_c* action_par_ptr_con);
+    void updateActionOutput_f(const executionResult_c* executionResult_ptr_par, const executionMessage_c* message_par);
+    void updateActionError_f(const executionResult_c* executionResult_ptr_par, const executionMessage_c* message_par);
+    void updateActionExecutionState_f(const action_c* action_par_ptr_con);
 
     void runFromStoppedActionsMessageBoxResult_f(const int result_par);
     void executeActionsButtonClicked_f();
@@ -138,12 +145,13 @@ private Q_SLOTS:
     void executionStarted_f();
     void stoppingExecution_f();
     void executionStopped_f();
-    void actionResultsCleared_f(action_c* const action_par_ptr_con);
+    //void actionResultsCleared_f(action_c* const action_par_ptr_con);
     void stopExecutingActionsAndClose_f();
     void stopExecutingActionsElseKillAndClose_f();
     void killExecutingActionsAndClose_f();
     //public Q_SLOTS:
     void messageBoxSaveActionsToFileOnExitFinished_f(const int result_par);
+    void OSSignalRecieved_f(int signal_par);
 };
 
 extern mainWindow_c* mainWindow_ptr_ext;

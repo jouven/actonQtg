@@ -2,9 +2,9 @@
 
 #include "stringParserWidgets/stringReplacerWidgets.hpp"
 
+#include "../stringParserGlobal.hpp"
+#include "../actonDataHubGlobal.hpp"
 #include "../appConfig.hpp"
-
-#include "actonQtso/actonDataHub.hpp"
 
 #include "stringParserMapQtso/stringParserMap.hpp"
 
@@ -349,10 +349,10 @@ void stringParserEditorWindow_c::save_f()
 
         if (isNew_pri)
         {
-            actonDataHub_ptr_ext->executionOptions_f().stringParserMap_f()->addParser_f(parserObj_pri);
-            if (actonDataHub_ptr_ext->executionOptions_f().stringParserMap_f()->anyError_f())
+            stringParserMap_ptr_ext->addParser_f(parserObj_pri);
+            if (stringParserMap_ptr_ext->anyError_f())
             {
-                QString translateAndReplaceTmp(appConfig_ptr_ext->translateAndReplace_f(actonDataHub_ptr_ext->executionOptions_f().stringParserMap_f()->getErrors_f()));
+                QString translateAndReplaceTmp(appConfig_ptr_ext->translateAndReplace_f(stringParserMap_ptr_ext->getErrors_f()));
                 errorQMessageBox_f(translateAndReplaceTmp, appConfig_ptr_ext->translate_f("Error"), this);
                 break;
             }

@@ -20,6 +20,9 @@ class QMessageBox;
 class QScrollArea;
 #endif
 
+class executionResult_c;
+class executionMessage_c;
+class checkExecutionResult_c;
 class check_c;
 class checksDataHub_c;
 
@@ -80,6 +83,7 @@ public:
             , QWidget *parent_par = nullptr
     );
 
+    void show_f();
 Q_SIGNALS:
     //void closeWindow_signal();
     void saveChild_signal();
@@ -100,13 +104,13 @@ private Q_SLOTS:
     void moveSelectedChecksDownByOneButtonClicked_f();
     void inputDialogCopyCheckIndexFinished_f(const int result_par);
     void inputDialogChangeCheckIndexFinished_f(const int result_par);
-    void updateCheckError_f(check_c* const check_par_ptr_con);
+    void updateCheckError_f(const executionResult_c* executionResult_par, const executionMessage_c* errorMessage_par);
     void updateCheckExecutionState_f(check_c* const check_par_ptr_con);
-    void updateCheckResult_f(check_c* const check_par_ptr_con);
+    void updateCheckResult_f(const executionResult_c* checkExecutionResult_par_con);
     void stoppingExecution_f();
     void executionStarted_f();
     void executionFinished_f();
-    void checkResultsCleared_f(check_c* const check_par_ptr_con);
+    //void checkResultsCleared_f(check_c* const check_par_ptr_con);
 
     void stopExecutingChecksAndClose_f();
 };

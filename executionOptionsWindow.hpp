@@ -22,7 +22,7 @@ class executionOptionsWindow_c : public QWidget
     //QCheckBox* stopExecutingOnErrorCheckbox_pri;
     QLineEdit* loopXtimesCountLineEdit_pri;
     QLineEdit* extraThreadsLineEdit_pri;
-    QLineEdit* killTimeoutMillisecondsLineEdit_pri;
+    //QLineEdit* killTimeoutMillisecondsLineEdit_pri;
 
     void closeEvent(QCloseEvent* event) override;
 
@@ -35,7 +35,8 @@ public:
             QWidget *parent_par = nullptr
     );
 
-//Q_SIGNALS:
+Q_SIGNALS:
+    void updateMaxThreads_signal();
 //public Q_SLOTS:
 private Q_SLOTS:
     void saveButtonClicked_f();

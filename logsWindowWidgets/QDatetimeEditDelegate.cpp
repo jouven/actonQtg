@@ -2,7 +2,7 @@
 
 #include <QDateTime>
 
-QString QDateTimeStyledDelegate_c::displayText(const QVariant& value, const QLocale& locale) const
+QString QDateTimeStyledDelegate_c::displayText(const QVariant& value, const QLocale& ) const
 {
     return value.toDateTime().toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
 }

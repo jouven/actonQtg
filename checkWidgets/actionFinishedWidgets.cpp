@@ -2,6 +2,8 @@
 
 #include "../commonWidgets.hpp"
 #include "../appConfig.hpp"
+#include "../actonDataHubGlobal.hpp"
+#include "../stringParserGlobal.hpp"
 
 #include "actonQtso/checks/actionFinished.hpp"
 #include "actonQtso/checkData.hpp"
@@ -144,7 +146,7 @@ bool actionFinishedWidgets_c::derivedSaveNew_f(const checkData_c& checkData_par_
     {
         actionFinishedData_c objTmp(fieldsToActionFinishedDataObject_f());
 
-        if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
+        if (objTmp.isFieldsDataValid_f(actonDataHub_ptr_ext, std::addressof(errorsTmp)))
         {
             actionFinishedCheck_ptr_pri = new actionFinishedCheck_c(checkData_par_con, objTmp);
 
@@ -167,7 +169,7 @@ bool actionFinishedWidgets_c::derivedSaveUpdate_f()
     {
         actionFinishedData_c objTmp(fieldsToActionFinishedDataObject_f());
 
-        if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
+        if (objTmp.isFieldsDataValid_f(actonDataHub_ptr_ext, std::addressof(errorsTmp)))
         {
             actionFinishedCheck_ptr_pri->updateActionFinishedData_f(objTmp);
             resultTmp = true;

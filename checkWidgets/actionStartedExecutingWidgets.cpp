@@ -2,6 +2,7 @@
 
 #include "../commonWidgets.hpp"
 #include "../appConfig.hpp"
+#include "../actonDataHubGlobal.hpp"
 
 #include "actonQtso/checks/actionStartedExecuting.hpp"
 #include "actonQtso/checkData.hpp"
@@ -159,7 +160,7 @@ actionStartedExecutingWidgets_c::actionStartedExecutingWidgets_c(
 
     //wait before finish check
     QHBoxLayout* secondRowLayoutTmp = new QHBoxLayout;
-    //TODO review QLabels widgets tooltips
+    //TODO review QLabels widgets tooltips, do it after I commit/push this whole batch of changes
     QLabel* waitFinishMsLabelTmp = new QLabel(appConfig_ptr_ext->translate_f("Wait before finishing"));
     QString waitFinishMsTooltipTextTmp(appConfig_ptr_ext->translate_f(
                                            "<p>Delay, in milliseconds, before finishing the check when it is detected that an action has started</p>"

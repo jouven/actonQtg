@@ -98,7 +98,7 @@ runProcessData_c runProcessWidgets_c::fieldsToRunProcessDataObject_f() const
 //}
 
 
-bool runProcessWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
+bool runProcessWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con, actonDataHub_c* parentActonDataHub_par)
 {
     bool resultTmp(false);
     textCompilation_c errorsTmp;
@@ -107,7 +107,8 @@ bool runProcessWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_p
     {
         runProcessAction_ptr_pri =
                     new runProcessAction_c(
-                        actionDataBlock_par_con
+                        parentActonDataHub_par
+                        , actionDataBlock_par_con
                         , objTmp
                         )
                     ;

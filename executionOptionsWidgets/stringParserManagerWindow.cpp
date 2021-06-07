@@ -2,6 +2,7 @@
 
 #include "stringParserEditorWindow.hpp"
 
+#include "../stringParserGlobal.hpp"
 #include "../appConfig.hpp"
 #include "../stringFormatting.hpp"
 
@@ -25,10 +26,10 @@ void stringParserManagerWindow_c::closeEvent(QCloseEvent* event)
 
 void stringParserManagerWindow_c::loadActonDataHubParserConfigs_f()
 {
-    if (actonDataHub_ptr_ext->executionOptions_f().stringParserMap_f() not_eq nullptr)
+    if (stringParserMap_ptr_ext not_eq nullptr)
     {
-         QMap<int_fast64_t, parserBase_c*>::const_iterator iteTmp(actonDataHub_ptr_ext->executionOptions_f().stringParserMap_f()->orderToParserBaseMap_f().constBegin());
-         while (iteTmp not_eq actonDataHub_ptr_ext->executionOptions_f().stringParserMap_f()->orderToParserBaseMap_f().constEnd())
+         QMap<int_fast64_t, parserBase_c*>::const_iterator iteTmp(stringParserMap_ptr_ext->orderToParserBaseMap_f().constBegin());
+         while (iteTmp not_eq stringParserMap_ptr_ext->orderToParserBaseMap_f().constEnd())
          {
              updateActionRow_f(iteTmp.key());
              ++iteTmp;

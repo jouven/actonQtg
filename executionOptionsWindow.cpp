@@ -2,17 +2,17 @@
 
 #include "executionOptionsWidgets/stringParserManagerWindow.hpp"
 
-#include "actonQtso/actonDataHub.hpp"
-
+#include "actonDataHubGlobal.hpp"
 #include "commonWidgets.hpp"
 #include "appConfig.hpp"
 
+#include "actonQtso/actonDataHub.hpp"
+
 #include "essentialQtgso/messageBox.hpp"
+#include "essentialQtso/macros.hpp"
 
 #include "threadedFunctionQtso/threadedFunctionQt.hpp"
 
-#include "textQtso/text.hpp"
-#include "essentialQtso/macros.hpp"
 
 #include <QtWidgets>
 #include <QIntValidator>
@@ -62,21 +62,21 @@ bool executionOptionsWindow_c::isFieldsDataValid_f(textCompilation_c* errors_par
             }
         }
 
-        //kill timeout milliseconds
-        {
-            bool goodNumberConversion(false);
-            killTimeoutMillisecondsLineEdit_pri->text().toLong(&goodNumberConversion);
-            if (goodNumberConversion)
-            {
-                //good
-            }
-            else
-            {
-                text_c errorTextTmp("Wrong extra threads value: {0}", killTimeoutMillisecondsLineEdit_pri->text());
-                APPENDTEXTPTR(errors_par, errorTextTmp)
-                break;
-            }
-        }
+//        //kill timeout milliseconds
+//        {
+//            bool goodNumberConversion(false);
+//            killTimeoutMillisecondsLineEdit_pri->text().toLong(&goodNumberConversion);
+//            if (goodNumberConversion)
+//            {
+//                //good
+//            }
+//            else
+//            {
+//                text_c errorTextTmp("Wrong extra threads value: {0}", killTimeoutMillisecondsLineEdit_pri->text());
+//                APPENDTEXTPTR(errors_par, errorTextTmp)
+//                break;
+//            }
+//        }
 
         validTmp = true;
         break;
@@ -96,13 +96,12 @@ bool executionOptionsWindow_c::save_f()
                     //loop x times
                     , loopXtimesCountLineEdit_pri->text().toLongLong()
                     , extraThreadsLineEdit_pri->text().toLong()
-                    , killTimeoutMillisecondsLineEdit_pri->text().toLong()
         );
 
         if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
         {
             actonDataHub_ptr_ext->setExecutionOptions_f(objTmp);
-            threadedFunction_c::setMaxConcurrentQThreads_f(actonDataHub_ptr_ext->executionOptions_f().extraThreads_f());
+            Q_EMIT updateMaxThreads_signal();
             saveSuccessTmp = true;
         }
     }
@@ -129,7 +128,7 @@ void executionOptionsWindow_c::load_f()
 
     loopXtimesCountLineEdit_pri->setText(QString::number(actonDataHub_ptr_ext->executionOptions_f().loopXTimesCount_f()));
     extraThreadsLineEdit_pri->setText(QString::number(actonDataHub_ptr_ext->executionOptions_f().extraThreads_f()));
-    killTimeoutMillisecondsLineEdit_pri->setText(QString::number(actonDataHub_ptr_ext->executionOptions_f().killTimeoutMilliseconds_f()));
+//    killTimeoutMillisecondsLineEdit_pri->setText(QString::number(actonDataHub_ptr_ext->executionOptions_f().killTimeoutMilliseconds_f()));
 }
 
 executionOptionsWindow_c::executionOptionsWindow_c(
@@ -195,19 +194,19 @@ executionOptionsWindow_c::executionOptionsWindow_c(
     extraThreadsLineEdit_pri->setValidator(a32bitValidatorTmp);
     secondRowLayoutTmp->addWidget(extraThreadsLineEdit_pri);
 
-    QLabel* killTimeoutMillisecondsLabelTmp = new QLabel(appConfig_ptr_ext->translate_f("Kill timeout"));
-    killTimeoutMillisecondsLabelTmp->setToolTip(appConfig_ptr_ext->translate_f(
-                "<p>How many milliseconds to wait after stopping before kill (only applies to runProcess)</p>"
-                "<p>Minimum 0, maximum INT32MAX</p>"
-    ));
+//    QLabel* killTimeoutMillisecondsLabelTmp = new QLabel(appConfig_ptr_ext->translate_f("Kill timeout"));
+//    killTimeoutMillisecondsLabelTmp->setToolTip(appConfig_ptr_ext->translate_f(
+//                "<p>How many milliseconds to wait after stopping before kill (only applies to runProcess)</p>"
+//                "<p>Minimum 0, maximum INT32MAX</p>"
+//    ));
 
-    secondRowLayoutTmp->addWidget(killTimeoutMillisecondsLabelTmp);
+//    secondRowLayoutTmp->addWidget(killTimeoutMillisecondsLabelTmp);
 
-    killTimeoutMillisecondsLineEdit_pri = new QLineEdit;
-    //////////////////////////////////////////////////"2147483648
-    //killTimeoutMillisecondsLineEdit_pri->setInputMask("9000000000");
-    killTimeoutMillisecondsLineEdit_pri->setValidator(a32bitValidatorTmp);
-    secondRowLayoutTmp->addWidget(killTimeoutMillisecondsLineEdit_pri);
+//    killTimeoutMillisecondsLineEdit_pri = new QLineEdit;
+//    //////////////////////////////////////////////////"2147483648
+//    //killTimeoutMillisecondsLineEdit_pri->setInputMask("9000000000");
+//    killTimeoutMillisecondsLineEdit_pri->setValidator(a32bitValidatorTmp);
+//    secondRowLayoutTmp->addWidget(killTimeoutMillisecondsLineEdit_pri);
 
     QHBoxLayout* thirdRowLayoutTmp = new QHBoxLayout;
 

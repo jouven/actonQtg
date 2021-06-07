@@ -18,7 +18,7 @@ class fileListWindow_c : public QWidget
     QScrollArea* scrollArea_pri;
     QWidget* baseWidget_pri;
 #endif
-
+    //this might need an optimization (QTableView + model)
     QTableWidget* fileListTable_pri;
 
     void closeEvent(QCloseEvent* event) override;
@@ -26,7 +26,7 @@ class fileListWindow_c : public QWidget
     void addFileEntry_f(
             const QString& filename_par_con
             , const QString& datetime_par_con
-            , const QString& size_par_con
+            , const uint_fast64_t size_par_con
             );
     void loadFileVectorToTableGrid_f(const std::vector<QString>& fileVector_par_con);
 public:

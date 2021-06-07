@@ -33,14 +33,14 @@ deleteFileDirData_c deleteFileDirWidgets_c::fieldsToDeleteFileDirDataObject_f() 
     );
 }
 
-bool deleteFileDirWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
+bool deleteFileDirWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con, actonDataHub_c* parentActonDataHub_par)
 {
     bool resultTmp(false);
     deleteFileDirData_c objTmp(fieldsToDeleteFileDirDataObject_f());
     textCompilation_c errorsTmp;
     if (objTmp.isFieldsDataValid_f(std::addressof(errorsTmp)))
     {
-        deleteFileDirAction_ptr_pri = new deleteFileDirAction_c(actionDataBlock_par_con, objTmp);
+        deleteFileDirAction_ptr_pri = new deleteFileDirAction_c(parentActonDataHub_par, actionDataBlock_par_con, objTmp);
         actionPtr_pro = deleteFileDirAction_ptr_pri;
         resultTmp = true;
     }

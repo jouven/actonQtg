@@ -22,7 +22,7 @@ void checkExecutionDetailsWindow_c::closeEvent(QCloseEvent* event)
 }
 
 checkExecutionDetailsWindow_c::checkExecutionDetailsWindow_c(
-        checkDataExecutionResult_c* checkDataExecutionResult_ptr_par
+        checkExecutionResult_c* checkDataExecutionResult_ptr_par
         , QWidget *parent_par)
     : QWidget(parent_par)
     , checkDataExecutionResultPtr_pri(checkDataExecutionResult_ptr_par)
@@ -209,9 +209,9 @@ checkExecutionDetailsWindow_c::checkExecutionDetailsWindow_c(
         updateState_f();
         updateAnyFinish_f();
 
-        connect(checkDataExecutionResultPtr_pri, &checkDataExecutionResult_c::error_signal, this, &checkExecutionDetailsWindow_c::updateError_f);
-        connect(checkDataExecutionResultPtr_pri, &checkDataExecutionResult_c::executionStateUpdated_signal, this, &checkExecutionDetailsWindow_c::updateState_f);
-        connect(checkDataExecutionResultPtr_pri, &checkDataExecutionResult_c::finished_signal, this, &checkExecutionDetailsWindow_c::updateAnyFinish_f);
+        //connect(checkDataExecutionResultPtr_pri, &checkExecutionResult_c::error_signal, this, &checkExecutionDetailsWindow_c::updateError_f);
+        connect(checkDataExecutionResultPtr_pri, &checkExecutionResult_c::executionStateUpdated_signal, this, &checkExecutionDetailsWindow_c::updateState_f);
+        connect(checkDataExecutionResultPtr_pri, &checkExecutionResult_c::finished_signal, this, &checkExecutionDetailsWindow_c::updateAnyFinish_f);
     }
 }
 
@@ -236,7 +236,7 @@ void checkExecutionDetailsWindow_c::tipsButtonClicked_f()
 
 void checkExecutionDetailsWindow_c::updateError_f()
 {
-    errorPTE_pri->setPlainText(appConfig_ptr_ext->translateAndReplace_f(checkDataExecutionResultPtr_pri->errors_f()));
+    errorPTE_pri->setPlainText(appConfig_ptr_ext->translateAndReplace_f(checkDataExecutionResultPtr_pri->messagesTextCompilation_f({executionMessage_c::type_ec::error})));
 }
 
 void checkExecutionDetailsWindow_c::updateState_f()
@@ -248,7 +248,7 @@ void checkExecutionDetailsWindow_c::updateState_f()
                     QDateTime::fromMSecsSinceEpoch(checkDataExecutionResultPtr_pri->startTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
         );
     }
-    executionStateTE_pri->setText(checkExecutionStateToStrUMap_ext_con.at(checkDataExecutionResultPtr_pri->lastState_f()));
+    executionStateTE_pri->setText(checkExecutionStateToString_f(checkDataExecutionResultPtr_pri->lastState_f()));
 }
 
 void checkExecutionDetailsWindow_c::updateAnyFinish_f()

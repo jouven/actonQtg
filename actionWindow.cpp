@@ -12,8 +12,8 @@
 
 #include "actonQtso/actionData.hpp"
 #include "actonQtso/actionMappings/actionStrMapping.hpp"
-#include "actonQtso/actonDataHub.hpp"
 #include "actonQtso/actions/metaEndExecutionCycle.hpp"
+#include "actonDataHubGlobal.hpp"
 
 #include "textQtso/text.hpp"
 #include "essentialQtgso/messageBox.hpp"
@@ -398,7 +398,7 @@ void actionWindow_c::manageChecksButtonClicked_f()
     actionChecksWindow_c* actionChecksWindowTmp(new actionChecksWindow_c(action_ptr_pri->checkDataHub_ptr_f(), this));
     actionChecksWindowTmp->setWindowFlag(Qt::Window, true);
     actionChecksWindowTmp->setWindowModality(Qt::WindowModal);
-    actionChecksWindowTmp->show();
+    actionChecksWindowTmp->show_f();
 }
 
 //no need for now
@@ -426,7 +426,7 @@ bool actionWindow_c::save_f()
         bool actionTypeSaveResultTmp(false);
         if (isNew_pri)
         {
-            actionTypeSaveResultTmp = baseClassActionTypeWidgets_pri->saveNew_f(objTmp);
+            actionTypeSaveResultTmp = baseClassActionTypeWidgets_pri->saveNew_f(objTmp, actonDataHub_ptr_ext);
             if (actionTypeSaveResultTmp)
             {
                 actonDataHub_ptr_ext->insertActionData_f(action_ptr_pri, row_pri_con, std::addressof(errorsTmp));

@@ -111,7 +111,7 @@ void logsWindow_c::addLogEntry_f(const int index_par_con, const logItem_c* const
     threadIdCellTmp->setFlags(threadIdCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     QTableWidgetItem *typeCellTmp(new QTableWidgetItem);
-    typeCellTmp->setData(Qt::DisplayRole, logItem_c:: logTypeToStrUMap_pub_sta_con.at(logItem_par_con->type_f()));
+    typeCellTmp->setData(Qt::DisplayRole, messageTypeToString_f(logItem_par_con->type_f()));
     typeCellTmp->setFlags(typeCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
     QTableWidgetItem *messageCellTmp(new QTableWidgetItem);
@@ -176,12 +176,12 @@ void logsWindow_c::loadLogs_f()
 }
 
 logsWindow_c::logsWindow_c()
-    //: QWidget(mainWindow_ptr_ext)
+    : QWidget(mainWindow_ptr_ext)
 {
     this->setObjectName("logsWindow_");
     this->setAttribute(Qt::WA_DeleteOnClose);
 
-    connect(mainWindow_ptr_ext, &mainWindow_c::close_signal, this, &QWidget::close);
+    connect(mainWindow_ptr_ext, &mainWindow_c::closeWindow_signal, this, &QWidget::close);
 
     //FUTURE filters
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;

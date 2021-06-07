@@ -20,7 +20,7 @@ void actionExecutionDetailsWindow_c::closeEvent(QCloseEvent* event)
 }
 
 actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
-        actionDataExecutionResult_c* actionDataExecutionResult_ptr_par
+        actionExecutionResult_c* actionDataExecutionResult_ptr_par
         , QWidget *parent_par)
     : QWidget(parent_par)
     , actionDataExecutionResultPtr_pri(actionDataExecutionResult_ptr_par)
@@ -211,13 +211,13 @@ actionExecutionDetailsWindow_c::actionExecutionDetailsWindow_c(
         updateReturnCode_f();
         updateAnyFinish_f();
 
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::outputUpdated_signal, this, &actionExecutionDetailsWindow_c::updateOutput_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::error_signal, this, &actionExecutionDetailsWindow_c::updateError_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::externalOutputUpdated_signal, this, &actionExecutionDetailsWindow_c::updateExternalOutput_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::externalErrorUpdated_signal, this, &actionExecutionDetailsWindow_c::updateExternalError_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::executionStateUpdated_signal, this, &actionExecutionDetailsWindow_c::updateState_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::returnCodeSet_signal, this, &actionExecutionDetailsWindow_c::updateReturnCode_f);
-        connect(actionDataExecutionResultPtr_pri, &actionDataExecutionResult_c::finished_signal, this, &actionExecutionDetailsWindow_c::updateAnyFinish_f);
+        connect(actionDataExecutionResultPtr_pri, &actionExecutionResult_c::informationMessageAdded_signal, this, &actionExecutionDetailsWindow_c::updateOutput_f);
+        connect(actionDataExecutionResultPtr_pri, &actionExecutionResult_c::errorMessageAdded_signal, this, &actionExecutionDetailsWindow_c::updateError_f);
+        connect(actionDataExecutionResultPtr_pri, &actionExecutionResult_c::externalStdoutAdded_signal, this, &actionExecutionDetailsWindow_c::updateExternalOutput_f);
+        connect(actionDataExecutionResultPtr_pri, &actionExecutionResult_c::externalStdErrAdded_signal, this, &actionExecutionDetailsWindow_c::updateExternalError_f);
+        connect(actionDataExecutionResultPtr_pri, &actionExecutionResult_c::executionStateUpdated_signal, this, &actionExecutionDetailsWindow_c::updateState_f);
+        connect(actionDataExecutionResultPtr_pri, &actionExecutionResult_c::returnCodeSet_signal, this, &actionExecutionDetailsWindow_c::updateReturnCode_f);
+        connect(actionDataExecutionResultPtr_pri, &actionExecutionResult_c::finished_signal, this, &actionExecutionDetailsWindow_c::updateAnyFinish_f);
     }
 }
 
@@ -241,22 +241,22 @@ void actionExecutionDetailsWindow_c::tipsButtonClicked_f()
 
 void actionExecutionDetailsWindow_c::updateOutput_f()
 {
-    outputPTE_pri->setPlainText(appConfig_ptr_ext->translateAndReplace_f(actionDataExecutionResultPtr_pri->output_f()));
+    outputPTE_pri->setPlainText(appConfig_ptr_ext->translateAndReplace_f(actionDataExecutionResultPtr_pri->messagesTextCompilation_f({executionMessage_c::type_ec::information})));
 }
 
 void actionExecutionDetailsWindow_c::updateError_f()
 {
-    errorPTE_pri->setPlainText(appConfig_ptr_ext->translateAndReplace_f(actionDataExecutionResultPtr_pri->errors_f()));
+    errorPTE_pri->setPlainText(appConfig_ptr_ext->translateAndReplace_f(actionDataExecutionResultPtr_pri->messagesTextCompilation_f({executionMessage_c::type_ec::error})));
 }
 
 void actionExecutionDetailsWindow_c::updateExternalOutput_f()
 {
-    externalOutputPTE_pri->setPlainText(actionDataExecutionResultPtr_pri->externalOutput_f());
+    externalOutputPTE_pri->setPlainText(actionDataExecutionResultPtr_pri->messagesStr_f({executionMessage_c::type_ec::externalsdout}));
 }
 
 void actionExecutionDetailsWindow_c::updateExternalError_f()
 {
-    externalErrorPTE_pri->setPlainText(actionDataExecutionResultPtr_pri->externalErrorOutput_f());
+    externalErrorPTE_pri->setPlainText(actionDataExecutionResultPtr_pri->messagesStr_f({executionMessage_c::type_ec::externalstderr}));
 }
 
 void actionExecutionDetailsWindow_c::updateState_f()
@@ -267,7 +267,7 @@ void actionExecutionDetailsWindow_c::updateState_f()
                     QDateTime::fromMSecsSinceEpoch(actionDataExecutionResultPtr_pri->startTime_f()).toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
         );
     }
-    executionStateTE_pri->setText(actionExecutionStateToStrUMap_ext_con.at(actionDataExecutionResultPtr_pri->lastState_f()));
+    executionStateTE_pri->setText(actionExecutionStateToString_f(actionDataExecutionResultPtr_pri->lastState_f()));
 }
 
 void actionExecutionDetailsWindow_c::updateReturnCode_f()

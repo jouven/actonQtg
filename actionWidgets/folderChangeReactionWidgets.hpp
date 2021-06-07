@@ -13,7 +13,6 @@ class QLabel;
 
 class folderChangeReactionData_c;
 class folderChangeReactionAction_c;
-class actionData_c;
 class textCompilation_c;
 
 class folderChangeReactionWidgets_c : public baseClassActionTypeWidgets_c
@@ -56,7 +55,7 @@ class folderChangeReactionWidgets_c : public baseClassActionTypeWidgets_c
 
     void loadActionSpecificData_f();
 
-    bool derivedSaveNew_f(const actionData_c& actionDataBlock_par_con) override;
+    bool derivedSaveNew_f(const actionData_c& actionDataBlock_par_con, actonDataHub_c* parentActonDataHub_par) override;
     bool derivedSaveUpdate_f() override;
     void derivedParentClosing_f() override;
     QString derivedExtraTips_f() const override;

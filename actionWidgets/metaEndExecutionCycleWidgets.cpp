@@ -31,11 +31,11 @@ metaEndExecutionCycleData_c metaEndExecutionCycleWidgets_c::fieldsToMetaEndExecu
     );
 }
 
-bool metaEndExecutionCycleWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con)
+bool metaEndExecutionCycleWidgets_c::derivedSaveNew_f(const actionData_c& actionDataBlock_par_con, actonDataHub_c* parentActonDataHub_par)
 {
     bool resultTmp(false);
     metaEndExecutionCycleData_c objTmp(fieldsToMetaEndExecutionCycleDataObject_f());
-    metaEndExecutionCycleAction_ptr_pri = new metaEndExecutionCycleAction_c(actionDataBlock_par_con, objTmp);
+    metaEndExecutionCycleAction_ptr_pri = new metaEndExecutionCycleAction_c(parentActonDataHub_par, actionDataBlock_par_con, objTmp);
     actionPtr_pro = metaEndExecutionCycleAction_ptr_pri;
     resultTmp = true;
     return resultTmp;

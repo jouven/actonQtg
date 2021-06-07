@@ -12,9 +12,12 @@ android:QMAKE_CXXFLAGS += -std=c++14
 
 HEADERS       = \
     actionWidgets/folderChangeReactionWidgets.hpp \
+    actonDataHubGlobal.hpp \
     appConfig.hpp \
     actionWindow.hpp \
     checkWidgets/actionStartedExecutingWidgets.hpp \
+    executionResultWindow.hpp \
+    executionResultsWindow.hpp \
     mainWindow.hpp \
     actionWidgets/runProcessExtra/argumentWindow.hpp \
     actionWidgets/createDirectoryWidgets.hpp \
@@ -48,13 +51,17 @@ HEADERS       = \
     actionWidgets/metaEndExecutionCycleWidgets.hpp \
     checkWidgets/timerWidgets.hpp \
     checkWidgets/pathExistsWidgets.hpp \
-    stringFormatting.hpp
+    stringFormatting.hpp \
+    stringParserGlobal.hpp
 
 SOURCES       = main.cpp \
     actionWidgets/folderChangeReactionWidgets.cpp \
+    actonDataHubGlobal.cpp \
     appConfig.cpp \
     actionWindow.cpp \
     checkWidgets/actionStartedExecutingWidgets.cpp \
+    executionResultWindow.cpp \
+    executionResultsWindow.cpp \
     mainWindow.cpp \
     actionWidgets/runProcessExtra/argumentWindow.cpp \
     actionWidgets/createDirectoryWidgets.cpp \
@@ -88,7 +95,8 @@ SOURCES       = main.cpp \
     actionWidgets/metaEndExecutionCycleWidgets.cpp \
     checkWidgets/timerWidgets.cpp \
     checkWidgets/pathExistsWidgets.cpp \
-    stringFormatting.cpp
+    stringFormatting.cpp \
+    stringParserGlobal.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -117,13 +125,13 @@ CONFIG(release, debug|release){
 }
 #debug
 CONFIG(debug, debug|release){
-LIBS += -L$${MYPATH}home/jouven/mylibs/debug -ltimeso
-win32:LIBS += -lboost_date_time-mt
-!win32:LIBS += -lbackwardSTso
+LIBS += -L$${MYPATH}home/jouven/mylibs/debug
+#win32:LIBS += -lboost_date_time-mt
+!win32:LIBS += -ldw
     DEPENDPATH += $${MYPATH}home/jouven/mylibs/debug
     QMAKE_RPATHDIR += $${MYPATH}home/jouven/mylibs/debug
     #QMAKE_LFLAGS += -rdynamic
-    DEFINES += DEBUGJOUVEN
+    DEFINES += DEBUGJOUVEN BACKWARD_HAS_UNWIND BACKWARD_HAS_DW
 }
 }
 
@@ -144,9 +152,9 @@ CONFIG(debug, debug|release){
 
 }
 
-LIBS += -lessentialQtso -lsignalso -lessentialQtgso -lactonQtso -lthreadedFunctionQtso \
+LIBS += -lessentialQtso -lsignalso -lsignalProxyQtso -lessentialQtgso -lactonQtso -lthreadedFunctionQtso \
 -ltranslatorJSONQtso -llogsinJSONQtso -lsizeConversionso -lstringParserMapQtso \
--lbaseClassQtso -ltextQtso
+-lbaseClassQtso -ltextQtso -lprogramConfigQtso -lprogramConfigQtgso -lfilterDirectoryQtso
 
 QMAKE_CXXFLAGS_DEBUG -= -g
 QMAKE_CXXFLAGS_DEBUG += -pedantic -Wall -Wextra -g3

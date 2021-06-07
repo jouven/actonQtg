@@ -19,9 +19,9 @@ bool baseClassActionTypeWidgets_c::saveUpdate_f()
     return derivedSaveUpdate_f();
 }
 
-bool baseClassActionTypeWidgets_c::saveNew_f(const actionData_c& actionData_par_con)
+bool baseClassActionTypeWidgets_c::saveNew_f(const actionData_c& actionData_par_con, actonDataHub_c* parentActonDataHub_par)
 {
-    return derivedSaveNew_f(actionData_par_con);
+    return derivedSaveNew_f(actionData_par_con, parentActonDataHub_par);
 }
 
 void baseClassActionTypeWidgets_c::parentClosing_f()

@@ -21,18 +21,27 @@ void fileListWindow_c::closeEvent(QCloseEvent* event)
 void fileListWindow_c::addFileEntry_f(
         const QString& filename_par_con
         , const QString& lastModDatetimeStr_par_con
-        , const QString& sizeStr_par_con
+        , const uint_fast64_t size_par_con
 )
 {
     int indexTmp(fileListTable_pri->rowCount());
     fileListTable_pri->insertRow(indexTmp);
-    QTableWidgetItem* nameCellTmp(new QTableWidgetItem(filename_par_con));
+    QTableWidgetItem* nameCellTmp(new QTableWidgetItem);
+    nameCellTmp->setData(Qt::DisplayRole, filename_par_con);
     nameCellTmp->setFlags(nameCellTmp->flags() bitand compl Qt::ItemIsEditable);
+    nameCellTmp->setToolTip(filename_par_con);
 
-    QTableWidgetItem* sizeCellTmp(new QTableWidgetItem(sizeStr_par_con));
+    QTableWidgetItem* sizeCellTmp(new QTableWidgetItem);
+    QString sizeStrTmp(QString::fromStdString(formatByteSizeValue_f(size_par_con)));
+    sizeCellTmp->setData(Qt::DisplayRole, sizeStrTmp);
     sizeCellTmp->setFlags(sizeCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
-    QTableWidgetItem* lastModDatetimeCellTmp(new QTableWidgetItem(lastModDatetimeStr_par_con));
+    QTableWidgetItem* sizeBytesCellTmp(new QTableWidgetItem);
+    sizeBytesCellTmp->setData(Qt::DisplayRole, QVariant::fromValue(size_par_con));
+    sizeBytesCellTmp->setFlags(sizeBytesCellTmp->flags() bitand compl Qt::ItemIsEditable);
+
+    QTableWidgetItem* lastModDatetimeCellTmp(new QTableWidgetItem);
+    lastModDatetimeCellTmp->setData(Qt::DisplayRole, lastModDatetimeStr_par_con);
     lastModDatetimeCellTmp->setFlags(lastModDatetimeCellTmp->flags() bitand compl Qt::ItemIsEditable);
 
 //    QTableWidgetItem *dateTimeCellTmp(new QTableWidgetItem(logDateTime_par_con->toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")));
@@ -49,7 +58,8 @@ void fileListWindow_c::addFileEntry_f(
 
     fileListTable_pri->setItem(indexTmp, 0, nameCellTmp);
     fileListTable_pri->setItem(indexTmp, 1, sizeCellTmp);
-    fileListTable_pri->setItem(indexTmp, 2, lastModDatetimeCellTmp);
+    fileListTable_pri->setItem(indexTmp, 2, sizeBytesCellTmp);
+    fileListTable_pri->setItem(indexTmp, 3, lastModDatetimeCellTmp);
 //#ifdef DEBUGJOUVEN
 ////    qtOutRef_ext() << "Log entry added, index " << index_par << endl;
 ////    qtOutRef_ext() << "Log entry added, message_f " << logItem_par->message_f() << endl;
@@ -72,14 +82,17 @@ void fileListWindow_c::addFileEntry_f(
 
 void fileListWindow_c::loadFileVectorToTableGrid_f(const std::vector<QString>& fileVector_par_con)
 {
+    fileListTable_pri->setSortingEnabled(false);
+    fileListTable_pri->setUpdatesEnabled(false);
     for (const QString& filename_ite_con : fileVector_par_con)
     {
         QFileInfo fileInfoTmp(filename_ite_con);
-        QString sizeStrTmp(QString::fromStdString(formatByteSizeValue_f(fileInfoTmp.size())));
         QString datetimeModStrTmp(fileInfoTmp.lastModified().toString("yyyy-MM-dd hh:mm:ss.zzz"));
 
-        addFileEntry_f(filename_ite_con, datetimeModStrTmp, sizeStrTmp);
+        addFileEntry_f(filename_ite_con, datetimeModStrTmp, fileInfoTmp.size());
     }
+    fileListTable_pri->setUpdatesEnabled(true);
+    fileListTable_pri->setSortingEnabled(true);
 }
 
 fileListWindow_c::fileListWindow_c(
@@ -89,16 +102,15 @@ fileListWindow_c::fileListWindow_c(
     : QWidget(parent_par)
 {
     this->setObjectName("fileListWindow_");
-    this->setAttribute(Qt::WA_DeleteOnClose);
 
-    connect(mainWindow_ptr_ext, &mainWindow_c::close_signal, this, &QWidget::close);
+    //connect(mainWindow_ptr_ext, &mainWindow_c::closeWindow_signal, this, &QWidget::close);
 
     //FUTURE filters
     QHBoxLayout* firstRowLayoutTmp = new QHBoxLayout;
 
     QHBoxLayout* tableRowLayoutTmp = new QHBoxLayout;
 
-    fileListTable_pri = new QTableWidget(0, 3);
+    fileListTable_pri = new QTableWidget(0, 4);
     fileListTable_pri->verticalHeader()->setVisible(false);
     fileListTable_pri->setObjectName("QTableWidget_");
     fileListTable_pri->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -106,6 +118,8 @@ fileListWindow_c::fileListWindow_c(
     QStringList labelsTmp({
             appConfig_ptr_ext->translate_f("Filename")
             , appConfig_ptr_ext->translate_f("Size")
+            //with this one it's easy to sort by size
+            , appConfig_ptr_ext->translate_f("Size bytes")
             , appConfig_ptr_ext->translate_f("Modification datetime")
     });
     fileListTable_pri->setHorizontalHeaderLabels(labelsTmp);
@@ -150,7 +164,7 @@ fileListWindow_c::fileListWindow_c(
 
     loadFileVectorToTableGrid_f(fileVector_par_con);
 
-    setWindowTitle(appConfig_ptr_ext->translate_f("File list"));
+    setWindowTitle(appConfig_ptr_ext->translateAndReplace_f({"File list ({0} items)", fileVector_par_con.size()}));
 
     if (appConfig_ptr_ext->configLoaded_f())
     {
