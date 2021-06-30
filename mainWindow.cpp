@@ -214,7 +214,6 @@ mainWindow_c::mainWindow_c()
 
 void mainWindow_c::start_f()
 {
-    QObject::connect(signalso::signalProxy_ptr_ext, &signalso::signalProxy_c::signalTriggered_signal, this, &mainWindow_c::OSSignalRecieved_f);
     const QRect screenGeometry = QApplication::desktop()->availableGeometry(this);
 
     QShortcut* quitShortCut(new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q), this));
@@ -824,20 +823,6 @@ void mainWindow_c::messageBoxSaveActionsToFileOnExitFinished_f(const int result_
             close();
         }
     }
-}
-
-void mainWindow_c::OSSignalRecieved_f(int signal_par)
-{
-    QMessageBox* informationMessageBoxPtrTmp(new QMessageBox(this));
-    informationMessageBoxPtrTmp->setAttribute(Qt::WA_DeleteOnClose);
-    informationMessageBoxPtrTmp->setWindowTitle(appConfig_ptr_ext->translate_f("Warning"));
-    text_c textTmp("OS signal {0} received, proceeding to close the program", signal_par);
-    informationMessageBoxPtrTmp->setText(appConfig_ptr_ext->translateAndReplace_f(textTmp));
-    informationMessageBoxPtrTmp->setModal(Qt::WindowModal);
-
-    QObject::connect(informationMessageBoxPtrTmp, &QMessageBox::finished, this, &mainWindow_c::close);
-
-    informationMessageBoxPtrTmp->show();
 }
 
 void mainWindow_c::messageBoxOverwriteLastActionLoadedFileFinished_f(const int result_par)

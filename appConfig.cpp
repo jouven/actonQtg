@@ -6,16 +6,6 @@
 
 #include <QCommandLineParser>
 
-void appConfig_c::derivedReadJSON_f(const QJsonObject& json_par_con)
-{
-
-}
-
-void appConfig_c::derivedWriteJSON_f(QJsonObject& json_par) const
-{
-
-}
-
 void appConfig_c::derivedConfigureCommandLineParser_f(QCommandLineParser& parser_par) const
 {
     parser_par.addPositionalArgument("action file paths", "Optional, path/s to action files to be loaded, they must be compatible-valid");
@@ -40,7 +30,6 @@ logDataHub_c* appConfig_c::logDataHub_f()
 void appConfig_c::derivedStart_f()
 {
     signalso::signalProxy_ptr_ext = new signalso::signalProxy_c(qApp);
-    appConfig_ptr_ext = this;
 
     QObject::connect(this, &appConfig_c::started_signal, mainWindow_ptr_ext, &mainWindow_c::start_f);
     QObject::connect(mainWindow_ptr_ext, &mainWindow_c::closeWindow_signal, this, &appConfig_c::quit_signal);
@@ -51,16 +40,17 @@ void appConfig_c::derivedStart_f()
 
     actonDataHub_ptr_ext->setLogDataHub_f(logDataHub_f());
 
-    if (configLoaded_f())
-    {
+    //this class doesn't even read anything extra from the json configuration file, so don't quit when there is no json config
+//    if (configLoaded_f())
+//    {
 
-    }
-    else
-    {
-        //MACRO_ADDLOG("Config not loaded quitting", QString(), messageType_ec::error);
-        //messageUser_f({"Couldn't load {0} config file, pass \"-g\" argument to generate a config file documentation file", configFilePath_f()}, messageType_ec::informationrmation);
-        Q_EMIT quit_signal();
-    }
+//    }
+//    else
+//    {
+//        //MACRO_ADDLOG("Config not loaded quitting", QString(), messageType_ec::error);
+//        //messageUser_f({"Couldn't load {0} config file, pass \"-g\" argument to generate a config file documentation file", configFilePath_f()}, messageType_ec::informationrmation);
+//        Q_EMIT quit_signal();
+//    }
 }
 
 void appConfig_c::derivedQuit_f()

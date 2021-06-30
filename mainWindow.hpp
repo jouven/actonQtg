@@ -93,7 +93,6 @@ Q_SIGNALS:
     void scrollToItem_signal(const int);
     //void resizeFileTable_signal();
 
-    //use queued
     void closeWindow_signal();
 private Q_SLOTS:
     //void contextMenu(const QPoint &pos);
@@ -151,7 +150,6 @@ private Q_SLOTS:
     void killExecutingActionsAndClose_f();
     //public Q_SLOTS:
     void messageBoxSaveActionsToFileOnExitFinished_f(const int result_par);
-    void OSSignalRecieved_f(int signal_par);
 };
 
 extern mainWindow_c* mainWindow_ptr_ext;

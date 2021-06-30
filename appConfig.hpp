@@ -43,8 +43,10 @@ class appConfig_c : public programConfigGUI_c
 
     QStringList positionalArguments_pri;
 
-    void derivedReadJSON_f(const QJsonObject &json_par_con) override;
-    void derivedWriteJSON_f(QJsonObject &json_par) const override;
+    void derivedReadJSON_f(const QJsonObject &json_par_con) override
+    {}
+    void derivedWriteJSON_f(QJsonObject &json_par) const override
+    {}
     void derivedWriteJSONDocumented_f(QJsonObject&) const override
     {}
     bool firstPositionalArgumentCanBeConfig_f() const override
@@ -83,49 +85,6 @@ class appConfig_c : public programConfigGUI_c
 
 public:
     appConfig_c(QObject* parent_par);
-
-    //bool saveConfigFile_f();
-
-    //bool configLoaded_f() const;
-
-    //I would use a pair but restoring states with an empty QByteArray doesn't do anything... so it's ok for now
-    //QByteArray widgetGeometry_f(const QString& key_par_con) const;
-    //void setWidgetGeometry_f(const QString& key_par_con, const QByteArray& windowGeometry_par_con);
-
-    //std::vector<QString> directoryHistory_f(const QString& fileDialogStringId_par_con) const;
-    //void addDirectoryHistory_f(const QString& fileDialogStringId_par_con, const QString& directory_par_con);
-
-    //QString translate_f(const QString& key_par_con);
-    //QString translateAndReplace_f(const text_c& text_par_con);
-    //QString translateAndReplace_f(const textCompilation_c& textCompilation_par_con);
-    //FUTURE allow to change language using translationFromToPairs_f (the "to" part)
-    //Making a program like "translationParserAvidcalm" (which is another program made by me, that parses the source js/cpp files for translations)
-    //but to generate skeleton json language files
-    //(from language will always be hardcoded because the initial source-language is always harcoded)
-
-//    bool addLogMessage_f(
-//            const text_c& message_par_con
-//            , const messageType_ec logType_par_con
-//            , const QString& sourceFile_par_con
-//            , const QString& sourceFunction_par_con
-//            , const int_fast32_t line_par_con
-//    );
-//    bool addLogMessage_f(
-//            const text_c& message_par_con
-//            , const action_c* actionPtr_par
-//            , const messageType_ec logType_par_con
-//            , const QString& sourceFile_par_con
-//            , const QString& sourceFunction_par_con
-//            , const int_fast32_t line_par_con
-//    );
-//    bool addLogMessage_f(
-//            const text_c& message_par_con
-//            , const check_c* checkPtr_par
-//            , const messageType_ec logType_par_con
-//            , const QString& sourceFile_par_con
-//            , const QString& sourceFunction_par_con
-//            , const int_fast32_t line_par_con
-//    );
 
     QStringList commandLinePositionalArguments_f() const;
 
